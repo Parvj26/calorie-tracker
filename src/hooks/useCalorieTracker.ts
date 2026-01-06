@@ -216,16 +216,37 @@ export function useCalorieTracker() {
     );
   }, [setMeals, setDailyLogs, user, deleteMealFromDb, saveDailyLog]);
 
-  // Add InBody scan - also automatically adds weight to weigh-ins
+  // Add InBody scan - replaces existing scan on same date, also updates weigh-ins
   const addInBodyScan = useCallback((scan: Omit<InBodyScan, 'id'>) => {
-    const newScan: InBodyScan = {
-      ...scan,
-      id: uuidv4(),
-    };
-    setInBodyScans((prev) => [...prev, newScan].sort((a, b) => b.date.localeCompare(a.date)));
-    if (user) saveInBodyScan(newScan);
+    let newScan: InBodyScan;
 
-    // Automatically add weight to weigh-ins
+    setInBodyScans((prev) => {
+      // Check if scan with same date already exists
+      const existingIndex = prev.findIndex((s) => s.date === scan.date);
+
+      if (existingIndex >= 0) {
+        // Replace existing scan - keep the same ID for database update
+        newScan = {
+          ...scan,
+          id: prev[existingIndex].id,
+        };
+        const updated = [...prev];
+        updated[existingIndex] = newScan;
+        return updated.sort((a, b) => b.date.localeCompare(a.date));
+      } else {
+        // Add new scan
+        newScan = {
+          ...scan,
+          id: uuidv4(),
+        };
+        return [...prev, newScan].sort((a, b) => b.date.localeCompare(a.date));
+      }
+    });
+
+    // Save to database (upsert handles both insert and update)
+    if (user) saveInBodyScan(newScan!);
+
+    // Automatically add/update weight in weigh-ins
     if (scan.weight > 0) {
       const weighIn = { date: scan.date, weight: scan.weight };
       setWeighIns((prev) => {
@@ -240,7 +261,7 @@ export function useCalorieTracker() {
       if (user) saveWeighIn(weighIn);
     }
 
-    return newScan;
+    return newScan!;
   }, [setInBodyScans, setWeighIns, user, saveInBodyScan, saveWeighIn]);
 
   // Delete InBody scan
