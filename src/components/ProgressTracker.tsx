@@ -12,7 +12,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { Target, TrendingDown, Plus, Trash2 } from 'lucide-react';
+import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp } from 'lucide-react';
 import type { WeighIn, UserSettings } from '../types';
 
 interface ProgressTrackerProps {
@@ -22,6 +22,14 @@ interface ProgressTrackerProps {
     calorieData: any[];
     weightData: any[];
     bodyCompData: any[];
+    stepsData: any[];
+    stepsStats: {
+      avgSteps: number;
+      maxSteps: number;
+      totalSteps: number;
+      currentStreak: number;
+      daysTracked: number;
+    };
   };
   goalProgress: {
     startWeight: number;
@@ -47,7 +55,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     date: format(new Date(), 'yyyy-MM-dd'),
     weight: '',
   });
-  const [activeChart, setActiveChart] = useState<'weight' | 'calories' | 'body'>('weight');
+  const [activeChart, setActiveChart] = useState<'weight' | 'calories' | 'body' | 'steps'>('weight');
 
   const handleAddWeighIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +155,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           onClick={() => setActiveChart('calories')}
         >
           Calories
+        </button>
+        <button
+          className={activeChart === 'steps' ? 'active' : ''}
+          onClick={() => setActiveChart('steps')}
+        >
+          Steps
         </button>
         {progressData.bodyCompData.length > 0 && (
           <button
@@ -290,6 +304,106 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </>
+        )}
+
+        {activeChart === 'steps' && (
+          <>
+            <h3>Daily Steps (Last 30 Days)</h3>
+            {progressData.stepsData.length > 0 ? (
+              <>
+                {/* Motivational Stats */}
+                <div className="steps-stats-grid">
+                  <div className="steps-stat-card">
+                    <Flame size={20} className="stat-icon flame" />
+                    <div className="stat-content">
+                      <span className="stat-value">{progressData.stepsStats.currentStreak}</span>
+                      <span className="stat-label">Day Streak (10k+)</span>
+                    </div>
+                  </div>
+                  <div className="steps-stat-card">
+                    <TrendingUp size={20} className="stat-icon avg" />
+                    <div className="stat-content">
+                      <span className="stat-value">{progressData.stepsStats.avgSteps.toLocaleString()}</span>
+                      <span className="stat-label">Daily Average</span>
+                    </div>
+                  </div>
+                  <div className="steps-stat-card">
+                    <Trophy size={20} className="stat-icon trophy" />
+                    <div className="stat-content">
+                      <span className="stat-value">{progressData.stepsStats.maxSteps.toLocaleString()}</span>
+                      <span className="stat-label">Personal Best</span>
+                    </div>
+                  </div>
+                  <div className="steps-stat-card">
+                    <Footprints size={20} className="stat-icon total" />
+                    <div className="stat-content">
+                      <span className="stat-value">{progressData.stepsStats.totalSteps.toLocaleString()}</span>
+                      <span className="stat-label">Total Steps</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Steps Chart */}
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={progressData.stepsData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="displayDate"
+                        tick={{ fontSize: 12 }}
+                        stroke="#9ca3af"
+                      />
+                      <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value) => [typeof value === 'number' ? value.toLocaleString() : '0', 'Steps']}
+                      />
+                      <ReferenceLine
+                        y={10000}
+                        stroke="#10b981"
+                        strokeDasharray="5 5"
+                        label={{ value: '10k Goal', fill: '#10b981', fontSize: 12 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="steps"
+                        stroke="#8b5cf6"
+                        fill="#8b5cf6"
+                        fillOpacity={0.2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Motivational Message */}
+                <div className="steps-motivation">
+                  {progressData.stepsStats.avgSteps >= 10000 ? (
+                    <p className="motivation-text success">
+                      Amazing! You're averaging {progressData.stepsStats.avgSteps.toLocaleString()} steps daily. Keep crushing it!
+                    </p>
+                  ) : progressData.stepsStats.avgSteps >= 7500 ? (
+                    <p className="motivation-text good">
+                      Great progress! You're {(10000 - progressData.stepsStats.avgSteps).toLocaleString()} steps away from 10k average.
+                    </p>
+                  ) : (
+                    <p className="motivation-text encourage">
+                      Every step counts! Aim for 10,000 steps daily to boost your health.
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="no-data">
+                <Footprints size={48} className="no-data-icon" />
+                <p>No steps data yet.</p>
+                <p className="no-data-hint">Import your Apple Health data from the Dashboard to track your daily steps!</p>
+              </div>
+            )}
           </>
         )}
       </div>

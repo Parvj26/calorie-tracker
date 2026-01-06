@@ -8,8 +8,8 @@ interface InBodyExtractedData {
 
 export interface HealthDataExtracted {
   steps: number | null;
-  activeCalories: number | null;
-  totalCalories: number | null;
+  activeCalories: number | null;      // Active Energy / Move calories
+  restingCalories: number | null;     // Resting Energy / BMR
   exerciseMinutes: number | null;
   standHours: number | null;
   weight: number | null;
@@ -45,8 +45,8 @@ export async function extractHealthData(
 
 {
   "steps": <number of steps>,
-  "activeCalories": <active/exercise calories burned as number>,
-  "totalCalories": <total calories burned including resting as number>,
+  "activeCalories": <Active Energy or Move calories - calories burned through activity>,
+  "restingCalories": <Resting Energy - BMR/basal metabolic rate, calories burned at rest>,
   "exerciseMinutes": <exercise minutes as number>,
   "standHours": <stand hours as number>,
   "weight": <weight in kg as number>,
@@ -59,8 +59,10 @@ export async function extractHealthData(
 }
 
 Important:
-- Extract numerical values only (no units)
-- If showing activity rings, Move = activeCalories, Exercise = exerciseMinutes, Stand = standHours
+- Extract numerical values only (no units in JSON values)
+- "Active Energy" in Apple Health = activeCalories (calories burned through movement/exercise)
+- "Resting Energy" in Apple Health = restingCalories (BMR, typically 1500-2000 cal)
+- Activity rings: Move = activeCalories, Exercise = exerciseMinutes, Stand = standHours
 - Convert miles to km if needed (multiply by 1.60934)
 - Convert lbs to kg if needed (multiply by 0.453592)
 - For workouts array, include each workout shown. Empty array if none visible

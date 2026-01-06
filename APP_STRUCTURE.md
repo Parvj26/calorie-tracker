@@ -2,7 +2,7 @@
 
 ## Overview
 
-CalorieTracker is a personalized nutrition companion web app built with React + TypeScript. It helps users track daily calorie intake, monitor body composition through InBody scans, and visualize progress toward weight goals.
+CalorieTracker is a personalized nutrition companion web app built with React + TypeScript. It helps users track daily calorie intake, monitor body composition through InBody scans, import Apple Health data for accurate TDEE calculations, and visualize progress toward weight goals.
 
 **Live URL:** https://calorie-tracker-self-five.vercel.app
 **GitHub:** https://github.com/Parvj26/calorie-tracker
@@ -19,7 +19,8 @@ CalorieTracker is a personalized nutrition companion web app built with React + 
 | Recharts | Data Visualization |
 | date-fns | Date Manipulation |
 | lucide-react | Icons |
-| OpenAI GPT-4o | AI Image Analysis |
+| Groq API | AI Image Analysis (Free - Default) |
+| OpenAI GPT-4o | AI Image Analysis (Paid - Optional) |
 | localStorage | Data Persistence |
 | Vercel | Hosting |
 
@@ -54,7 +55,8 @@ calorie-tracker/
 │   │   └── useLocalStorage.ts   # localStorage persistence hook
 │   │
 │   ├── utils/
-│   │   └── openai.ts            # OpenAI API integration
+│   │   ├── openai.ts            # OpenAI API integration
+│   │   └── groq.ts              # Groq API integration (Llama 3.2 Vision)
 │   │
 │   ├── data/
 │   │   └── defaultMeals.ts      # Pre-defined meals & default settings
@@ -83,39 +85,63 @@ calorie-tracker/
 
 The central hub displaying:
 
+- **Date Selector** - Navigate between days with left/right arrows (at top)
 - **Scan Food Button** - Primary CTA to open AI food scanner
+- **TDEE Card** - Shows Total Daily Energy Expenditure when health data imported:
+  - Total burn (Resting + Active calories)
+  - Steps count
+  - Exercise minutes
 - **Body Metrics Card** - Latest InBody data (weight, body fat %, muscle mass, SMM) with change indicators
 - **Goal Progress Card** - Visual progress bar toward weight goal
-- **Daily Progress** - Circular progress showing calories consumed vs target
+- **Daily Progress** - Circular progress showing calories consumed vs TDEE (or target)
 - **Macros Card** - Protein, carbs, and fat breakdown with progress bars
-- **Workout Card** - Manual calorie burn input + "Import from Health" button
-- **Net Deficit Card** - Calculated calorie deficit (Target - Eaten + Burned)
+- **Activity Card** - Shows active calories when health data imported, or manual workout input
+- **True Deficit Card** - Calculated deficit based on actual TDEE (or estimated if no health data)
 - **Meal Logger** - Toggle meals on/off for the selected date
 
 ### 2. AI Food Scanner
 
 **File:** `src/components/FoodScanner.tsx`
 
-Powered by GPT-4 Vision:
+Powered by Groq (Llama 3.2 Vision) or OpenAI GPT-4o:
 
 - Take photo or upload image of food
 - AI analyzes and identifies food items
 - Extracts: name, calories, protein, carbs, fat, portion size
-- Adjustable portion multiplier (0.5x to 3x)
+- Confidence indicator (high/medium/low)
+- Adjustable portion multiplier (0.5x to 2x)
 - Two options:
   - **Log Once** - Add to today's log only
   - **Save & Log** - Save to meal library + log
 
-### 3. Apple Health Import
+### 3. Apple Health Import (TDEE Tracking)
 
 **File:** `src/components/HealthScanner.tsx`
 
-Import workout data from Apple Health screenshots:
+Import comprehensive health data from Apple Health screenshots:
 
-- Upload screenshot of Activity rings or workout summary
-- AI extracts: workout calories, steps, exercise minutes
-- One-click "Add" button to import calories to workout field
-- Displays extracted steps and exercise time (informational)
+- **Data Extracted:**
+  - Resting Energy (BMR) - calories burned at rest
+  - Active Energy (Move calories) - calories burned through activity
+  - Steps count
+  - Exercise minutes
+  - Stand hours
+
+- **TDEE Calculation:**
+  ```
+  TDEE = Resting Energy + Active Energy
+  Example: 1,761 + 622 = 2,383 calories
+  ```
+
+- **True Deficit:**
+  ```
+  True Deficit = TDEE - Calories Eaten
+  Example: 2,383 - 1,700 = 683 calorie deficit
+  ```
+
+- One-click "Import All Data" button
+- Shows TDEE summary card with breakdown
+- Data saved per day for historical tracking
 
 ### 4. InBody Scan Upload
 
@@ -125,9 +151,11 @@ Process InBody composition scans:
 
 - Upload photo of InBody scan results
 - AI extracts: weight, body fat %, muscle mass, skeletal muscle mass, date
+- Supports both Groq (free) and OpenAI providers
 - Review and edit extracted values before saving
 - **Auto-syncs weight to weigh-in tracking**
 - View history of all uploaded scans
+- Delete scans with trash icon
 
 ### 5. Progress Tracker
 
@@ -162,10 +190,14 @@ At-a-glance weekly stats:
 
 Configurable options:
 
+- **AI Provider Selection:**
+  - **Groq** (Free) - Default, uses Llama 4 Scout Vision
+  - **OpenAI** (Paid) - Uses GPT-4o
 - **Calorie Target Range** - Min/max daily calories (default: 1600-1800)
 - **Start Weight** - Initial weight for progress calculation
 - **Goal Weight** - Target weight
-- **OpenAI API Key** - Required for AI features
+- **Start Date** - When you began tracking
+- **API Keys** - Groq or OpenAI key based on selected provider
 - **Export Data** - Download all data as JSON
 - **Clear All Data** - Reset app to defaults
 
@@ -176,6 +208,18 @@ Configurable options:
 **File:** `src/types/index.ts`
 
 ```typescript
+// AI Provider type
+type AIProvider = 'openai' | 'groq';
+
+// Health metrics from Apple Health
+interface HealthMetrics {
+  restingEnergy: number;    // BMR - calories burned at rest
+  activeEnergy: number;     // Move calories - calories burned through activity
+  steps: number;
+  exerciseMinutes: number;
+  standHours?: number;
+}
+
 // Meal definition
 interface Meal {
   id: string;
@@ -189,9 +233,10 @@ interface Meal {
 
 // Daily log entry
 interface DailyLog {
-  date: string;           // YYYY-MM-DD
-  meals: string[];        // Array of meal IDs
-  workoutCalories: number;
+  date: string;              // YYYY-MM-DD
+  meals: string[];           // Array of meal IDs
+  workoutCalories: number;   // Manual entry (fallback)
+  healthMetrics?: HealthMetrics; // From Apple Health import
 }
 
 // InBody scan data
@@ -202,6 +247,7 @@ interface InBodyScan {
   bodyFatPercent: number;
   muscleMass: number;
   skeletalMuscle: number;
+  imageData?: string;        // base64 encoded image
 }
 
 // Weight tracking
@@ -216,7 +262,10 @@ interface UserSettings {
   dailyCalorieTargetMax: number;
   startWeight: number;
   goalWeight: number;
+  startDate: string;
+  aiProvider: AIProvider;
   openAiApiKey?: string;
+  groqApiKey?: string;
 }
 ```
 
@@ -231,7 +280,7 @@ Centralized state using custom hooks:
 | State | Storage Key | Description |
 |-------|-------------|-------------|
 | meals | `calorie-tracker-meals` | All meal definitions |
-| dailyLogs | `calorie-tracker-daily-logs` | Daily meal & workout logs |
+| dailyLogs | `calorie-tracker-daily-logs` | Daily meal, workout & health logs |
 | inBodyScans | `calorie-tracker-inbody` | InBody scan history |
 | weighIns | `calorie-tracker-weighins` | Weight tracking entries |
 | settings | `calorie-tracker-settings` | User preferences |
@@ -240,10 +289,11 @@ Centralized state using custom hooks:
 - `getLogForDate(date)` - Get or create log for a date
 - `toggleMealForDate(mealId, date)` - Add/remove meal from log
 - `updateWorkoutCalories(calories, date)` - Set workout calories
+- `updateHealthMetrics(metrics, date)` - Save Apple Health data for a date
 - `addMeal(meal)` - Add new meal to library
 - `logScannedMeal(meal, date)` - Add scanned meal + log it
 - `addInBodyScan(scan)` - Save scan + auto-sync weight
-- `calculateTotals(log)` - Compute calories, macros, deficit
+- `calculateTotals(log)` - Compute calories, macros, TDEE, deficit
 - `getWeeklySummary()` - Aggregate weekly statistics
 - `getProgressData()` - Data for charts
 - `getGoalProgress()` - Progress toward weight goal
@@ -280,21 +330,33 @@ Pre-configured meals:
 
 ## API Integration
 
-**File:** `src/utils/openai.ts`
+### Groq API (Free - Default)
 
-OpenAI GPT-4 Vision API for:
+**File:** `src/utils/groq.ts`
 
-1. **Food Recognition** (`analyzeFoodImage`)
+Uses Llama 4 Scout Vision model (`meta-llama/llama-4-scout-17b-16e-instruct`):
+
+1. **Food Recognition** (`groqAnalyzeFood`)
    - Input: Food photo (base64)
-   - Output: Food name, calories, protein, carbs, fat, portion estimate
+   - Output: Food name, calories, protein, carbs, fat, portion estimate, confidence
 
-2. **InBody Extraction** (`extractInBodyData`)
+2. **InBody Extraction** (`groqExtractInBodyData`)
    - Input: InBody scan photo (base64)
    - Output: Weight, body fat %, muscle mass, skeletal muscle, date
 
-3. **Health Data Extraction** (`extractHealthData`)
+3. **Health Data Extraction** (`groqExtractHealthData`)
    - Input: Apple Health screenshot (base64)
-   - Output: Steps, active calories, exercise minutes, workouts
+   - Output: Resting energy, active energy, steps, exercise minutes, stand hours
+
+### OpenAI API (Paid - Optional)
+
+**File:** `src/utils/openai.ts`
+
+Uses GPT-4o Vision model:
+
+1. **Food Recognition** - Same as Groq
+2. **InBody Extraction** (`extractInBodyData`) - Same as Groq
+3. **Health Data Extraction** (`extractHealthData`) - Same as Groq
 
 ---
 
@@ -308,6 +370,7 @@ Design system:
 - **Success:** `#10b981` (Green)
 - **Warning:** `#f59e0b` (Amber)
 - **Danger:** `#ef4444` (Red)
+- **TDEE Gradient:** `#667eea → #764ba2` (Purple)
 - **Border Radius:** 12px
 - **Font:** System UI stack
 
@@ -317,11 +380,19 @@ Mobile-first responsive design with breakpoints at 480px and 768px.
 
 ## Calorie Calculations
 
+### Without Health Data (Estimated)
 ```
 Target Calories = (Min + Max) / 2
 Net Calories = Calories Eaten - Workout Calories
 Deficit = Target Calories - Net Calories
 Calories Remaining = Target - Eaten + Workout Burned
+```
+
+### With Health Data (Accurate TDEE)
+```
+TDEE = Resting Energy + Active Energy
+True Deficit = TDEE - Calories Eaten
+Calories Remaining = TDEE - Calories Eaten
 ```
 
 Weight loss projection assumes 7,700 calories = 1 kg.
@@ -333,33 +404,68 @@ Weight loss projection assumes 7,700 calories = 1 kg.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      DASHBOARD                               │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  ◀  Today - January 5, 2026                      ▶  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  📷  Scan Your Food - AI-powered calorie detection  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  ⚡ TODAY'S ENERGY (TDEE)          2,383 cal        │    │
+│  │     Resting: 1,761  +  Active: 622                  │    │
+│  │     🚶 6,948 steps   ⏱️ 66 min exercise             │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ Scan Food   │  │ Body Stats  │  │ Goal Progress│         │
-│  │   (AI)      │  │ (InBody)    │  │             │         │
-│  └──────┬──────┘  └─────────────┘  └─────────────┘         │
-│         │                                                    │
-│         ▼                                                    │
-│  ┌─────────────────────────────────────────────────┐        │
-│  │              DAILY PROGRESS                      │        │
-│  │   Calories ●────────────○ 1200/1700             │        │
-│  │                                                  │        │
-│  │   Macros: P: 80g  C: 120g  F: 45g               │        │
-│  └─────────────────────────────────────────────────┘        │
+│  │ Body Stats  │  │ Goal        │  │ Daily       │         │
+│  │ 78kg  22%   │  │ 78→72 kg   │  │ Progress    │         │
+│  │ (InBody)    │  │ 67% done    │  │ ○ 1200/2383 │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                                                              │
 │  ┌──────────────┐    ┌──────────────┐                       │
-│  │   Workout    │    │  Net Deficit │                       │
-│  │  [Import]    │    │   +500 cal   │                       │
+│  │   Activity   │    │ True Deficit │                       │
+│  │   622 cal    │    │  +1,183 cal  │                       │
+│  │ [Update]     │    │ TDEE - Eaten │                       │
 │  └──────────────┘    └──────────────┘                       │
 │                                                              │
-│  ┌─────────────────────────────────────────────────┐        │
-│  │              MEAL LOGGER                         │        │
-│  │  ☑ Acai Bowl        ☐ Chicken Tikka             │        │
-│  │  ☑ Protein Shake    [+ Add Custom Meal]         │        │
-│  └─────────────────────────────────────────────────┘        │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              MEAL LOGGER                             │    │
+│  │  ☑ Acai Bowl        ☐ Chicken Tikka                 │    │
+│  │  ☑ Protein Shake    [+ Add Custom Meal]             │    │
+│  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 
 Navigation: [Dashboard] [Progress] [InBody] [Summary] [Settings]
 ```
+
+---
+
+## Getting Started
+
+1. **Set up API Key:**
+   - Go to Settings
+   - Select AI Provider (Groq recommended - it's free)
+   - Get your free Groq API key from https://console.groq.com/keys
+   - Paste the key and save
+
+2. **Import Health Data:**
+   - Take a screenshot of your Apple Health summary
+   - On Dashboard, click "Import from Health"
+   - Upload the screenshot
+   - Click "Import All Data"
+
+3. **Scan Food:**
+   - Click "Scan Your Food"
+   - Take a photo or upload an image
+   - Adjust portion if needed
+   - Click "Log Once" or "Save & Log"
+
+4. **Track Progress:**
+   - Add InBody scans for body composition tracking
+   - Weight auto-syncs to Progress tab
+   - View weekly summaries for insights
 
 ---
 
@@ -373,3 +479,5 @@ Navigation: [Dashboard] [Progress] [InBody] [Summary] [Settings]
 - Micronutrient tracking
 - Recipe import from URLs
 - Multi-language support
+- Activity trends over time (steps, exercise)
+- Weekly/monthly TDEE averages

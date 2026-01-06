@@ -1,28 +1,34 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Loader, Activity, Footprints, Check, AlertCircle } from 'lucide-react';
+import { X, Upload, Loader, Activity, Footprints, Check, AlertCircle, Flame, Clock, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { extractHealthData, type HealthDataExtracted } from '../utils/openai';
+import { groqExtractHealthData } from '../utils/groq';
+import type { AIProvider, HealthMetrics } from '../types';
 
 interface HealthScannerProps {
-  apiKey: string;
+  aiProvider: AIProvider;
+  openAiApiKey?: string;
+  groqApiKey?: string;
   selectedDate: string;
-  currentWorkoutCalories: number;
-  onUpdateWorkoutCalories: (calories: number, date: string) => void;
+  currentHealthMetrics?: HealthMetrics;
+  onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onClose: () => void;
 }
 
 export const HealthScanner: React.FC<HealthScannerProps> = ({
-  apiKey,
+  aiProvider,
+  openAiApiKey,
+  groqApiKey,
   selectedDate,
-  currentWorkoutCalories,
-  onUpdateWorkoutCalories,
+  onUpdateHealthMetrics,
   onClose,
 }) => {
+  const apiKey = aiProvider === 'groq' ? groqApiKey : openAiApiKey;
   const [image, setImage] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<HealthDataExtracted | null>(null);
-  const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
+  const [imported, setImported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,16 +41,21 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
       setImage(base64);
       setError(null);
       setExtractedData(null);
-      setAppliedFields(new Set());
+      setImported(false);
 
       if (!apiKey) {
-        setError('Please add your OpenAI API key in Settings first');
+        setError(`Please add your ${aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first`);
         return;
       }
 
       setAnalyzing(true);
       try {
-        const data = await extractHealthData(base64, apiKey);
+        let data: HealthDataExtracted;
+        if (aiProvider === 'groq') {
+          data = await groqExtractHealthData(base64, apiKey);
+        } else {
+          data = await extractHealthData(base64, apiKey);
+        }
         setExtractedData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to analyze image');
@@ -55,20 +66,32 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const applyWorkoutCalories = () => {
-    const totalCals = getTotalWorkoutCalories();
-    if (totalCals > 0) {
-      const newTotal = currentWorkoutCalories + totalCals;
-      onUpdateWorkoutCalories(newTotal, selectedDate);
-      setAppliedFields(prev => new Set([...prev, 'calories']));
-    }
+  const handleImportAll = () => {
+    if (!extractedData) return;
+
+    const metrics: HealthMetrics = {
+      restingEnergy: extractedData.restingCalories || 0,
+      activeEnergy: extractedData.activeCalories || 0,
+      steps: extractedData.steps || 0,
+      exerciseMinutes: extractedData.exerciseMinutes || 0,
+      standHours: extractedData.standHours || undefined,
+    };
+
+    onUpdateHealthMetrics(metrics, selectedDate);
+    setImported(true);
   };
 
-  const getTotalWorkoutCalories = () => {
+  const getTDEE = () => {
     if (!extractedData) return 0;
-    const workoutCals = extractedData.workouts?.reduce((sum, w) => sum + (w.calories || 0), 0) || 0;
-    return extractedData.activeCalories || workoutCals;
+    return (extractedData.restingCalories || 0) + (extractedData.activeCalories || 0);
   };
+
+  const hasAnyData = extractedData && (
+    extractedData.restingCalories ||
+    extractedData.activeCalories ||
+    extractedData.steps ||
+    extractedData.exerciseMinutes
+  );
 
   return (
     <div className="health-scanner-overlay">
@@ -97,20 +120,21 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
               >
                 <Upload size={32} />
                 <span className="upload-title">Upload Health Screenshot</span>
-                <span className="upload-hint">Take a screenshot of your Apple Health summary</span>
+                <span className="upload-hint">Screenshot your Apple Health summary page</span>
               </button>
               {!apiKey && (
                 <p className="api-warning">
                   <AlertCircle size={16} />
-                  Add OpenAI API key in Settings first
+                  Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first
                 </p>
               )}
               <div className="health-tips">
-                <h4>Tips for best results:</h4>
+                <h4>Data we'll extract:</h4>
                 <ul>
-                  <li>Screenshot your Activity rings summary</li>
-                  <li>Or screenshot specific workout details</li>
-                  <li>Shows Move calories, steps, exercise time</li>
+                  <li>Resting Energy (BMR)</li>
+                  <li>Active Energy (Move calories)</li>
+                  <li>Steps</li>
+                  <li>Exercise Minutes</li>
                 </ul>
               </div>
             </div>
@@ -135,7 +159,7 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
 
               {extractedData && (
                 <div className="extracted-data">
-                  <h3>Extracted Data</h3>
+                  <h3>Extracted Health Data</h3>
 
                   {extractedData.date && (
                     <p className="data-date">
@@ -143,36 +167,54 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
                     </p>
                   )}
 
+                  {/* TDEE Summary Card */}
+                  {getTDEE() > 0 && (
+                    <div className="tdee-summary-card">
+                      <div className="tdee-header">
+                        <Zap size={20} />
+                        <span>Total Daily Energy Expenditure</span>
+                      </div>
+                      <div className="tdee-value">{getTDEE().toLocaleString()} cal</div>
+                      <div className="tdee-breakdown">
+                        <span>Resting: {extractedData.restingCalories?.toLocaleString() || 0}</span>
+                        <span>+</span>
+                        <span>Active: {extractedData.activeCalories?.toLocaleString() || 0}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="health-metrics">
-                    {/* Workout Calories */}
-                    {getTotalWorkoutCalories() > 0 && (
-                      <div className={`health-metric-card ${appliedFields.has('calories') ? 'applied' : ''}`}>
+                    {/* Resting Energy */}
+                    {extractedData.restingCalories && extractedData.restingCalories > 0 && (
+                      <div className="health-metric-card">
+                        <div className="metric-icon resting">
+                          <Flame size={24} />
+                        </div>
+                        <div className="metric-details">
+                          <span className="metric-title">Resting Energy</span>
+                          <span className="metric-value-large">{extractedData.restingCalories.toLocaleString()} cal</span>
+                          <span className="metric-sub">BMR - calories at rest</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Active Energy */}
+                    {extractedData.activeCalories && extractedData.activeCalories > 0 && (
+                      <div className="health-metric-card">
                         <div className="metric-icon calories">
                           <Activity size={24} />
                         </div>
                         <div className="metric-details">
-                          <span className="metric-title">Workout Calories</span>
-                          <span className="metric-value-large">{getTotalWorkoutCalories()} cal</span>
-                          {extractedData.workouts && extractedData.workouts.length > 0 && (
-                            <span className="metric-sub">
-                              {extractedData.workouts.map(w => w.type).join(', ')}
-                            </span>
-                          )}
+                          <span className="metric-title">Active Energy</span>
+                          <span className="metric-value-large">{extractedData.activeCalories.toLocaleString()} cal</span>
+                          <span className="metric-sub">Move calories burned</span>
                         </div>
-                        <button
-                          className={`apply-btn ${appliedFields.has('calories') ? 'applied' : ''}`}
-                          onClick={applyWorkoutCalories}
-                          disabled={appliedFields.has('calories')}
-                        >
-                          {appliedFields.has('calories') ? <Check size={18} /> : 'Add'}
-                        </button>
                       </div>
                     )}
 
-
-                    {/* Steps - Display only */}
-                    {extractedData.steps && (
-                      <div className="health-metric-card info-only">
+                    {/* Steps */}
+                    {extractedData.steps && extractedData.steps > 0 && (
+                      <div className="health-metric-card">
                         <div className="metric-icon steps">
                           <Footprints size={24} />
                         </div>
@@ -186,11 +228,11 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
                       </div>
                     )}
 
-                    {/* Exercise Minutes - Display only */}
-                    {extractedData.exerciseMinutes && (
-                      <div className="health-metric-card info-only">
+                    {/* Exercise Minutes */}
+                    {extractedData.exerciseMinutes && extractedData.exerciseMinutes > 0 && (
+                      <div className="health-metric-card">
                         <div className="metric-icon exercise">
-                          <Activity size={24} />
+                          <Clock size={24} />
                         </div>
                         <div className="metric-details">
                           <span className="metric-title">Exercise</span>
@@ -198,12 +240,45 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
                         </div>
                       </div>
                     )}
+
+                    {/* Stand Hours */}
+                    {extractedData.standHours && extractedData.standHours > 0 && (
+                      <div className="health-metric-card">
+                        <div className="metric-icon stand">
+                          <Activity size={24} />
+                        </div>
+                        <div className="metric-details">
+                          <span className="metric-title">Stand</span>
+                          <span className="metric-value-large">{extractedData.standHours} hr</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {getTotalWorkoutCalories() === 0 && !extractedData.steps && !extractedData.exerciseMinutes && (
+                  {!hasAnyData && (
                     <p className="no-data-message">
-                      No relevant data found. Try a different screenshot.
+                      No health data found. Try a different screenshot.
                     </p>
+                  )}
+
+                  {hasAnyData && (
+                    <button
+                      className={`import-all-btn ${imported ? 'imported' : ''}`}
+                      onClick={handleImportAll}
+                      disabled={imported}
+                    >
+                      {imported ? (
+                        <>
+                          <Check size={20} />
+                          Imported!
+                        </>
+                      ) : (
+                        <>
+                          <Check size={20} />
+                          Import All Data
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
               )}
@@ -215,7 +290,7 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
                     setImage(null);
                     setExtractedData(null);
                     setError(null);
-                    setAppliedFields(new Set());
+                    setImported(false);
                   }}
                 >
                   Upload Another

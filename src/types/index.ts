@@ -14,10 +14,19 @@ export interface Meal {
   isCustom?: boolean;
 }
 
+export interface HealthMetrics {
+  restingEnergy: number;    // BMR - calories burned at rest
+  activeEnergy: number;     // Move calories - calories burned through activity
+  steps: number;
+  exerciseMinutes: number;
+  standHours?: number;
+}
+
 export interface DailyLog {
   date: string; // YYYY-MM-DD format
   meals: string[]; // Array of meal IDs
-  workoutCalories: number;
+  workoutCalories: number;  // Manual entry (fallback)
+  healthMetrics?: HealthMetrics; // From Apple Health import
   notes?: string;
 }
 
@@ -36,13 +45,17 @@ export interface WeighIn {
   weight: number;
 }
 
+export type AIProvider = 'openai' | 'groq';
+
 export interface UserSettings {
   dailyCalorieTargetMin: number;
   dailyCalorieTargetMax: number;
   startWeight: number;
   goalWeight: number;
   startDate: string;
+  aiProvider: AIProvider;
   openAiApiKey?: string;
+  groqApiKey?: string;
 }
 
 export interface AppState {

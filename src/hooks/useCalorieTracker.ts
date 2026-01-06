@@ -1,16 +1,49 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, parseISO } from 'date-fns';
 import { useLocalStorage } from './useLocalStorage';
-import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings } from '../types';
+import { useSupabaseSync } from './useSupabaseSync';
+import { useAuth } from '../contexts/AuthContext';
+import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
 
 export function useCalorieTracker() {
+  const { user } = useAuth();
   const [meals, setMeals] = useLocalStorage<Meal[]>('calorie-tracker-meals', defaultMeals);
   const [dailyLogs, setDailyLogs] = useLocalStorage<DailyLog[]>('calorie-tracker-daily-logs', []);
   const [inBodyScans, setInBodyScans] = useLocalStorage<InBodyScan[]>('calorie-tracker-inbody', []);
   const [weighIns, setWeighIns] = useLocalStorage<WeighIn[]>('calorie-tracker-weighins', []);
   const [settings, setSettings] = useLocalStorage<UserSettings>('calorie-tracker-settings', defaultSettings);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const {
+    syncState,
+    loadFromSupabase,
+    saveMeal,
+    deleteMealFromDb,
+    saveDailyLog,
+    saveWeighIn,
+    deleteWeighInFromDb,
+    saveInBodyScan,
+    deleteInBodyScanFromDb,
+    saveSettings,
+  } = useSupabaseSync();
+
+  // Load data from Supabase when user logs in
+  useEffect(() => {
+    if (user && !isLoaded) {
+      loadFromSupabase().then((data) => {
+        if (data) {
+          if (data.meals.length > 0) setMeals(data.meals);
+          if (data.dailyLogs.length > 0) setDailyLogs(data.dailyLogs);
+          if (data.weighIns.length > 0) setWeighIns(data.weighIns);
+          if (data.inBodyScans.length > 0) setInBodyScans(data.inBodyScans);
+          if (data.settings) setSettings(data.settings);
+        }
+        setIsLoaded(true);
+      });
+    }
+  }, [user, isLoaded, loadFromSupabase, setMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
 
   // Get today's date in YYYY-MM-DD format
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -31,6 +64,7 @@ export function useCalorieTracker() {
   const toggleMealForDate = useCallback((mealId: string, date: string) => {
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
+      let updatedLog: DailyLog;
 
       if (existingLogIndex >= 0) {
         const existingLog = prev[existingLogIndex];
@@ -40,28 +74,72 @@ export function useCalorieTracker() {
           : [...existingLog.meals, mealId];
 
         const updatedLogs = [...prev];
-        updatedLogs[existingLogIndex] = { ...existingLog, meals: updatedMeals };
+        updatedLog = { ...existingLog, meals: updatedMeals };
+        updatedLogs[existingLogIndex] = updatedLog;
+
+        // Sync to Supabase
+        if (user) saveDailyLog(updatedLog);
+
         return updatedLogs;
       } else {
-        return [...prev, { date, meals: [mealId], workoutCalories: 0 }];
+        updatedLog = { date, meals: [mealId], workoutCalories: 0 };
+
+        // Sync to Supabase
+        if (user) saveDailyLog(updatedLog);
+
+        return [...prev, updatedLog];
       }
     });
-  }, [setDailyLogs]);
+  }, [setDailyLogs, user, saveDailyLog]);
 
   // Update workout calories for a date
   const updateWorkoutCalories = useCallback((calories: number, date: string) => {
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
+      let updatedLog: DailyLog;
 
       if (existingLogIndex >= 0) {
         const updatedLogs = [...prev];
-        updatedLogs[existingLogIndex] = { ...prev[existingLogIndex], workoutCalories: calories };
+        updatedLog = { ...prev[existingLogIndex], workoutCalories: calories };
+        updatedLogs[existingLogIndex] = updatedLog;
+        if (user) saveDailyLog(updatedLog);
         return updatedLogs;
       } else {
-        return [...prev, { date, meals: [], workoutCalories: calories }];
+        updatedLog = { date, meals: [], workoutCalories: calories };
+        if (user) saveDailyLog(updatedLog);
+        return [...prev, updatedLog];
       }
     });
-  }, [setDailyLogs]);
+  }, [setDailyLogs, user, saveDailyLog]);
+
+  // Update health metrics for a date (from Apple Health import)
+  const updateHealthMetrics = useCallback((metrics: HealthMetrics, date: string) => {
+    setDailyLogs((prev) => {
+      const existingLogIndex = prev.findIndex((log) => log.date === date);
+      let updatedLog: DailyLog;
+
+      if (existingLogIndex >= 0) {
+        const updatedLogs = [...prev];
+        updatedLog = {
+          ...prev[existingLogIndex],
+          healthMetrics: metrics,
+          workoutCalories: metrics.activeEnergy || prev[existingLogIndex].workoutCalories,
+        };
+        updatedLogs[existingLogIndex] = updatedLog;
+        if (user) saveDailyLog(updatedLog);
+        return updatedLogs;
+      } else {
+        updatedLog = {
+          date,
+          meals: [],
+          workoutCalories: metrics.activeEnergy || 0,
+          healthMetrics: metrics,
+        };
+        if (user) saveDailyLog(updatedLog);
+        return [...prev, updatedLog];
+      }
+    });
+  }, [setDailyLogs, user, saveDailyLog]);
 
   // Add custom meal
   const addMeal = useCallback((meal: Omit<Meal, 'id' | 'isCustom'>) => {
@@ -71,8 +149,9 @@ export function useCalorieTracker() {
       isCustom: true,
     };
     setMeals((prev) => [...prev, newMeal]);
+    if (user) saveMeal(newMeal);
     return newMeal;
-  }, [setMeals]);
+  }, [setMeals, user, saveMeal]);
 
   // Log a scanned meal (add as temporary and log to date)
   const logScannedMeal = useCallback((meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => {
@@ -82,26 +161,32 @@ export function useCalorieTracker() {
       isCustom: true,
     };
     setMeals((prev) => [...prev, newMeal]);
+    if (user) saveMeal(newMeal);
 
     // Also add to the daily log
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
+      let updatedLog: DailyLog;
 
       if (existingLogIndex >= 0) {
         const existingLog = prev[existingLogIndex];
         const updatedLogs = [...prev];
-        updatedLogs[existingLogIndex] = {
+        updatedLog = {
           ...existingLog,
           meals: [...existingLog.meals, newMeal.id],
         };
+        updatedLogs[existingLogIndex] = updatedLog;
+        if (user) saveDailyLog(updatedLog);
         return updatedLogs;
       } else {
-        return [...prev, { date, meals: [newMeal.id], workoutCalories: 0 }];
+        updatedLog = { date, meals: [newMeal.id], workoutCalories: 0 };
+        if (user) saveDailyLog(updatedLog);
+        return [...prev, updatedLog];
       }
     });
 
     return newMeal;
-  }, [setMeals, setDailyLogs]);
+  }, [setMeals, setDailyLogs, user, saveMeal, saveDailyLog]);
 
   // Save meal to library and log to date
   const saveAndLogMeal = useCallback((meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => {
@@ -111,14 +196,19 @@ export function useCalorieTracker() {
   // Delete meal
   const deleteMeal = useCallback((mealId: string) => {
     setMeals((prev) => prev.filter((meal) => meal.id !== mealId));
+    if (user) deleteMealFromDb(mealId);
     // Also remove from all daily logs
     setDailyLogs((prev) =>
-      prev.map((log) => ({
-        ...log,
-        meals: log.meals.filter((id) => id !== mealId),
-      }))
+      prev.map((log) => {
+        const updatedLog = {
+          ...log,
+          meals: log.meals.filter((id) => id !== mealId),
+        };
+        if (user) saveDailyLog(updatedLog);
+        return updatedLog;
+      })
     );
-  }, [setMeals, setDailyLogs]);
+  }, [setMeals, setDailyLogs, user, deleteMealFromDb, saveDailyLog]);
 
   // Add InBody scan - also automatically adds weight to weigh-ins
   const addInBodyScan = useCallback((scan: Omit<InBodyScan, 'id'>) => {
@@ -127,27 +217,31 @@ export function useCalorieTracker() {
       id: uuidv4(),
     };
     setInBodyScans((prev) => [...prev, newScan].sort((a, b) => b.date.localeCompare(a.date)));
+    if (user) saveInBodyScan(newScan);
 
     // Automatically add weight to weigh-ins
     if (scan.weight > 0) {
+      const weighIn = { date: scan.date, weight: scan.weight };
       setWeighIns((prev) => {
         const existingIndex = prev.findIndex((w) => w.date === scan.date);
         if (existingIndex >= 0) {
           const updated = [...prev];
-          updated[existingIndex] = { date: scan.date, weight: scan.weight };
+          updated[existingIndex] = weighIn;
           return updated.sort((a, b) => a.date.localeCompare(b.date));
         }
-        return [...prev, { date: scan.date, weight: scan.weight }].sort((a, b) => a.date.localeCompare(b.date));
+        return [...prev, weighIn].sort((a, b) => a.date.localeCompare(b.date));
       });
+      if (user) saveWeighIn(weighIn);
     }
 
     return newScan;
-  }, [setInBodyScans, setWeighIns]);
+  }, [setInBodyScans, setWeighIns, user, saveInBodyScan, saveWeighIn]);
 
   // Delete InBody scan
   const deleteInBodyScan = useCallback((scanId: string) => {
     setInBodyScans((prev) => prev.filter((scan) => scan.id !== scanId));
-  }, [setInBodyScans]);
+    if (user) deleteInBodyScanFromDb(scanId);
+  }, [setInBodyScans, user, deleteInBodyScanFromDb]);
 
   // Add weigh-in
   const addWeighIn = useCallback((weighIn: WeighIn) => {
@@ -160,17 +254,23 @@ export function useCalorieTracker() {
       }
       return [...prev, weighIn].sort((a, b) => a.date.localeCompare(b.date));
     });
-  }, [setWeighIns]);
+    if (user) saveWeighIn(weighIn);
+  }, [setWeighIns, user, saveWeighIn]);
 
   // Delete weigh-in
   const deleteWeighIn = useCallback((date: string) => {
     setWeighIns((prev) => prev.filter((w) => w.date !== date));
-  }, [setWeighIns]);
+    if (user) deleteWeighInFromDb(date);
+  }, [setWeighIns, user, deleteWeighInFromDb]);
 
   // Update settings
   const updateSettings = useCallback((newSettings: Partial<UserSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
-  }, [setSettings]);
+    setSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      if (user) saveSettings(updated);
+      return updated;
+    });
+  }, [setSettings, user, saveSettings]);
 
   // Calculate totals for a log
   const calculateTotals = useCallback((log: DailyLog) => {
@@ -187,17 +287,38 @@ export function useCalorieTracker() {
     );
 
     const targetCalories = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;
-    const netCalories = totals.calories - log.workoutCalories;
-    const deficit = targetCalories - netCalories;
-    const caloriesRemaining = targetCalories - totals.calories + log.workoutCalories;
+
+    // Use health metrics if available for more accurate calculations
+    const healthMetrics = log.healthMetrics;
+    const restingEnergy = healthMetrics?.restingEnergy || 0;
+    const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
+    const tdee = restingEnergy + activeEnergy; // Total Daily Energy Expenditure
+    const hasTDEE = restingEnergy > 0 && activeEnergy > 0;
+
+    // If we have TDEE data, calculate true deficit based on actual burn
+    // Otherwise fall back to target-based calculation
+    const netCalories = totals.calories - activeEnergy;
+    const trueDeficit = hasTDEE ? (tdee - totals.calories) : 0;
+    const deficit = hasTDEE ? trueDeficit : (targetCalories - netCalories);
+    const caloriesRemaining = hasTDEE
+      ? (tdee - totals.calories)
+      : (targetCalories - totals.calories + activeEnergy);
 
     return {
       ...totals,
-      workoutCalories: log.workoutCalories,
+      workoutCalories: activeEnergy,
       netCalories,
       deficit,
       caloriesRemaining,
       targetCalories,
+      // New health-based fields
+      restingEnergy,
+      activeEnergy,
+      tdee,
+      hasTDEE,
+      trueDeficit,
+      steps: healthMetrics?.steps || 0,
+      exerciseMinutes: healthMetrics?.exerciseMinutes || 0,
     };
   }, [meals, settings]);
 
@@ -297,7 +418,51 @@ export function useCalorieTracker() {
       skeletalMuscle: scan.skeletalMuscle,
     }));
 
-    return { calorieData, weightData, bodyCompData };
+    // Steps data from health metrics
+    const stepsData = last30Days.map((date) => {
+      const log = getLogForDate(date);
+      const steps = log.healthMetrics?.steps || 0;
+      return {
+        date,
+        displayDate: format(parseISO(date), 'MMM d'),
+        steps,
+      };
+    }).filter((d) => d.steps > 0);
+
+    // Calculate steps stats
+    const daysWithSteps = stepsData.filter((d) => d.steps > 0);
+    const avgSteps = daysWithSteps.length > 0
+      ? Math.round(daysWithSteps.reduce((acc, d) => acc + d.steps, 0) / daysWithSteps.length)
+      : 0;
+    const maxSteps = daysWithSteps.length > 0
+      ? Math.max(...daysWithSteps.map((d) => d.steps))
+      : 0;
+    const totalSteps = daysWithSteps.reduce((acc, d) => acc + d.steps, 0);
+
+    // Calculate current streak (consecutive days with 10k+ steps)
+    let currentStreak = 0;
+    const sortedByDateDesc = [...stepsData].sort((a, b) => b.date.localeCompare(a.date));
+    for (const day of sortedByDateDesc) {
+      if (day.steps >= 10000) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    return {
+      calorieData,
+      weightData,
+      bodyCompData,
+      stepsData,
+      stepsStats: {
+        avgSteps,
+        maxSteps,
+        totalSteps,
+        currentStreak,
+        daysTracked: daysWithSteps.length,
+      },
+    };
   }, [dailyLogs, weighIns, inBodyScans, settings, calculateTotals, getLogForDate]);
 
   // Get progress towards goal
@@ -353,12 +518,14 @@ export function useCalorieTracker() {
     weighIns,
     settings,
     today,
+    syncState,
 
     // Daily log operations
     getTodayLog,
     getLogForDate,
     toggleMealForDate,
     updateWorkoutCalories,
+    updateHealthMetrics,
     calculateTotals,
 
     // Meal operations

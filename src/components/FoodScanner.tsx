@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, Check, X, Plus, Save, RotateCcw, AlertCircle } from 'lucide-react';
-import type { Meal } from '../types';
+import type { Meal, AIProvider } from '../types';
+import { groqAnalyzeFood } from '../utils/groq';
 
 interface DetectedFood {
   foodName: string;
@@ -15,18 +16,23 @@ interface DetectedFood {
 }
 
 interface FoodScannerProps {
-  apiKey: string | undefined;
+  aiProvider: AIProvider;
+  openAiApiKey?: string;
+  groqApiKey?: string;
   onLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onClose: () => void;
 }
 
 export const FoodScanner: React.FC<FoodScannerProps> = ({
-  apiKey,
+  aiProvider,
+  openAiApiKey,
+  groqApiKey,
   onLogMeal,
   onSaveAndLogMeal,
   onClose,
 }) => {
+  const apiKey = aiProvider === 'groq' ? groqApiKey : openAiApiKey;
   const [imageData, setImageData] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +102,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
 
   const analyzeFood = async (base64Image: string) => {
     if (!apiKey) {
-      setError('Please set your OpenAI API key in Settings');
+      setError(`Please set your ${aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings`);
       return;
     }
 
@@ -104,67 +110,86 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a nutrition analysis assistant. Analyze food images and return accurate nutritional estimates.',
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Analyze this food image. Identify all foods visible, estimate portion sizes, and provide nutritional estimates. Return ONLY valid JSON (no markdown, no code blocks) with this structure: {"foods": [{"foodName": string, "portionSize": string, "portionUnit": string, "calories": number, "protein": number, "carbs": number, "fat": number, "confidence": "high"|"medium"|"low"}]}. If multiple foods, include all in the array.',
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: base64Image,
+      if (aiProvider === 'groq') {
+        // Use Groq API
+        const foods = await groqAnalyzeFood(base64Image, apiKey);
+        setDetectedFoods(
+          foods.map((food) => ({
+            foodName: food.name,
+            portionSize: food.portionSize,
+            portionUnit: '',
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fat: food.fat,
+            confidence: food.confidence,
+            portionMultiplier: 1,
+          }))
+        );
+      } else {
+        // Use OpenAI API
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a nutrition analysis assistant. Analyze food images and return accurate nutritional estimates.',
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Analyze this food image. Identify all foods visible, estimate portion sizes, and provide nutritional estimates. Return ONLY valid JSON (no markdown, no code blocks) with this structure: {"foods": [{"foodName": string, "portionSize": string, "portionUnit": string, "calories": number, "protein": number, "carbs": number, "fat": number, "confidence": "high"|"medium"|"low"}]}. If multiple foods, include all in the array.',
                   },
-                },
-              ],
-            },
-          ],
-          max_tokens: 500,
-        }),
-      });
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: base64Image,
+                    },
+                  },
+                ],
+              },
+            ],
+            max_tokens: 500,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'API request failed');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || 'API request failed');
+        }
+
+        const data = await response.json();
+        let content = data.choices[0]?.message?.content;
+
+        if (!content) {
+          throw new Error('No response from API');
+        }
+
+        // Remove markdown code blocks if present
+        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        const parsed = JSON.parse(content);
+
+        if (!parsed.foods || !Array.isArray(parsed.foods)) {
+          throw new Error('Invalid response format');
+        }
+
+        setDetectedFoods(
+          parsed.foods.map((food: any) => ({
+            ...food,
+            portionMultiplier: 1,
+          }))
+        );
       }
-
-      const data = await response.json();
-      let content = data.choices[0]?.message?.content;
-
-      if (!content) {
-        throw new Error('No response from API');
-      }
-
-      // Remove markdown code blocks if present
-      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-      const parsed = JSON.parse(content);
-
-      if (!parsed.foods || !Array.isArray(parsed.foods)) {
-        throw new Error('Invalid response format');
-      }
-
-      setDetectedFoods(
-        parsed.foods.map((food: any) => ({
-          ...food,
-          portionMultiplier: 1,
-        }))
-      );
     } catch (err: any) {
       console.error('Food analysis error:', err);
       setError(err.message || 'Failed to analyze food. Please try again or enter manually.');
@@ -299,7 +324,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             {!apiKey && (
               <p className="api-warning">
                 <AlertCircle size={16} />
-                Please add your OpenAI API key in Settings
+                Please add your {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings
               </p>
             )}
           </div>

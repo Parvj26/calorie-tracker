@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone } from 'lucide-react';
-import { format } from 'date-fns';
+import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { CircularProgress } from './CircularProgress';
 import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
-import type { DailyLog, Meal, UserSettings } from '../types';
+import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
 
 interface InBodyMetrics {
   weight: number;
@@ -45,11 +45,20 @@ interface DashboardProps {
     deficit: number;
     caloriesRemaining: number;
     targetCalories: number;
+    // New health-based fields
+    restingEnergy: number;
+    activeEnergy: number;
+    tdee: number;
+    hasTDEE: boolean;
+    trueDeficit: number;
+    steps: number;
+    exerciseMinutes: number;
   };
   inBodyMetrics: InBodyMetrics | null;
   goalProgress: GoalProgress;
   onToggleMeal: (mealId: string, date: string) => void;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
+  onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onDeleteMeal: (mealId: string) => void;
   onDateChange: (date: string) => void;
@@ -67,19 +76,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
   goalProgress,
   onToggleMeal,
   onUpdateWorkoutCalories,
+  onUpdateHealthMetrics,
   onAddMeal,
   onDeleteMeal,
   onDateChange,
   onLogScannedMeal,
   onSaveAndLogMeal,
 }) => {
-  const [workoutInput, setWorkoutInput] = useState(log.workoutCalories.toString());
+  const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
   const [showHealthScanner, setShowHealthScanner] = useState(false);
 
   useEffect(() => {
-    setWorkoutInput(log.workoutCalories.toString());
-  }, [log.workoutCalories]);
+    setWorkoutInput(totals.activeEnergy.toString());
+  }, [totals.activeEnergy]);
 
   const handleWorkoutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -88,6 +98,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const targetRange = `${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax}`;
+  const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
+
+  const changeDate = (days: number) => {
+    const current = parseISO(selectedDate);
+    current.setDate(current.getDate() + days);
+    onDateChange(format(current, 'yyyy-MM-dd'));
+  };
 
   const formatChange = (value: number, inverse: boolean = false) => {
     const isPositive = inverse ? value < 0 : value > 0;
@@ -101,6 +118,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="dashboard">
+      {/* Date Selector at Top */}
+      <div className="card date-selector-card">
+        <button onClick={() => changeDate(-1)} className="date-nav-btn">
+          <ChevronLeft size={24} />
+        </button>
+        <div className="date-display-main">
+          <Calendar size={20} />
+          <div className="date-text">
+            <span className="date-day">{isToday ? 'Today' : format(parseISO(selectedDate), 'EEEE')}</span>
+            <span className="date-full">{format(parseISO(selectedDate), 'MMMM d, yyyy')}</span>
+          </div>
+        </div>
+        <button
+          onClick={() => changeDate(1)}
+          className="date-nav-btn"
+          disabled={isToday}
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+
       {/* Primary CTA - Scan Food Button */}
       <div className="card scan-food-card" onClick={() => setShowScanner(true)}>
         <button className="scan-food-btn">
@@ -113,6 +151,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </button>
       </div>
+
+      {/* TDEE Card - Show when health data is imported */}
+      {totals.hasTDEE && (
+        <div className="card tdee-card">
+          <div className="card-header">
+            <Zap size={20} />
+            <h3>Today's Energy</h3>
+          </div>
+          <div className="tdee-main">
+            <div className="tdee-value">{totals.tdee.toLocaleString()}</div>
+            <div className="tdee-label">Total Burn (TDEE)</div>
+          </div>
+          <div className="tdee-breakdown-row">
+            <div className="tdee-item">
+              <span className="tdee-item-value">{totals.restingEnergy.toLocaleString()}</span>
+              <span className="tdee-item-label">Resting</span>
+            </div>
+            <span className="tdee-plus">+</span>
+            <div className="tdee-item">
+              <span className="tdee-item-value">{totals.activeEnergy.toLocaleString()}</span>
+              <span className="tdee-item-label">Active</span>
+            </div>
+          </div>
+          <div className="tdee-stats-row">
+            {totals.steps > 0 && (
+              <div className="tdee-stat">
+                <Footprints size={16} />
+                <span>{totals.steps.toLocaleString()} steps</span>
+              </div>
+            )}
+            {totals.exerciseMinutes > 0 && (
+              <div className="tdee-stat">
+                <Clock size={16} />
+                <span>{totals.exerciseMinutes} min exercise</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Body Metrics Card - Show if we have InBody data */}
       {inBodyMetrics && (
@@ -197,16 +274,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="card main-progress">
           <div className="progress-header">
             <h2>Daily Progress</h2>
-            <span className="target-badge">Target: {targetRange} cal</span>
+            <span className="target-badge">
+              {totals.hasTDEE ? `TDEE: ${totals.tdee}` : `Target: ${targetRange}`} cal
+            </span>
           </div>
           <div className="progress-content">
             <CircularProgress
               value={totals.calories}
-              max={totals.targetCalories}
+              max={totals.hasTDEE ? totals.tdee : totals.targetCalories}
               size={180}
               strokeWidth={14}
               label="calories"
-              sublabel={`of ${totals.targetCalories}`}
+              sublabel={`of ${totals.hasTDEE ? totals.tdee : totals.targetCalories}`}
             />
           </div>
           <div className="calories-remaining">
@@ -218,7 +297,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             ) : (
               <>
                 <span className="remaining-value negative">{Math.abs(Math.round(totals.caloriesRemaining))}</span>
-                <span className="remaining-label">calories over target</span>
+                <span className="remaining-label">calories over</span>
               </>
             )}
           </div>
@@ -267,56 +346,93 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* Workout Card */}
+        {/* Activity Card - replaces Workout Card when health data is available */}
         <div className="card workout-card">
           <div className="card-header">
             <Dumbbell size={20} />
-            <h3>Workout</h3>
+            <h3>{totals.hasTDEE ? 'Activity' : 'Workout'}</h3>
           </div>
-          <div className="workout-input-group">
-            <input
-              type="number"
-              value={workoutInput}
-              onChange={handleWorkoutChange}
-              placeholder="0"
-              min="0"
-            />
-            <span>calories burned</span>
-          </div>
-          <button
-            className="import-health-btn"
-            onClick={() => setShowHealthScanner(true)}
-          >
-            <Smartphone size={16} />
-            Import from Health
-          </button>
+          {!totals.hasTDEE ? (
+            <>
+              <div className="workout-input-group">
+                <input
+                  type="number"
+                  value={workoutInput}
+                  onChange={handleWorkoutChange}
+                  placeholder="0"
+                  min="0"
+                />
+                <span>calories burned</span>
+              </div>
+              <button
+                className="import-health-btn"
+                onClick={() => setShowHealthScanner(true)}
+              >
+                <Smartphone size={16} />
+                Import from Health
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="activity-summary">
+                <div className="activity-value">{totals.activeEnergy.toLocaleString()}</div>
+                <div className="activity-label">active calories</div>
+              </div>
+              <button
+                className="import-health-btn"
+                onClick={() => setShowHealthScanner(true)}
+              >
+                <Smartphone size={16} />
+                Update from Health
+              </button>
+            </>
+          )}
         </div>
 
         {/* Net Deficit Card */}
         <div className="card deficit-card">
           <div className="card-header">
             <TrendingDown size={20} />
-            <h3>Net Deficit</h3>
+            <h3>{totals.hasTDEE ? 'True Deficit' : 'Net Deficit'}</h3>
           </div>
           <div className="deficit-value">
             <span className={totals.deficit >= 0 ? 'positive' : 'negative'}>
               {totals.deficit >= 0 ? '+' : ''}{Math.round(totals.deficit)}
             </span>
-            <span className="deficit-label">cal deficit</span>
+            <span className="deficit-label">cal {totals.deficit >= 0 ? 'deficit' : 'surplus'}</span>
           </div>
           <div className="deficit-breakdown">
-            <div className="breakdown-row">
-              <span>Target:</span>
-              <span>{totals.targetCalories} cal</span>
-            </div>
-            <div className="breakdown-row">
-              <span>Eaten:</span>
-              <span>-{totals.calories} cal</span>
-            </div>
-            <div className="breakdown-row">
-              <span>Burned:</span>
-              <span>+{totals.workoutCalories} cal</span>
-            </div>
+            {totals.hasTDEE ? (
+              <>
+                <div className="breakdown-row">
+                  <span>TDEE:</span>
+                  <span>{totals.tdee} cal</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Eaten:</span>
+                  <span>-{totals.calories} cal</span>
+                </div>
+                <div className="breakdown-row highlight">
+                  <span>= Deficit:</span>
+                  <span>{totals.deficit} cal</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="breakdown-row">
+                  <span>Target:</span>
+                  <span>{totals.targetCalories} cal</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Eaten:</span>
+                  <span>-{totals.calories} cal</span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Burned:</span>
+                  <span>+{totals.workoutCalories} cal</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -341,7 +457,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Food Scanner Modal */}
       {showScanner && (
         <FoodScanner
-          apiKey={settings.openAiApiKey}
+          aiProvider={settings.aiProvider || 'groq'}
+          openAiApiKey={settings.openAiApiKey}
+          groqApiKey={settings.groqApiKey}
           onLogMeal={(meal) => onLogScannedMeal(meal, selectedDate)}
           onSaveAndLogMeal={(meal) => onSaveAndLogMeal(meal, selectedDate)}
           onClose={() => setShowScanner(false)}
@@ -351,10 +469,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Health Scanner Modal */}
       {showHealthScanner && (
         <HealthScanner
-          apiKey={settings.openAiApiKey || ''}
+          aiProvider={settings.aiProvider || 'groq'}
+          openAiApiKey={settings.openAiApiKey}
+          groqApiKey={settings.groqApiKey}
           selectedDate={selectedDate}
-          currentWorkoutCalories={totals.workoutCalories}
-          onUpdateWorkoutCalories={onUpdateWorkoutCalories}
+          currentHealthMetrics={log.healthMetrics}
+          onUpdateHealthMetrics={onUpdateHealthMetrics}
           onClose={() => setShowHealthScanner(false)}
         />
       )}

@@ -6,17 +6,24 @@ import {
   ScanLine,
   Calendar,
   Settings as SettingsIcon,
+  LogOut,
+  Cloud,
+  CloudOff,
+  Loader2,
 } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useCalorieTracker } from './hooks/useCalorieTracker';
 import { Dashboard } from './components/Dashboard';
 import { ProgressTracker } from './components/ProgressTracker';
 import { InBodyUpload } from './components/InBodyUpload';
 import { WeeklySummary } from './components/WeeklySummary';
 import { Settings } from './components/Settings';
+import { Auth } from './components/Auth';
 import type { TabType } from './types';
 import './App.css';
 
-function App() {
+function AppContent() {
+  const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -25,9 +32,11 @@ function App() {
     inBodyScans,
     weighIns,
     settings,
+    syncState,
     getLogForDate,
     toggleMealForDate,
     updateWorkoutCalories,
+    updateHealthMetrics,
     calculateTotals,
     addMeal,
     deleteMeal,
@@ -43,6 +52,21 @@ function App() {
     getGoalProgress,
     getLatestInBodyMetrics,
   } = useCalorieTracker();
+
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div className="app loading-screen">
+        <Loader2 size={48} className="spinner" />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show auth screen if not logged in
+  if (!user) {
+    return <Auth />;
+  }
 
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
   const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
@@ -62,8 +86,24 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>CalorieTracker</h1>
-        <span className="subtitle">Your personalized nutrition companion</span>
+        <div className="header-left">
+          <h1>CalorieTracker</h1>
+          <span className="subtitle">Your personalized nutrition companion</span>
+        </div>
+        <div className="header-right">
+          <div className="sync-status" title={syncState.lastSynced ? `Last synced: ${syncState.lastSynced.toLocaleTimeString()}` : 'Not synced yet'}>
+            {syncState.isSyncing ? (
+              <Loader2 size={16} className="spinner" />
+            ) : syncState.error ? (
+              <CloudOff size={16} className="sync-error" />
+            ) : (
+              <Cloud size={16} className="sync-ok" />
+            )}
+          </div>
+          <button className="logout-btn" onClick={signOut} title="Sign out">
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       <nav className="app-nav">
@@ -91,6 +131,7 @@ function App() {
             goalProgress={goalProgress}
             onToggleMeal={toggleMealForDate}
             onUpdateWorkoutCalories={updateWorkoutCalories}
+            onUpdateHealthMetrics={updateHealthMetrics}
             onAddMeal={addMeal}
             onDeleteMeal={deleteMeal}
             onDateChange={setSelectedDate}
@@ -113,10 +154,11 @@ function App() {
         {activeTab === 'inbody' && (
           <InBodyUpload
             scans={inBodyScans}
-            apiKey={settings.openAiApiKey}
+            aiProvider={settings.aiProvider || 'groq'}
+            openAiApiKey={settings.openAiApiKey}
+            groqApiKey={settings.groqApiKey}
             onAddScan={addInBodyScan}
             onDeleteScan={deleteInBodyScan}
-            onUpdateApiKey={(key) => updateSettings({ openAiApiKey: key })}
           />
         )}
 
@@ -135,6 +177,14 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

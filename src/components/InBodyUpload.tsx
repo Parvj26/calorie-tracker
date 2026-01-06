@@ -1,24 +1,28 @@
 import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { Upload, Loader2, Check, AlertCircle, Trash2, Edit2, X } from 'lucide-react';
-import type { InBodyScan } from '../types';
+import { Upload, Loader2, Check, AlertCircle, Trash2, X } from 'lucide-react';
+import type { InBodyScan, AIProvider } from '../types';
 import { extractInBodyData } from '../utils/openai';
+import { groqExtractInBodyData } from '../utils/groq';
 
 interface InBodyUploadProps {
   scans: InBodyScan[];
-  apiKey: string | undefined;
+  aiProvider: AIProvider;
+  openAiApiKey?: string;
+  groqApiKey?: string;
   onAddScan: (scan: Omit<InBodyScan, 'id'>) => void;
   onDeleteScan: (id: string) => void;
-  onUpdateApiKey: (key: string) => void;
 }
 
 export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   scans,
-  apiKey,
+  aiProvider,
+  openAiApiKey,
+  groqApiKey,
   onAddScan,
   onDeleteScan,
-  onUpdateApiKey,
 }) => {
+  const apiKey = aiProvider === 'groq' ? groqApiKey : openAiApiKey;
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<{
@@ -29,8 +33,6 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
     scanDate: string;
     imageData: string;
   } | null>(null);
-  const [editingKey, setEditingKey] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState(apiKey || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +40,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
     if (!file) return;
 
     if (!apiKey) {
-      setError('Please set your OpenAI API key first');
+      setError(`Please add your ${aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first`);
       return;
     }
 
@@ -52,7 +54,12 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
         const base64 = reader.result as string;
 
         try {
-          const data = await extractInBodyData(base64, apiKey);
+          let data;
+          if (aiProvider === 'groq') {
+            data = await groqExtractInBodyData(base64, apiKey);
+          } else {
+            data = await extractInBodyData(base64, apiKey);
+          }
 
           setExtractedData({
             weight: data.weight || 0,
@@ -101,52 +108,11 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
     setExtractedData(null);
   };
 
-  const handleSaveApiKey = () => {
-    onUpdateApiKey(tempApiKey);
-    setEditingKey(false);
-  };
-
   return (
     <div className="inbody-upload">
       <div className="inbody-header">
         <h2>InBody Scans</h2>
         <p>Upload your InBody scan screenshots to track body composition</p>
-      </div>
-
-      {/* API Key Section */}
-      <div className="card api-key-card">
-        <div className="card-header">
-          <h3>OpenAI API Key</h3>
-          {!editingKey && apiKey && (
-            <button className="edit-btn" onClick={() => setEditingKey(true)}>
-              <Edit2 size={16} />
-            </button>
-          )}
-        </div>
-        {editingKey || !apiKey ? (
-          <div className="api-key-form">
-            <input
-              type="password"
-              placeholder="sk-..."
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-            />
-            <div className="api-key-actions">
-              <button onClick={handleSaveApiKey} className="save-btn">
-                Save
-              </button>
-              {apiKey && (
-                <button onClick={() => setEditingKey(false)} className="cancel-btn">
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <p className="api-key-status">
-            <Check size={16} /> API key configured
-          </p>
-        )}
       </div>
 
       {/* Upload Section */}
@@ -175,6 +141,12 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
             </>
           )}
         </button>
+        {!apiKey && (
+          <p className="api-warning">
+            <AlertCircle size={16} />
+            Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first
+          </p>
+        )}
         {error && (
           <div className="error-message">
             <AlertCircle size={16} />

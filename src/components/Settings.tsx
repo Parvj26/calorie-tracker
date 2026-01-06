@@ -26,7 +26,12 @@ export const Settings: React.FC<SettingsProps> = ({
   };
 
   const handleReset = () => {
-    setFormData({ ...defaultSettings, openAiApiKey: settings.openAiApiKey });
+    setFormData({
+      ...defaultSettings,
+      openAiApiKey: settings.openAiApiKey,
+      groqApiKey: settings.groqApiKey,
+      aiProvider: settings.aiProvider,
+    });
   };
 
   return (
@@ -116,37 +121,88 @@ export const Settings: React.FC<SettingsProps> = ({
       </div>
 
       <div className="card settings-card">
-        <h3>OpenAI API Key</h3>
+        <h3>AI Provider</h3>
         <p className="form-help">
-          Required for AI food recognition and InBody scan extraction.
-          <br />
-          Get your API key from:{' '}
-          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
-            platform.openai.com/api-keys
-          </a>
+          Choose your AI provider for food scanning and image analysis.
         </p>
         <div className="form-group">
-          <input
-            type="password"
-            value={formData.openAiApiKey || ''}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                openAiApiKey: e.target.value,
-              })
-            }
-            placeholder="sk-..."
-          />
+          <label>Provider</label>
+          <div className="provider-select">
+            <button
+              className={`provider-btn ${formData.aiProvider === 'groq' ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, aiProvider: 'groq' })}
+            >
+              <span className="provider-name">Groq</span>
+              <span className="provider-tag free">Free</span>
+            </button>
+            <button
+              className={`provider-btn ${formData.aiProvider === 'openai' ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, aiProvider: 'openai' })}
+            >
+              <span className="provider-name">OpenAI</span>
+              <span className="provider-tag paid">Paid</span>
+            </button>
+          </div>
         </div>
-        {formData.openAiApiKey && formData.openAiApiKey.startsWith('sk-') && (
-          <p className="form-help" style={{ color: '#10b981' }}>
-            API key configured
-          </p>
+
+        {formData.aiProvider === 'groq' && (
+          <>
+            <div className="form-group">
+              <label>Groq API Key</label>
+              <p className="form-help">
+                Get your free API key from:{' '}
+                <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
+                  console.groq.com/keys
+                </a>
+              </p>
+              <input
+                type="password"
+                value={formData.groqApiKey || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    groqApiKey: e.target.value,
+                  })
+                }
+                placeholder="gsk_..."
+              />
+            </div>
+            {formData.groqApiKey && formData.groqApiKey.startsWith('gsk_') && (
+              <p className="form-help" style={{ color: '#10b981' }}>
+                Groq API key configured
+              </p>
+            )}
+          </>
         )}
-        {formData.openAiApiKey && !formData.openAiApiKey.startsWith('sk-') && (
-          <p className="form-help" style={{ color: '#ef4444' }}>
-            Invalid key format - should start with "sk-"
-          </p>
+
+        {formData.aiProvider === 'openai' && (
+          <>
+            <div className="form-group">
+              <label>OpenAI API Key</label>
+              <p className="form-help">
+                Get your API key from:{' '}
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
+                  platform.openai.com/api-keys
+                </a>
+              </p>
+              <input
+                type="password"
+                value={formData.openAiApiKey || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    openAiApiKey: e.target.value,
+                  })
+                }
+                placeholder="sk-..."
+              />
+            </div>
+            {formData.openAiApiKey && formData.openAiApiKey.startsWith('sk-') && (
+              <p className="form-help" style={{ color: '#10b981' }}>
+                OpenAI API key configured
+              </p>
+            )}
+          </>
         )}
       </div>
 

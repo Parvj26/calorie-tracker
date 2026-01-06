@@ -1,4 +1,4 @@
-import type { Meal } from '../types';
+import type { Meal, UserSettings } from '../types';
 
 export const defaultMeals: Meal[] = [
   {
@@ -30,10 +30,11 @@ export const defaultMeals: Meal[] = [
   },
 ];
 
-export const defaultSettings = {
+export const defaultSettings: UserSettings = {
   dailyCalorieTargetMin: 1600,
   dailyCalorieTargetMax: 1800,
   startWeight: 81,
   goalWeight: 72,
   startDate: new Date().toISOString().split('T')[0],
+  aiProvider: 'groq',
 };
