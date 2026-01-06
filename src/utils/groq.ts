@@ -1,6 +1,8 @@
 // Groq API integration for vision tasks
 // Uses Llama 3.2 Vision model (free tier available)
 
+import type { Recipe } from '../types';
+
 export interface GroqFoodAnalysis {
   name: string;
   calories: number;
@@ -48,6 +50,7 @@ export interface GroqHealthData {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const TEXT_MODEL = 'llama-3.1-8b-instant';
 
 async function callGroqVision(
   imageBase64: string,
@@ -89,6 +92,44 @@ async function callGroqVision(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error?.message || 'Failed to analyze image with Groq');
+  }
+
+  const data = await response.json();
+  const content = data.choices[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('No response from Groq API');
+  }
+
+  return content;
+}
+
+async function callGroqText(
+  prompt: string,
+  apiKey: string
+): Promise<string> {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: TEXT_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.2,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Failed to analyze text with Groq');
   }
 
   const data = await response.json();
@@ -153,6 +194,45 @@ Important:
     console.error('Failed to parse food response:', content);
     throw new Error('Failed to parse food analysis from Groq');
   }
+}
+
+export async function groqFormatRecipeText(
+  rawText: string,
+  apiKey: string
+): Promise<Recipe> {
+  const prompt = `You are a recipe formatter. Convert the user text into structured JSON that matches this schema:
+
+{
+  "servings": number | null,
+  "totalTime": number | null,
+  "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null } | null,
+  "sections": [
+    {
+      "title": string,
+      "ingredients": [ { "item": string, "portion": string } ],
+      "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null } | null,
+      "notes": [string]
+    }
+  ],
+  "instructions": [string]
+}
+
+Guidelines:
+- Follow the "Meal Portions & Nutrition" structure: overall nutrition summary plus sectioned ingredients (e.g., Base, Toppings, Dressing, Sauce) with portions.
+- Use short, clean section titles. If the text has no sections, create a single section titled "Ingredients".
+- Portion should keep units (e.g., "1 pack (100g)", "1/4 cup (35g)", "to taste").
+- Nutrition values should be numbers when present; otherwise null.
+- Return ONLY JSON, no markdown.
+
+User text:
+${rawText}`;
+
+  const content = await callGroqText(prompt, apiKey);
+  const parsed = parseJsonResponse<Recipe>(content);
+  return {
+    ...parsed,
+    rawText: rawText.trim(),
+  };
 }
 
 export async function groqExtractInBodyData(

@@ -42,6 +42,7 @@ calorie-tracker/
 │   │   ├── CircularProgress.tsx  # Progress indicator
 │   │   ├── MealLogger.tsx        # Meal selection
 │   │   ├── FoodScanner.tsx       # AI food scanner
+│   │   ├── RecipeModal.tsx       # Recipe viewer modal
 │   │   ├── HealthScanner.tsx     # Apple Health importer
 │   │   ├── InBodyUpload.tsx      # InBody scan uploader
 │   │   ├── ProgressTracker.tsx   # Weight, calories & steps charts
@@ -119,6 +120,16 @@ All data syncs to Supabase in real-time:
 - Activity calories
 - True deficit calculation
 - Meal logger
+- Recipe indicator pill (chef hat + label) for meals with recipes
+- Recipe modal for logged meals with recipe details
+
+### 3.1 Recipes
+
+**Files:** `src/components/MealLogger.tsx`, `src/components/RecipeModal.tsx`
+
+- Single text box for recipes/ingredients
+- Groq formats text into structured sections (Base/Toppings/Dressing, etc.)
+- Recipe details rendered with section nutrition and notes
 
 ### 4. AI Food Scanner
 
@@ -129,6 +140,7 @@ All data syncs to Supabase in real-time:
 - Confidence indicator
 - Portion multiplier (0.5x - 2x)
 - Log Once or Save & Log options
+- Optional basic recipe generation for scanned foods
 
 ### 5. Apple Health Import
 
@@ -220,6 +232,7 @@ Tables with row-level security:
 | `user_settings` | User preferences |
 
 All tables have `user_id` foreign key to `auth.users`.
+`meals.recipe` stores structured recipe data (JSONB).
 
 **InBody Scans Enhanced Columns:**
 ```sql
@@ -243,6 +256,37 @@ bone_mass DECIMAL(5,2)          -- Bone mass in kg
 **File:** `src/types/index.ts`
 
 ```typescript
+interface RecipeNutrition {
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+}
+
+interface RecipeIngredient {
+  item: string;
+  portion?: string;
+  amount?: string;
+  unit?: string;
+}
+
+interface RecipeSection {
+  title: string;
+  ingredients: RecipeIngredient[];
+  nutrition?: RecipeNutrition;
+  notes?: string[];
+}
+
+interface Recipe {
+  rawText?: string;
+  servings?: number;
+  totalTime?: number;
+  nutrition?: RecipeNutrition;
+  sections?: RecipeSection[];
+  ingredients?: RecipeIngredient[];
+  instructions?: string[];
+}
+
 interface HealthMetrics {
   restingEnergy: number;
   activeEnergy: number;
@@ -259,6 +303,7 @@ interface Meal {
   carbs: number;
   fat: number;
   isCustom: boolean;
+  recipe?: Recipe;
 }
 
 interface DailyLog {
@@ -345,9 +390,11 @@ Key functions:
 **File:** `src/utils/groq.ts`
 
 Model: `meta-llama/llama-4-scout-17b-16e-instruct`
+Text model: `llama-3.1-8b-instant`
 
 Functions:
 - `groqAnalyzeFood()` - Food recognition
+- `groqFormatRecipeText()` - Format recipe text into structured sections
 - `groqExtractInBodyData()` - InBody scan extraction (12 metrics)
 - `groqExtractHealthData()` - Apple Health extraction
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, ChefHat } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { CircularProgress } from './CircularProgress';
 import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
+import RecipeModal from './RecipeModal';
 import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
 
 interface InBodyMetrics {
@@ -41,6 +42,7 @@ interface GoalProgress {
 
 interface DashboardProps {
   meals: Meal[];
+  dailyLogs: DailyLog[];
   selectedDate: string;
   log: DailyLog;
   settings: UserSettings;
@@ -70,6 +72,7 @@ interface DashboardProps {
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onDeleteMeal: (mealId: string) => void;
+  onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
@@ -77,6 +80,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({
   meals,
+  dailyLogs,
   selectedDate,
   log,
   settings,
@@ -88,6 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateHealthMetrics,
   onAddMeal,
   onDeleteMeal,
+  onToggleFavorite,
   onDateChange,
   onLogScannedMeal,
   onSaveAndLogMeal,
@@ -95,6 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
   const [showHealthScanner, setShowHealthScanner] = useState(false);
+  const [recipeModalMeal, setRecipeModalMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     setWorkoutInput(totals.activeEnergy.toString());
@@ -108,6 +114,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const targetRange = `${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax}`;
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
+  const loggedMeals = log.meals
+    .map((mealId) => meals.find((meal) => meal.id === mealId))
+    .filter((meal): meal is Meal => Boolean(meal));
 
   const changeDate = (days: number) => {
     const current = parseISO(selectedDate);
@@ -528,14 +537,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
         <MealLogger
           meals={meals}
+          dailyLogs={dailyLogs}
           selectedDate={selectedDate}
           log={log}
           onToggleMeal={onToggleMeal}
           onAddMeal={onAddMeal}
           onDeleteMeal={onDeleteMeal}
+          onToggleFavorite={onToggleFavorite}
           onDateChange={onDateChange}
+          onOpenRecipe={(meal) => setRecipeModalMeal(meal)}
+          groqApiKey={settings.groqApiKey}
         />
+        {loggedMeals.length > 0 && (
+          <div className="logged-meals">
+            <h4>Logged Meals</h4>
+            {loggedMeals.map((meal) => (
+              <div key={meal.id} className="logged-meal">
+                <span>{meal.name} - {meal.calories} cal</span>
+                {meal.recipe && (
+                  <button
+                    onClick={() => setRecipeModalMeal(meal)}
+                    className="recipe-btn"
+                    title="View recipe"
+                  >
+                    <ChefHat size={16} />
+                    <span>Recipe</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {recipeModalMeal && (
+        <RecipeModal
+          meal={recipeModalMeal}
+          onClose={() => setRecipeModalMeal(null)}
+        />
+      )}
 
       {/* Food Scanner Modal */}
       {showScanner && (

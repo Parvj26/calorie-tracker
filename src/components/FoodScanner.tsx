@@ -37,6 +37,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
+  const [shouldGenerateRecipe, setShouldGenerateRecipe] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -213,6 +214,21 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     fat: Math.round(food.fat * food.portionMultiplier),
   });
 
+  const buildGeneratedRecipe = (food: DetectedFood) => ({
+    ingredients: [
+      {
+        item: food.foodName,
+        amount: food.portionSize.toString(),
+        unit: food.portionUnit || 'serving',
+      },
+    ],
+    instructions: [
+      `Prepare ${food.foodName} as shown in the photo`,
+      'Serve and enjoy',
+    ],
+    servings: 1,
+  });
+
   const handleLogFood = (food: DetectedFood) => {
     const adjusted = getAdjustedValues(food);
     onLogMeal({
@@ -221,6 +237,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       protein: adjusted.protein,
       carbs: adjusted.carbs,
       fat: adjusted.fat,
+      recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
     setDetectedFoods((prev) => prev.filter((f) => f !== food));
   };
@@ -233,6 +250,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       protein: adjusted.protein,
       carbs: adjusted.carbs,
       fat: adjusted.fat,
+      recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
     setDetectedFoods((prev) => prev.filter((f) => f !== food));
   };
@@ -246,9 +264,11 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         protein: adjusted.protein,
         carbs: adjusted.carbs,
         fat: adjusted.fat,
+        recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
       });
     });
     setDetectedFoods([]);
+    setShouldGenerateRecipe(false);
     onClose();
   };
 
@@ -256,6 +276,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     setImageData(null);
     setDetectedFoods([]);
     setError(null);
+    setShouldGenerateRecipe(false);
   };
 
   const getConfidenceBadge = (confidence: string) => {
@@ -350,6 +371,16 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             {detectedFoods.length > 0 && (
               <div className="detected-foods">
                 <h3>Detected Foods</h3>
+                <div className="generate-recipe-option">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={shouldGenerateRecipe}
+                      onChange={(e) => setShouldGenerateRecipe(e.target.checked)}
+                    />
+                    Generate basic recipe for this meal
+                  </label>
+                </div>
                 {detectedFoods.map((food, index) => {
                   const adjusted = getAdjustedValues(food);
                   return (

@@ -14,9 +14,16 @@ CREATE TABLE IF NOT EXISTS meals (
   carbs REAL NOT NULL DEFAULT 0,
   fat REAL NOT NULL DEFAULT 0,
   is_custom BOOLEAN DEFAULT true,
+  recipe JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Add recipe column to meals table (for existing deployments)
+ALTER TABLE meals
+ADD COLUMN IF NOT EXISTS recipe JSONB;
+
+COMMENT ON COLUMN meals.recipe IS 'Recipe data with ingredients and instructions';
 
 -- Daily logs table
 CREATE TABLE IF NOT EXISTS daily_logs (
@@ -81,50 +88,69 @@ ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 -- RLS Policies: Users can only access their own data
 
 -- Meals policies
+DROP POLICY IF EXISTS "Users can view own meals" ON meals;
 CREATE POLICY "Users can view own meals" ON meals
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own meals" ON meals;
 CREATE POLICY "Users can insert own meals" ON meals
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own meals" ON meals;
 CREATE POLICY "Users can update own meals" ON meals
   FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own meals" ON meals;
 CREATE POLICY "Users can delete own meals" ON meals
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Daily logs policies
+DROP POLICY IF EXISTS "Users can view own daily_logs" ON daily_logs;
 CREATE POLICY "Users can view own daily_logs" ON daily_logs
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own daily_logs" ON daily_logs;
 CREATE POLICY "Users can insert own daily_logs" ON daily_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own daily_logs" ON daily_logs;
 CREATE POLICY "Users can update own daily_logs" ON daily_logs
   FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own daily_logs" ON daily_logs;
 CREATE POLICY "Users can delete own daily_logs" ON daily_logs
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Weigh-ins policies
+DROP POLICY IF EXISTS "Users can view own weigh_ins" ON weigh_ins;
 CREATE POLICY "Users can view own weigh_ins" ON weigh_ins
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own weigh_ins" ON weigh_ins;
 CREATE POLICY "Users can insert own weigh_ins" ON weigh_ins
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own weigh_ins" ON weigh_ins;
 CREATE POLICY "Users can update own weigh_ins" ON weigh_ins
   FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own weigh_ins" ON weigh_ins;
 CREATE POLICY "Users can delete own weigh_ins" ON weigh_ins
   FOR DELETE USING (auth.uid() = user_id);
 
 -- InBody scans policies
+DROP POLICY IF EXISTS "Users can view own inbody_scans" ON inbody_scans;
 CREATE POLICY "Users can view own inbody_scans" ON inbody_scans
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own inbody_scans" ON inbody_scans;
 CREATE POLICY "Users can insert own inbody_scans" ON inbody_scans
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own inbody_scans" ON inbody_scans;
 CREATE POLICY "Users can update own inbody_scans" ON inbody_scans
   FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own inbody_scans" ON inbody_scans;
 CREATE POLICY "Users can delete own inbody_scans" ON inbody_scans
   FOR DELETE USING (auth.uid() = user_id);
 
 -- User settings policies
+DROP POLICY IF EXISTS "Users can view own settings" ON user_settings;
 CREATE POLICY "Users can view own settings" ON user_settings
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own settings" ON user_settings;
 CREATE POLICY "Users can insert own settings" ON user_settings
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own settings" ON user_settings;
 CREATE POLICY "Users can update own settings" ON user_settings
   FOR UPDATE USING (auth.uid() = user_id);
 

@@ -216,6 +216,19 @@ export function useCalorieTracker() {
     );
   }, [setMeals, setDailyLogs, user, deleteMealFromDb, saveDailyLog]);
 
+  // Toggle favorite status for a meal
+  const toggleFavorite = useCallback((mealId: string) => {
+    setMeals((prev) => {
+      const updatedMeals = prev.map((meal) =>
+        meal.id === mealId ? { ...meal, favorite: !meal.favorite } : meal
+      );
+      // Find the updated meal and save to Supabase
+      const updatedMeal = updatedMeals.find((m) => m.id === mealId);
+      if (user && updatedMeal) saveMeal(updatedMeal);
+      return updatedMeals;
+    });
+  }, [setMeals, user, saveMeal]);
+
   // Add InBody scan - replaces existing scan on same date, also updates weigh-ins
   const addInBodyScan = useCallback((scan: Omit<InBodyScan, 'id'>) => {
     let newScan: InBodyScan;
@@ -591,6 +604,7 @@ export function useCalorieTracker() {
     // Meal operations
     addMeal,
     deleteMeal,
+    toggleFavorite,
     logScannedMeal,
     saveAndLogMeal,
 

@@ -41,6 +41,8 @@ export function useSupabaseSync() {
         carbs: m.carbs,
         fat: m.fat,
         isCustom: m.is_custom,
+        favorite: m.favorite ?? false,
+        recipe: m.recipe || undefined,
       }));
 
       const dailyLogs: DailyLog[] = (logsRes.data || []).map((l) => ({
@@ -119,6 +121,8 @@ export function useSupabaseSync() {
       carbs: meal.carbs,
       fat: meal.fat,
       is_custom: meal.isCustom ?? true,
+      favorite: meal.favorite ?? false,
+      recipe: meal.recipe ?? null,
       updated_at: new Date().toISOString(),
     });
   }, [user]);

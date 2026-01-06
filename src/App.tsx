@@ -29,6 +29,7 @@ function AppContent() {
 
   const {
     meals,
+    dailyLogs,
     inBodyScans,
     weighIns,
     settings,
@@ -40,6 +41,7 @@ function AppContent() {
     calculateTotals,
     addMeal,
     deleteMeal,
+    toggleFavorite,
     logScannedMeal,
     saveAndLogMeal,
     addInBodyScan,
@@ -124,6 +126,7 @@ function AppContent() {
         {activeTab === 'dashboard' && (
           <Dashboard
             meals={meals}
+            dailyLogs={dailyLogs}
             selectedDate={selectedDate}
             log={currentLog}
             settings={settings}
@@ -135,6 +138,7 @@ function AppContent() {
             onUpdateHealthMetrics={updateHealthMetrics}
             onAddMeal={addMeal}
             onDeleteMeal={deleteMeal}
+            onToggleFavorite={toggleFavorite}
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}

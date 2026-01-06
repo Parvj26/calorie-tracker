@@ -4,6 +4,37 @@ export interface Macros {
   fat: number;
 }
 
+export interface RecipeNutrition {
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+}
+
+export interface RecipeIngredient {
+  item: string;
+  portion?: string;
+  amount?: string;
+  unit?: string;
+}
+
+export interface RecipeSection {
+  title: string;
+  ingredients: RecipeIngredient[];
+  nutrition?: RecipeNutrition;
+  notes?: string[];
+}
+
+export interface Recipe {
+  rawText?: string;
+  servings?: number;
+  totalTime?: number;
+  nutrition?: RecipeNutrition;
+  sections?: RecipeSection[];
+  ingredients?: RecipeIngredient[];
+  instructions?: string[];
+}
+
 export interface Meal {
   id: string;
   name: string;
@@ -12,6 +43,8 @@ export interface Meal {
   carbs: number;
   fat: number;
   isCustom?: boolean;
+  favorite?: boolean;
+  recipe?: Recipe;
 }
 
 export interface HealthMetrics {
