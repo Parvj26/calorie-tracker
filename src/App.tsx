@@ -29,6 +29,7 @@ function AppContent() {
 
   const {
     meals,
+    deletedMeals,
     dailyLogs,
     inBodyScans,
     weighIns,
@@ -41,6 +42,9 @@ function AppContent() {
     calculateTotals,
     addMeal,
     deleteMeal,
+    restoreMeal,
+    permanentlyDeleteMeal,
+    getDaysUntilExpiry,
     toggleFavorite,
     logScannedMeal,
     saveAndLogMeal,
@@ -126,6 +130,7 @@ function AppContent() {
         {activeTab === 'dashboard' && (
           <Dashboard
             meals={meals}
+            deletedMeals={deletedMeals}
             dailyLogs={dailyLogs}
             selectedDate={selectedDate}
             log={currentLog}
@@ -138,6 +143,9 @@ function AppContent() {
             onUpdateHealthMetrics={updateHealthMetrics}
             onAddMeal={addMeal}
             onDeleteMeal={deleteMeal}
+            onRestoreMeal={restoreMeal}
+            onPermanentDeleteMeal={permanentlyDeleteMeal}
+            getDaysUntilExpiry={getDaysUntilExpiry}
             onToggleFavorite={toggleFavorite}
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}

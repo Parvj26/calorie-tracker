@@ -25,6 +25,16 @@ ADD COLUMN IF NOT EXISTS recipe JSONB;
 
 COMMENT ON COLUMN meals.recipe IS 'Recipe data with ingredients and instructions';
 
+-- Add favorite column to meals table (for existing deployments)
+ALTER TABLE meals
+ADD COLUMN IF NOT EXISTS favorite BOOLEAN DEFAULT false;
+
+-- Add deleted_at column for soft delete (trash/recycle bin feature)
+ALTER TABLE meals
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+COMMENT ON COLUMN meals.deleted_at IS 'Soft delete timestamp. NULL = active, timestamp = in trash';
+
 -- Daily logs table
 CREATE TABLE IF NOT EXISTS daily_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -156,6 +166,7 @@ CREATE POLICY "Users can update own settings" ON user_settings
 
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_meals_user_id ON meals(user_id);
+CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(user_id, deleted_at);
 CREATE INDEX IF NOT EXISTS idx_daily_logs_user_date ON daily_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_weigh_ins_user_date ON weigh_ins(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_inbody_scans_user_date ON inbody_scans(user_id, date);

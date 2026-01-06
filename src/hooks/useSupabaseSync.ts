@@ -43,6 +43,7 @@ export function useSupabaseSync() {
         isCustom: m.is_custom,
         favorite: m.favorite ?? false,
         recipe: m.recipe || undefined,
+        deletedAt: m.deleted_at || undefined,
       }));
 
       const dailyLogs: DailyLog[] = (logsRes.data || []).map((l) => ({
@@ -130,6 +131,41 @@ export function useSupabaseSync() {
   const deleteMealFromDb = useCallback(async (mealId: string) => {
     if (!user) return;
     await supabase.from('meals').delete().eq('id', mealId).eq('user_id', user.id);
+  }, [user]);
+
+  // Soft delete meal (set deleted_at timestamp)
+  const softDeleteMeal = useCallback(async (mealId: string) => {
+    if (!user) return;
+    await supabase.from('meals').update({
+      deleted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', mealId).eq('user_id', user.id);
+  }, [user]);
+
+  // Restore meal (clear deleted_at timestamp)
+  const restoreMealDb = useCallback(async (mealId: string) => {
+    if (!user) return;
+    await supabase.from('meals').update({
+      deleted_at: null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', mealId).eq('user_id', user.id);
+  }, [user]);
+
+  // Permanently delete meal (hard delete)
+  const permanentDeleteMeal = useCallback(async (mealId: string) => {
+    if (!user) return;
+    await supabase.from('meals').delete().eq('id', mealId).eq('user_id', user.id);
+  }, [user]);
+
+  // Purge meals deleted more than 30 days ago
+  const purgeExpiredMeals = useCallback(async () => {
+    if (!user) return;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    await supabase.from('meals').delete()
+      .eq('user_id', user.id)
+      .not('deleted_at', 'is', null)
+      .lt('deleted_at', thirtyDaysAgo.toISOString());
   }, [user]);
 
   // Save daily log to Supabase
@@ -222,6 +258,10 @@ export function useSupabaseSync() {
     loadFromSupabase,
     saveMeal,
     deleteMealFromDb,
+    softDeleteMeal,
+    restoreMealDb,
+    permanentDeleteMeal,
+    purgeExpiredMeals,
     saveDailyLog,
     saveWeighIn,
     deleteWeighInFromDb,

@@ -10,6 +10,7 @@ import { defaultMeals, defaultSettings } from '../data/defaultMeals';
 export function useCalorieTracker() {
   const { user } = useAuth();
   const [meals, setMeals] = useLocalStorage<Meal[]>('calorie-tracker-meals', defaultMeals);
+  const [deletedMeals, setDeletedMeals] = useLocalStorage<Meal[]>('calorie-tracker-deleted-meals', []);
   const [dailyLogs, setDailyLogs] = useLocalStorage<DailyLog[]>('calorie-tracker-daily-logs', []);
   const [inBodyScans, setInBodyScans] = useLocalStorage<InBodyScan[]>('calorie-tracker-inbody', []);
   const [weighIns, setWeighIns] = useLocalStorage<WeighIn[]>('calorie-tracker-weighins', []);
@@ -20,7 +21,10 @@ export function useCalorieTracker() {
     syncState,
     loadFromSupabase,
     saveMeal,
-    deleteMealFromDb,
+    softDeleteMeal,
+    restoreMealDb,
+    permanentDeleteMeal,
+    purgeExpiredMeals,
     saveDailyLog,
     saveWeighIn,
     deleteWeighInFromDb,
@@ -35,7 +39,13 @@ export function useCalorieTracker() {
       loadFromSupabase()
         .then((data) => {
           if (data) {
-            if (data.meals.length > 0) setMeals(data.meals);
+            // Separate active and deleted meals
+            const activeMeals = data.meals.filter((m) => !m.deletedAt);
+            const trashedMeals = data.meals.filter((m) => m.deletedAt);
+
+            if (activeMeals.length > 0) setMeals(activeMeals);
+            if (trashedMeals.length > 0) setDeletedMeals(trashedMeals);
+
             if (data.dailyLogs.length > 0) setDailyLogs(data.dailyLogs);
             if (data.weighIns.length > 0) setWeighIns(data.weighIns);
             if (data.inBodyScans.length > 0) setInBodyScans(data.inBodyScans);
@@ -49,7 +59,22 @@ export function useCalorieTracker() {
           setIsLoaded(true);
         });
     }
-  }, [user, isLoaded, loadFromSupabase, setMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
+  }, [user, isLoaded, loadFromSupabase, setMeals, setDeletedMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
+
+  // Auto-purge expired deleted meals on load
+  useEffect(() => {
+    if (user && isLoaded) {
+      // Purge from database
+      purgeExpiredMeals();
+
+      // Also purge from local state
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      setDeletedMeals((prev) =>
+        prev.filter((m) => !m.deletedAt || new Date(m.deletedAt) > thirtyDaysAgo)
+      );
+    }
+  }, [user, isLoaded, purgeExpiredMeals, setDeletedMeals]);
 
   // Get today's date in YYYY-MM-DD format
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -199,10 +224,27 @@ export function useCalorieTracker() {
     return logScannedMeal(meal, date);
   }, [logScannedMeal]);
 
-  // Delete meal
+  // Delete meal (soft delete - moves to trash)
   const deleteMeal = useCallback((mealId: string) => {
+    // Find the meal to soft delete
+    const mealToDelete = meals.find((m) => m.id === mealId);
+    if (!mealToDelete) return;
+
+    // Add deletion timestamp and move to deleted meals
+    const deletedMeal: Meal = {
+      ...mealToDelete,
+      deletedAt: new Date().toISOString(),
+    };
+
+    // Remove from active meals
     setMeals((prev) => prev.filter((meal) => meal.id !== mealId));
-    if (user) deleteMealFromDb(mealId);
+
+    // Add to deleted meals
+    setDeletedMeals((prev) => [...prev, deletedMeal]);
+
+    // Sync to Supabase (soft delete)
+    if (user) softDeleteMeal(mealId);
+
     // Also remove from all daily logs
     setDailyLogs((prev) =>
       prev.map((log) => {
@@ -214,7 +256,46 @@ export function useCalorieTracker() {
         return updatedLog;
       })
     );
-  }, [setMeals, setDailyLogs, user, deleteMealFromDb, saveDailyLog]);
+  }, [meals, setMeals, setDeletedMeals, setDailyLogs, user, softDeleteMeal, saveDailyLog]);
+
+  // Restore meal from trash (to library only, not daily logs)
+  const restoreMeal = useCallback((mealId: string) => {
+    // Find the deleted meal
+    const mealToRestore = deletedMeals.find((m) => m.id === mealId);
+    if (!mealToRestore) return;
+
+    // Remove deletion timestamp
+    const restoredMeal: Meal = {
+      ...mealToRestore,
+      deletedAt: undefined,
+    };
+
+    // Remove from deleted meals
+    setDeletedMeals((prev) => prev.filter((m) => m.id !== mealId));
+
+    // Add back to active meals
+    setMeals((prev) => [...prev, restoredMeal]);
+
+    // Sync to Supabase
+    if (user) restoreMealDb(mealId);
+  }, [deletedMeals, setDeletedMeals, setMeals, user, restoreMealDb]);
+
+  // Permanently delete meal (hard delete from trash)
+  const permanentlyDeleteMeal = useCallback((mealId: string) => {
+    // Remove from deleted meals
+    setDeletedMeals((prev) => prev.filter((m) => m.id !== mealId));
+
+    // Hard delete from database
+    if (user) permanentDeleteMeal(mealId);
+  }, [setDeletedMeals, user, permanentDeleteMeal]);
+
+  // Calculate days until a deleted meal expires
+  const getDaysUntilExpiry = useCallback((deletedAt: string): number => {
+    const expiryDate = new Date(deletedAt);
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    const diffDays = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  }, []);
 
   // Toggle favorite status for a meal
   const toggleFavorite = useCallback((mealId: string) => {
@@ -586,6 +667,7 @@ export function useCalorieTracker() {
   return {
     // Data
     meals,
+    deletedMeals,
     dailyLogs,
     inBodyScans,
     weighIns,
@@ -604,6 +686,9 @@ export function useCalorieTracker() {
     // Meal operations
     addMeal,
     deleteMeal,
+    restoreMeal,
+    permanentlyDeleteMeal,
+    getDaysUntilExpiry,
     toggleFavorite,
     logScannedMeal,
     saveAndLogMeal,

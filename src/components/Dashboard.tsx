@@ -42,6 +42,7 @@ interface GoalProgress {
 
 interface DashboardProps {
   meals: Meal[];
+  deletedMeals: Meal[];
   dailyLogs: DailyLog[];
   selectedDate: string;
   log: DailyLog;
@@ -72,6 +73,9 @@ interface DashboardProps {
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onDeleteMeal: (mealId: string) => void;
+  onRestoreMeal: (mealId: string) => void;
+  onPermanentDeleteMeal: (mealId: string) => void;
+  getDaysUntilExpiry: (deletedAt: string) => number;
   onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
@@ -80,6 +84,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({
   meals,
+  deletedMeals,
   dailyLogs,
   selectedDate,
   log,
@@ -92,6 +97,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateHealthMetrics,
   onAddMeal,
   onDeleteMeal,
+  onRestoreMeal,
+  onPermanentDeleteMeal,
+  getDaysUntilExpiry,
   onToggleFavorite,
   onDateChange,
   onLogScannedMeal,
@@ -537,12 +545,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
         <MealLogger
           meals={meals}
+          deletedMeals={deletedMeals}
           dailyLogs={dailyLogs}
           selectedDate={selectedDate}
           log={log}
           onToggleMeal={onToggleMeal}
           onAddMeal={onAddMeal}
           onDeleteMeal={onDeleteMeal}
+          onRestoreMeal={onRestoreMeal}
+          onPermanentDeleteMeal={onPermanentDeleteMeal}
+          getDaysUntilExpiry={getDaysUntilExpiry}
           onToggleFavorite={onToggleFavorite}
           onDateChange={onDateChange}
           onOpenRecipe={(meal) => setRecipeModalMeal(meal)}

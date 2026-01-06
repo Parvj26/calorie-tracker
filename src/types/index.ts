@@ -45,6 +45,7 @@ export interface Meal {
   isCustom?: boolean;
   favorite?: boolean;
   recipe?: Recipe;
+  deletedAt?: string; // ISO timestamp for soft delete, undefined = active
 }
 
 export interface HealthMetrics {

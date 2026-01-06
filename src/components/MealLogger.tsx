@@ -1,17 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star } from 'lucide-react';
+import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle } from 'lucide-react';
 import type { Meal, DailyLog } from '../types';
 import { groqFormatRecipeText } from '../utils/groq';
 
 interface MealLoggerProps {
   meals: Meal[];
+  deletedMeals: Meal[];
   dailyLogs: DailyLog[];
   selectedDate: string;
   log: DailyLog;
   onToggleMeal: (mealId: string, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onDeleteMeal: (mealId: string) => void;
+  onRestoreMeal: (mealId: string) => void;
+  onPermanentDeleteMeal: (mealId: string) => void;
+  getDaysUntilExpiry: (deletedAt: string) => number;
   onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   onOpenRecipe: (meal: Meal) => void;
@@ -20,12 +24,16 @@ interface MealLoggerProps {
 
 export const MealLogger: React.FC<MealLoggerProps> = ({
   meals,
+  deletedMeals,
   dailyLogs,
   selectedDate,
   log,
   onToggleMeal,
   onAddMeal,
   onDeleteMeal,
+  onRestoreMeal,
+  onPermanentDeleteMeal,
+  getDaysUntilExpiry,
   onToggleFavorite,
   onDateChange,
   onOpenRecipe,
@@ -34,6 +42,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mealToDelete, setMealToDelete] = useState<Meal | null>(null);
+  const [isTrashExpanded, setIsTrashExpanded] = useState(false);
+  const [mealToPermDelete, setMealToPermDelete] = useState<Meal | null>(null);
   const [newMeal, setNewMeal] = useState({
     name: '',
     calories: '',
@@ -321,12 +331,71 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
         </form>
       )}
 
+      {/* Trash Section */}
+      {deletedMeals.length > 0 && (
+        <div className="trash-section">
+          <button
+            className="trash-header"
+            onClick={() => setIsTrashExpanded(!isTrashExpanded)}
+          >
+            <div className="trash-header-left">
+              <Trash2 size={18} />
+              <span>Trash ({deletedMeals.length})</span>
+            </div>
+            {isTrashExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {isTrashExpanded && (
+            <div className="trash-content">
+              <p className="trash-info">
+                Deleted meals are permanently removed after 30 days.
+                Restoring adds the meal back to your library only.
+              </p>
+
+              {deletedMeals.map((meal) => {
+                const daysLeft = getDaysUntilExpiry(meal.deletedAt!);
+                return (
+                  <div key={meal.id} className="trash-item">
+                    <div className="trash-item-info">
+                      <span className="meal-name">{meal.name}</span>
+                      <span className="meal-macros">
+                        {meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F
+                      </span>
+                      <span className={`expiry-badge ${daysLeft <= 7 ? 'expiring-soon' : ''}`}>
+                        {daysLeft <= 0 ? 'Expiring today' : `${daysLeft} days left`}
+                      </span>
+                    </div>
+                    <div className="trash-item-actions">
+                      <button
+                        className="restore-btn"
+                        onClick={() => onRestoreMeal(meal.id)}
+                        title="Restore to library"
+                      >
+                        <RotateCcw size={16} />
+                      </button>
+                      <button
+                        className="perm-delete-btn"
+                        onClick={() => setMealToPermDelete(meal)}
+                        title="Delete permanently"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Move to Trash Confirmation */}
       {mealToDelete && (
         <div className="delete-confirm-overlay">
           <div className="delete-confirm-dialog">
-            <h4>Delete Meal?</h4>
-            <p>Delete "{mealToDelete.name}" from your meal library?</p>
-            <p className="delete-warning">This will remove it from all logged days.</p>
+            <h4>Move to Trash?</h4>
+            <p>Move "{mealToDelete.name}" to trash?</p>
+            <p className="delete-info">It will be removed from all logged days but can be restored within 30 days.</p>
             <div className="delete-confirm-actions">
               <button className="btn-secondary" onClick={() => setMealToDelete(null)}>
                 Cancel
@@ -335,7 +404,30 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                 onDeleteMeal(mealToDelete.id);
                 setMealToDelete(null);
               }}>
-                Delete
+                Move to Trash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permanent Delete Confirmation */}
+      {mealToPermDelete && (
+        <div className="delete-confirm-overlay">
+          <div className="delete-confirm-dialog">
+            <AlertTriangle size={48} className="warning-icon" />
+            <h4>Permanently Delete?</h4>
+            <p>Delete "{mealToPermDelete.name}" forever?</p>
+            <p className="delete-warning">This cannot be undone.</p>
+            <div className="delete-confirm-actions">
+              <button className="btn-secondary" onClick={() => setMealToPermDelete(null)}>
+                Cancel
+              </button>
+              <button className="btn-danger" onClick={() => {
+                onPermanentDeleteMeal(mealToPermDelete.id);
+                setMealToPermDelete(null);
+              }}>
+                Delete Forever
               </button>
             </div>
           </div>
