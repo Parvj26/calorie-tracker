@@ -1,9 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Utensils } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target } from 'lucide-react';
+import { format } from 'date-fns';
 import { CircularProgress } from './CircularProgress';
 import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import type { DailyLog, Meal, UserSettings } from '../types';
+
+interface InBodyMetrics {
+  weight: number;
+  bodyFatPercent: number;
+  muscleMass: number;
+  skeletalMuscle: number;
+  date: string;
+  changes: {
+    weight: number;
+    bodyFat: number;
+    muscleMass: number;
+    skeletalMuscle: number;
+  } | null;
+}
+
+interface GoalProgress {
+  startWeight: number;
+  currentWeight: number;
+  goalWeight: number;
+  weightLost: number;
+  weightRemaining: number;
+  progressPercent: number;
+}
 
 interface DashboardProps {
   meals: Meal[];
@@ -21,6 +45,8 @@ interface DashboardProps {
     caloriesRemaining: number;
     targetCalories: number;
   };
+  inBodyMetrics: InBodyMetrics | null;
+  goalProgress: GoalProgress;
   onToggleMeal: (mealId: string, date: string) => void;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
@@ -36,6 +62,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   log,
   settings,
   totals,
+  inBodyMetrics,
+  goalProgress,
   onToggleMeal,
   onUpdateWorkoutCalories,
   onAddMeal,
@@ -59,6 +87,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const targetRange = `${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax}`;
 
+  const formatChange = (value: number, inverse: boolean = false) => {
+    const isPositive = inverse ? value < 0 : value > 0;
+    const sign = value > 0 ? '+' : '';
+    return (
+      <span className={isPositive ? 'change-positive' : value < 0 ? 'change-negative' : ''}>
+        {sign}{value}
+      </span>
+    );
+  };
+
   return (
     <div className="dashboard">
       {/* Primary CTA - Scan Food Button */}
@@ -72,6 +110,84 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <span className="btn-subtitle">AI-powered calorie detection</span>
           </div>
         </button>
+      </div>
+
+      {/* Body Metrics Card - Show if we have InBody data */}
+      {inBodyMetrics && (
+        <div className="card body-metrics-card">
+          <div className="card-header">
+            <Scale size={20} />
+            <h3>Body Metrics</h3>
+            <span className="metrics-date">
+              {format(new Date(inBodyMetrics.date), 'MMM d')}
+            </span>
+          </div>
+          <div className="metrics-grid">
+            <div className="metric-item">
+              <span className="metric-value">{inBodyMetrics.weight}</span>
+              <span className="metric-unit">kg</span>
+              <span className="metric-label">Weight</span>
+              {inBodyMetrics.changes && (
+                <span className="metric-change">
+                  {formatChange(inBodyMetrics.changes.weight, true)}
+                </span>
+              )}
+            </div>
+            <div className="metric-item">
+              <span className="metric-value">{inBodyMetrics.bodyFatPercent}</span>
+              <span className="metric-unit">%</span>
+              <span className="metric-label">Body Fat</span>
+              {inBodyMetrics.changes && (
+                <span className="metric-change">
+                  {formatChange(inBodyMetrics.changes.bodyFat, true)}
+                </span>
+              )}
+            </div>
+            <div className="metric-item">
+              <span className="metric-value">{inBodyMetrics.muscleMass}</span>
+              <span className="metric-unit">kg</span>
+              <span className="metric-label">Muscle</span>
+              {inBodyMetrics.changes && (
+                <span className="metric-change">
+                  {formatChange(inBodyMetrics.changes.muscleMass)}
+                </span>
+              )}
+            </div>
+            <div className="metric-item">
+              <span className="metric-value">{inBodyMetrics.skeletalMuscle}</span>
+              <span className="metric-unit">kg</span>
+              <span className="metric-label">SMM</span>
+              {inBodyMetrics.changes && (
+                <span className="metric-change">
+                  {formatChange(inBodyMetrics.changes.skeletalMuscle)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Goal Progress Card */}
+      <div className="card goal-progress-card">
+        <div className="card-header">
+          <Target size={20} />
+          <h3>Goal Progress</h3>
+        </div>
+        <div className="goal-mini-stats">
+          <span>{goalProgress.currentWeight} kg</span>
+          <span className="goal-arrow">→</span>
+          <span className="goal-target">{goalProgress.goalWeight} kg</span>
+        </div>
+        <div className="goal-mini-bar">
+          <div
+            className="goal-mini-fill"
+            style={{ width: `${goalProgress.progressPercent}%` }}
+          />
+        </div>
+        <div className="goal-mini-labels">
+          <span className="lost">{goalProgress.weightLost} kg lost</span>
+          <span className="remaining">{goalProgress.weightRemaining} kg to go</span>
+        </div>
       </div>
 
       <div className="dashboard-grid">

@@ -1849,6 +1849,141 @@ body {
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* Body Metrics Card */
+.body-metrics-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.body-metrics-card .card-header {
+  color: white;
+  margin-bottom: 12px;
+}
+
+.body-metrics-card .card-header h3 {
+  color: white;
+}
+
+.metrics-date {
+  margin-left: auto;
+  opacity: 0.8;
+  font-size: 0.875rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+}
+
+.metric-unit {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.metric-change {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.change-positive {
+  color: #4ade80;
+}
+
+.change-negative {
+  color: #fca5a5;
+}
+
+/* Goal Progress Card - Dashboard Mini Version */
+.goal-progress-card {
+  background: var(--gray-50);
+}
+
+.goal-progress-card .card-header {
+  margin-bottom: 8px;
+}
+
+.goal-mini-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.goal-arrow {
+  color: var(--gray-400);
+}
+
+.goal-target {
+  color: var(--success);
+}
+
+.goal-mini-bar {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.goal-mini-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.goal-mini-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.goal-mini-labels .lost {
+  color: var(--success);
+  font-weight: 500;
+}
+
+.goal-mini-labels .remaining {
+  color: var(--gray-500);
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+}
+
 /* Mobile Optimizations */
 @media (max-width: 480px) {
   .app-header h1 {

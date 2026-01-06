@@ -41,6 +41,7 @@ function App() {
     getWeeklySummary,
     getProgressData,
     getGoalProgress,
+    getLatestInBodyMetrics,
   } = useCalorieTracker();
 
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
@@ -48,6 +49,7 @@ function App() {
   const weeklySummary = useMemo(() => getWeeklySummary(), [getWeeklySummary]);
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
+  const latestInBodyMetrics = useMemo(() => getLatestInBodyMetrics(), [getLatestInBodyMetrics]);
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
@@ -85,6 +87,8 @@ function App() {
             log={currentLog}
             settings={settings}
             totals={totals}
+            inBodyMetrics={latestInBodyMetrics}
+            goalProgress={goalProgress}
             onToggleMeal={toggleMealForDate}
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onAddMeal={addMeal}

@@ -120,15 +120,29 @@ export function useCalorieTracker() {
     );
   }, [setMeals, setDailyLogs]);
 
-  // Add InBody scan
+  // Add InBody scan - also automatically adds weight to weigh-ins
   const addInBodyScan = useCallback((scan: Omit<InBodyScan, 'id'>) => {
     const newScan: InBodyScan = {
       ...scan,
       id: uuidv4(),
     };
     setInBodyScans((prev) => [...prev, newScan].sort((a, b) => b.date.localeCompare(a.date)));
+
+    // Automatically add weight to weigh-ins
+    if (scan.weight > 0) {
+      setWeighIns((prev) => {
+        const existingIndex = prev.findIndex((w) => w.date === scan.date);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = { date: scan.date, weight: scan.weight };
+          return updated.sort((a, b) => a.date.localeCompare(b.date));
+        }
+        return [...prev, { date: scan.date, weight: scan.weight }].sort((a, b) => a.date.localeCompare(b.date));
+      });
+    }
+
     return newScan;
-  }, [setInBodyScans]);
+  }, [setInBodyScans, setWeighIns]);
 
   // Delete InBody scan
   const deleteInBodyScan = useCallback((scanId: string) => {
@@ -306,6 +320,31 @@ export function useCalorieTracker() {
     };
   }, [weighIns, settings]);
 
+  // Get latest InBody metrics
+  const getLatestInBodyMetrics = useCallback(() => {
+    if (inBodyScans.length === 0) return null;
+
+    // Scans are sorted by date descending, so first one is latest
+    const latest = inBodyScans[0];
+
+    // Get previous scan for comparison
+    const previous = inBodyScans.length > 1 ? inBodyScans[1] : null;
+
+    return {
+      weight: latest.weight,
+      bodyFatPercent: latest.bodyFatPercent,
+      muscleMass: latest.muscleMass,
+      skeletalMuscle: latest.skeletalMuscle,
+      date: latest.date,
+      changes: previous ? {
+        weight: Math.round((latest.weight - previous.weight) * 10) / 10,
+        bodyFat: Math.round((latest.bodyFatPercent - previous.bodyFatPercent) * 10) / 10,
+        muscleMass: Math.round((latest.muscleMass - previous.muscleMass) * 10) / 10,
+        skeletalMuscle: Math.round((latest.skeletalMuscle - previous.skeletalMuscle) * 10) / 10,
+      } : null,
+    };
+  }, [inBodyScans]);
+
   return {
     // Data
     meals,
@@ -343,5 +382,6 @@ export function useCalorieTracker() {
     getWeeklySummary,
     getProgressData,
     getGoalProgress,
+    getLatestInBodyMetrics,
   };
 }
