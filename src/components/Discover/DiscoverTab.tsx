@@ -5,7 +5,7 @@ import { SubmitMealModal } from './SubmitMealModal';
 import { MySubmissionsPanel } from './MySubmissionsPanel';
 import { AdminPanel } from '../Admin/AdminPanel';
 import RecipeModal from '../RecipeModal';
-import type { Meal, MasterMeal, DailyLog, MealSubmission } from '../../types';
+import type { Meal, MasterMeal, MealSubmission } from '../../types';
 
 interface DiscoverTabProps {
   meals: Meal[];
@@ -13,9 +13,8 @@ interface DiscoverTabProps {
   masterMealsLoading: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  selectedDate: string;
-  currentLog: DailyLog;
-  onAddMasterMealToLog: (mealId: string, date: string) => void;
+  savedMasterMealIds: string[];
+  onSaveMasterMealToLibrary: (mealId: string) => void;
   isAdmin: boolean;
   submissions: MealSubmission[];
   pendingCount: number;
@@ -32,9 +31,8 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
   masterMealsLoading,
   searchQuery,
   onSearchChange,
-  selectedDate,
-  currentLog,
-  onAddMasterMealToLog,
+  savedMasterMealIds,
+  onSaveMasterMealToLibrary,
   isAdmin,
   submissions,
   pendingCount,
@@ -47,13 +45,9 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [recipeModalMeal, setRecipeModalMeal] = useState<MasterMeal | null>(null);
 
-  // Check if a master meal is already added to today's log
-  const isMealAddedToday = (mealId: string) => {
-    return currentLog.masterMealIds?.includes(mealId) || false;
-  };
-
-  const handleAddToLog = (mealId: string) => {
-    onAddMasterMealToLog(mealId, selectedDate);
+  // Check if a master meal is saved to user's library
+  const isMealSaved = (mealId: string) => {
+    return savedMasterMealIds.includes(mealId);
   };
 
   return (
@@ -142,9 +136,9 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
               <MasterMealCard
                 key={meal.id}
                 meal={meal}
-                onAddToLog={handleAddToLog}
+                onAddToLibrary={onSaveMasterMealToLibrary}
                 onViewRecipe={(m) => setRecipeModalMeal(m)}
-                isAddedToday={isMealAddedToday(meal.id)}
+                isSaved={isMealSaved(meal.id)}
               />
             ))}
           </div>

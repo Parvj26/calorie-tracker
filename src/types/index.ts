@@ -107,6 +107,7 @@ export interface UserSettings {
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
+  savedMasterMealIds?: string[]; // Community meals saved to user's library
 }
 
 export interface AppState {

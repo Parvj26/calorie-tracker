@@ -1,8 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle } from 'lucide-react';
-import type { Meal, DailyLog } from '../types';
+import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
+import type { Meal, DailyLog, MasterMeal } from '../types';
 import { groqFormatRecipeText } from '../utils/groq';
+
+// Combined meal type for display (personal or community)
+interface DisplayMeal {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  recipe?: Meal['recipe'];
+  isCustom?: boolean;
+  favorite?: boolean;
+  isCommunity: boolean;
+  isInLibrary?: boolean; // For community meals: true if in library, false if only logged on this day
+}
 
 interface MealLoggerProps {
   meals: Meal[];
@@ -10,8 +25,14 @@ interface MealLoggerProps {
   dailyLogs: DailyLog[];
   selectedDate: string;
   log: DailyLog;
+  // Community meals (saved to library OR logged for current day)
+  displayMasterMeals: MasterMeal[];
+  savedMasterMealIds: string[];
   onToggleMeal: (mealId: string, date: string) => void;
+  onToggleMasterMeal: (masterMealId: string, date: string) => void;
+  onRemoveFromLibrary: (masterMealId: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
+  onUpdateMeal: (id: string, updates: Partial<Meal>) => void;
   onDeleteMeal: (mealId: string) => void;
   onRestoreMeal: (mealId: string) => void;
   onPermanentDeleteMeal: (mealId: string) => void;
@@ -28,8 +49,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   dailyLogs,
   selectedDate,
   log,
+  displayMasterMeals,
+  savedMasterMealIds,
   onToggleMeal,
+  onToggleMasterMeal,
+  onRemoveFromLibrary,
   onAddMeal,
+  onUpdateMeal,
   onDeleteMeal,
   onRestoreMeal,
   onPermanentDeleteMeal,
@@ -40,6 +66,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   groqApiKey,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mealToDelete, setMealToDelete] = useState<Meal | null>(null);
   const [isTrashExpanded, setIsTrashExpanded] = useState(false);
@@ -55,33 +82,85 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   const [recipeError, setRecipeError] = useState<string | null>(null);
   const [isFormattingRecipe, setIsFormattingRecipe] = useState(false);
 
+  // Start editing a meal
+  const startEditMeal = (meal: Meal) => {
+    setEditingMeal(meal);
+    setNewMeal({
+      name: meal.name,
+      calories: meal.calories.toString(),
+      protein: meal.protein.toString(),
+      carbs: meal.carbs.toString(),
+      fat: meal.fat.toString(),
+    });
+    setRecipeText(meal.recipe?.rawText || '');
+    setShowAddForm(true);
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingMeal(null);
+    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '' });
+    setRecipeText('');
+    setRecipeError(null);
+    setShowAddForm(false);
+  };
+
+  // Combine personal meals with community meals (saved to library OR logged for current day)
+  const allDisplayMeals = useMemo((): DisplayMeal[] => {
+    const personalMeals: DisplayMeal[] = meals.map(m => ({
+      ...m,
+      isCommunity: false,
+    }));
+
+    const communityMeals: DisplayMeal[] = displayMasterMeals.map(m => ({
+      id: m.id,
+      name: m.name,
+      calories: m.calories,
+      protein: m.protein,
+      carbs: m.carbs,
+      fat: m.fat,
+      recipe: m.recipe,
+      isCommunity: true,
+      isInLibrary: savedMasterMealIds.includes(m.id),
+    }));
+
+    return [...personalMeals, ...communityMeals];
+  }, [meals, displayMasterMeals, savedMasterMealIds]);
+
   // Filter meals based on search query
   const filteredMeals = useMemo(() => {
-    if (!searchQuery.trim()) return meals;
+    if (!searchQuery.trim()) return allDisplayMeals;
     const query = searchQuery.toLowerCase();
-    return meals.filter(meal =>
+    return allDisplayMeals.filter(meal =>
       meal.name.toLowerCase().includes(query)
     );
-  }, [meals, searchQuery]);
+  }, [allDisplayMeals, searchQuery]);
 
   // Sort meals: favorites first, then by recent usage, then alphabetically
   const sortedMeals = useMemo(() => {
-    // Helper: get most recent date a meal was used
-    const getLastUsedDate = (mealId: string): string | null => {
-      const logsWithMeal = dailyLogs
-        .filter(log => log.meals.includes(mealId))
-        .sort((a, b) => b.date.localeCompare(a.date));
-      return logsWithMeal[0]?.date || null;
+    // Helper: get most recent date a meal was used (for personal meals)
+    const getLastUsedDate = (mealId: string, isCommunity: boolean): string | null => {
+      if (isCommunity) {
+        const logsWithMeal = dailyLogs
+          .filter(log => log.masterMealIds?.includes(mealId))
+          .sort((a, b) => b.date.localeCompare(a.date));
+        return logsWithMeal[0]?.date || null;
+      } else {
+        const logsWithMeal = dailyLogs
+          .filter(log => log.meals.includes(mealId))
+          .sort((a, b) => b.date.localeCompare(a.date));
+        return logsWithMeal[0]?.date || null;
+      }
     };
 
     return [...filteredMeals].sort((a, b) => {
-      // 1. Favorites first
+      // 1. Favorites first (only personal meals have favorites)
       if (a.favorite && !b.favorite) return -1;
       if (!a.favorite && b.favorite) return 1;
 
       // 2. Recently used
-      const aDate = getLastUsedDate(a.id);
-      const bDate = getLastUsedDate(b.id);
+      const aDate = getLastUsedDate(a.id, a.isCommunity);
+      const bDate = getLastUsedDate(b.id, b.isCommunity);
       if (aDate && bDate) return bDate.localeCompare(aDate);
       if (aDate && !bDate) return -1;
       if (!aDate && bDate) return 1;
@@ -114,19 +193,24 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       setIsFormattingRecipe(false);
     }
 
-    onAddMeal({
+    const mealData = {
       name: newMeal.name,
       calories: parseInt(newMeal.calories) || 0,
       protein: parseInt(newMeal.protein) || 0,
       carbs: parseInt(newMeal.carbs) || 0,
       fat: parseInt(newMeal.fat) || 0,
       recipe: formattedRecipe || undefined,
-    });
+    };
 
-    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '' });
-    setRecipeText('');
-    setRecipeError(null);
-    setShowAddForm(false);
+    if (editingMeal) {
+      // Update existing meal
+      onUpdateMeal(editingMeal.id, mealData);
+    } else {
+      // Add new meal
+      onAddMeal(mealData);
+    }
+
+    cancelEdit();
   };
 
   const changeDate = (days: number) => {
@@ -188,12 +272,23 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
         )}
 
         {sortedMeals.map((meal) => {
-          const isSelected = log.meals.includes(meal.id);
+          const isSelected = meal.isCommunity
+            ? log.masterMealIds?.includes(meal.id) || false
+            : log.meals.includes(meal.id);
+
+          const handleToggle = () => {
+            if (meal.isCommunity) {
+              onToggleMasterMeal(meal.id, selectedDate);
+            } else {
+              onToggleMeal(meal.id, selectedDate);
+            }
+          };
+
           return (
             <div
-              key={meal.id}
+              key={`${meal.isCommunity ? 'community' : 'personal'}-${meal.id}`}
               className={`meal-item ${isSelected ? 'selected' : ''}`}
-              onClick={() => onToggleMeal(meal.id, selectedDate)}
+              onClick={handleToggle}
             >
               <div className="meal-checkbox">
                 {isSelected && <Check size={16} />}
@@ -201,6 +296,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               <div className="meal-info">
                 <span className="meal-name">
                   {meal.name}
+                  {meal.isCommunity && (
+                    <span className="community-badge" title="Community meal">
+                      <Globe size={12} />
+                      Community
+                    </span>
+                  )}
                   {meal.recipe && (
                     <button
                       type="button"
@@ -209,7 +310,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onOpenRecipe(meal);
+                        onOpenRecipe(meal as Meal);
                       }}
                     >
                       <ChefHat size={16} />
@@ -222,25 +323,53 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                 </span>
               </div>
               <div className="meal-actions">
-                <button
-                  className={`favorite-btn ${meal.favorite ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(meal.id);
-                  }}
-                  title={meal.favorite ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  <Star size={16} fill={meal.favorite ? 'currentColor' : 'none'} />
-                </button>
-                {meal.isCustom && (
+                {!meal.isCommunity ? (
+                  <>
+                    <button
+                      className={`favorite-btn ${meal.favorite ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(meal.id);
+                      }}
+                      title={meal.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Star size={16} fill={meal.favorite ? 'currentColor' : 'none'} />
+                    </button>
+                    {meal.isCustom && (
+                      <>
+                        <button
+                          className="edit-meal-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditMeal(meal as Meal);
+                          }}
+                          title="Edit meal"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          className="delete-meal-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMealToDelete(meal as Meal);
+                          }}
+                          title="Move to trash"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : meal.isInLibrary && (
                   <button
-                    className="delete-meal-btn"
+                    className="remove-from-library-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setMealToDelete(meal);
+                      onRemoveFromLibrary(meal.id);
                     }}
+                    title="Remove from library"
                   >
-                    <Trash2 size={16} />
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -257,16 +386,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       ) : (
         <form className="add-meal-form" onSubmit={handleAddMeal}>
           <div className="form-header">
-            <h4>Add Custom Meal</h4>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddForm(false);
-                setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '' });
-                setRecipeText('');
-                setRecipeError(null);
-              }}
-            >
+            <h4>{editingMeal ? 'Edit Meal' : 'Add Custom Meal'}</h4>
+            <button type="button" onClick={cancelEdit}>
               <X size={20} />
             </button>
           </div>
@@ -326,7 +447,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
             </div>
           </details>
           <button type="submit" className="submit-btn" disabled={isFormattingRecipe}>
-            {isFormattingRecipe ? 'Formatting Recipe...' : 'Add Meal'}
+            {isFormattingRecipe ? 'Formatting Recipe...' : editingMeal ? 'Update Meal' : 'Add Meal'}
           </button>
         </form>
       )}

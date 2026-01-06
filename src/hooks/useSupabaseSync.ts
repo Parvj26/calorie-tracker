@@ -90,6 +90,7 @@ export function useSupabaseSync() {
             aiProvider: settingsRes.data.ai_provider || 'groq',
             openAiApiKey: settingsRes.data.openai_api_key,
             groqApiKey: settingsRes.data.groq_api_key,
+            savedMasterMealIds: settingsRes.data.saved_master_meal_ids || [],
           }
         : null;
 
@@ -249,6 +250,7 @@ export function useSupabaseSync() {
       ai_provider: settings.aiProvider,
       openai_api_key: settings.openAiApiKey,
       groq_api_key: settings.groqApiKey,
+      saved_master_meal_ids: settings.savedMasterMealIds || [],
       updated_at: new Date().toISOString(),
     }, {
       onConflict: 'user_id',

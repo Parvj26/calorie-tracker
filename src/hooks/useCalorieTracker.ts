@@ -348,6 +348,29 @@ export function useCalorieTracker() {
     });
   }, [setDailyLogs, user, saveDailyLog]);
 
+  // Save a master meal to user's library (appears in Dashboard meals list)
+  const saveMasterMealToLibrary = useCallback((masterMealId: string) => {
+    setSettings((prev) => {
+      const currentIds = prev.savedMasterMealIds || [];
+      if (currentIds.includes(masterMealId)) {
+        return prev; // Already saved
+      }
+      const updated = { ...prev, savedMasterMealIds: [...currentIds, masterMealId] };
+      if (user) saveSettings(updated);
+      return updated;
+    });
+  }, [setSettings, user, saveSettings]);
+
+  // Remove a master meal from user's library
+  const removeMasterMealFromLibrary = useCallback((masterMealId: string) => {
+    setSettings((prev) => {
+      const currentIds = prev.savedMasterMealIds || [];
+      const updated = { ...prev, savedMasterMealIds: currentIds.filter((id) => id !== masterMealId) };
+      if (user) saveSettings(updated);
+      return updated;
+    });
+  }, [setSettings, user, saveSettings]);
+
   // Toggle favorite status for a meal
   const toggleFavorite = useCallback((mealId: string) => {
     setMeals((prev) => {
@@ -356,6 +379,19 @@ export function useCalorieTracker() {
       );
       // Find the updated meal and save to Supabase
       const updatedMeal = updatedMeals.find((m) => m.id === mealId);
+      if (user && updatedMeal) saveMeal(updatedMeal);
+      return updatedMeals;
+    });
+  }, [setMeals, user, saveMeal]);
+
+  // Update an existing meal
+  const updateMeal = useCallback((id: string, updates: Partial<Meal>) => {
+    setMeals((prev) => {
+      const updatedMeals = prev.map((meal) =>
+        meal.id === id ? { ...meal, ...updates } : meal
+      );
+      // Find the updated meal and save to Supabase
+      const updatedMeal = updatedMeals.find((m) => m.id === id);
       if (user && updatedMeal) saveMeal(updatedMeal);
       return updatedMeals;
     });
@@ -736,6 +772,7 @@ export function useCalorieTracker() {
 
     // Meal operations
     addMeal,
+    updateMeal,
     deleteMeal,
     restoreMeal,
     permanentlyDeleteMeal,
@@ -747,6 +784,8 @@ export function useCalorieTracker() {
     // Master meal operations
     addMasterMealToLog,
     removeMasterMealFromLog,
+    saveMasterMealToLibrary,
+    removeMasterMealFromLibrary,
 
     // InBody operations
     addInBodyScan,

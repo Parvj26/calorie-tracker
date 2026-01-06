@@ -7,8 +7,6 @@ import {
   Calendar,
   Settings as SettingsIcon,
   LogOut,
-  Cloud,
-  CloudOff,
   Loader2,
   Globe,
 } from 'lucide-react';
@@ -39,13 +37,13 @@ function AppContent() {
     inBodyScans,
     weighIns,
     settings,
-    syncState,
     getLogForDate,
     toggleMealForDate,
     updateWorkoutCalories,
     updateHealthMetrics,
     calculateTotals,
     addMeal,
+    updateMeal,
     deleteMeal,
     restoreMeal,
     permanentlyDeleteMeal,
@@ -63,6 +61,9 @@ function AppContent() {
     getGoalProgress,
     getLatestInBodyMetrics,
     addMasterMealToLog,
+    removeMasterMealFromLog,
+    saveMasterMealToLibrary,
+    removeMasterMealFromLibrary,
   } = useCalorieTracker();
 
   // User profile and admin status
@@ -89,12 +90,6 @@ function AppContent() {
     loadPendingSubmissions,
   } = useMealSubmissions(isAdmin);
 
-  // Handle adding master meal to log with usage tracking
-  const handleAddMasterMealToLog = useCallback((mealId: string, date: string) => {
-    addMasterMealToLog(mealId, date);
-    incrementUsageCount(mealId);
-  }, [addMasterMealToLog, incrementUsageCount]);
-
   // Refresh master meals after approval
   const handleRefreshMasterMeals = useCallback(() => {
     loadMasterMeals();
@@ -108,6 +103,25 @@ function AppContent() {
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
   const latestInBodyMetrics = useMemo(() => getLatestInBodyMetrics(), [getLatestInBodyMetrics]);
+
+  // Get master meals to display in Dashboard (saved to library OR logged for current day)
+  const displayMasterMeals = useMemo(() => {
+    const savedIds = settings.savedMasterMealIds || [];
+    const loggedIds = currentLog.masterMealIds || [];
+    const allIds = [...new Set([...savedIds, ...loggedIds])];
+    return masterMeals.filter(meal => allIds.includes(meal.id));
+  }, [settings.savedMasterMealIds, currentLog.masterMealIds, masterMeals]);
+
+  // Toggle master meal in daily log (add if not present, remove if present)
+  const handleToggleMasterMeal = useCallback((mealId: string, date: string) => {
+    const log = getLogForDate(date);
+    if (log.masterMealIds?.includes(mealId)) {
+      removeMasterMealFromLog(mealId, date);
+    } else {
+      addMasterMealToLog(mealId, date);
+      incrementUsageCount(mealId);
+    }
+  }, [getLogForDate, addMasterMealToLog, removeMasterMealFromLog, incrementUsageCount]);
 
   // Show loading screen while checking auth
   if (loading) {
@@ -141,15 +155,6 @@ function AppContent() {
           <span className="subtitle">Your personalized nutrition companion</span>
         </div>
         <div className="header-right">
-          <div className="sync-status" title={syncState.lastSynced ? `Last synced: ${syncState.lastSynced.toLocaleTimeString()}` : 'Not synced yet'}>
-            {syncState.isSyncing ? (
-              <Loader2 size={16} className="spinner" />
-            ) : syncState.error ? (
-              <CloudOff size={16} className="sync-error" />
-            ) : (
-              <Cloud size={16} className="sync-ok" />
-            )}
-          </div>
           <button className="logout-btn" onClick={signOut} title="Sign out">
             <LogOut size={18} />
           </button>
@@ -185,6 +190,7 @@ function AppContent() {
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onUpdateHealthMetrics={updateHealthMetrics}
             onAddMeal={addMeal}
+            onUpdateMeal={updateMeal}
             onDeleteMeal={deleteMeal}
             onRestoreMeal={restoreMeal}
             onPermanentDeleteMeal={permanentlyDeleteMeal}
@@ -193,6 +199,10 @@ function AppContent() {
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
+            displayMasterMeals={displayMasterMeals}
+            savedMasterMealIds={settings.savedMasterMealIds || []}
+            onToggleMasterMeal={handleToggleMasterMeal}
+            onRemoveFromLibrary={removeMasterMealFromLibrary}
           />
         )}
 
@@ -203,9 +213,8 @@ function AppContent() {
             masterMealsLoading={masterMealsLoading}
             searchQuery={masterMealSearchQuery}
             onSearchChange={setMasterMealSearchQuery}
-            selectedDate={selectedDate}
-            currentLog={currentLog}
-            onAddMasterMealToLog={handleAddMasterMealToLog}
+            savedMasterMealIds={settings.savedMasterMealIds || []}
+            onSaveMasterMealToLibrary={saveMasterMealToLibrary}
             isAdmin={isAdmin}
             submissions={submissions}
             pendingCount={pendingCount}

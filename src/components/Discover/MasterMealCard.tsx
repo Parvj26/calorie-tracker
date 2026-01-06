@@ -1,22 +1,22 @@
 import React from 'react';
-import { Plus, Check, ChefHat, Users } from 'lucide-react';
+import { Check, ChefHat, Users, Library } from 'lucide-react';
 import type { MasterMeal } from '../../types';
 
 interface MasterMealCardProps {
   meal: MasterMeal;
-  onAddToLog: (mealId: string) => void;
+  onAddToLibrary: (mealId: string) => void;
   onViewRecipe?: (meal: MasterMeal) => void;
-  isAddedToday: boolean;
+  isSaved: boolean;
 }
 
 export const MasterMealCard: React.FC<MasterMealCardProps> = ({
   meal,
-  onAddToLog,
+  onAddToLibrary,
   onViewRecipe,
-  isAddedToday,
+  isSaved,
 }) => {
   return (
-    <div className={`master-meal-card ${isAddedToday ? 'added-today' : ''}`}>
+    <div className={`master-meal-card ${isSaved ? 'saved' : ''}`}>
       <div className="master-meal-header">
         <h4 className="master-meal-name">
           {meal.name}
@@ -30,7 +30,8 @@ export const MasterMealCard: React.FC<MasterMealCardProps> = ({
                 onViewRecipe?.(meal);
               }}
             >
-              <ChefHat size={14} />
+              <ChefHat size={16} />
+              <span>Recipe</span>
             </button>
           )}
         </h4>
@@ -53,19 +54,19 @@ export const MasterMealCard: React.FC<MasterMealCardProps> = ({
         </div>
 
         <button
-          className={`add-to-log-btn ${isAddedToday ? 'added' : ''}`}
-          onClick={() => onAddToLog(meal.id)}
-          disabled={isAddedToday}
+          className={`add-to-library-btn ${isSaved ? 'saved' : ''}`}
+          onClick={() => onAddToLibrary(meal.id)}
+          disabled={isSaved}
         >
-          {isAddedToday ? (
+          {isSaved ? (
             <>
               <Check size={16} />
-              <span>Added</span>
+              <span>In Library</span>
             </>
           ) : (
             <>
-              <Plus size={16} />
-              <span>Add to Today</span>
+              <Library size={16} />
+              <span>Add to Library</span>
             </>
           )}
         </button>

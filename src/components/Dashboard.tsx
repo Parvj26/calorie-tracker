@@ -6,7 +6,7 @@ import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
 import RecipeModal from './RecipeModal';
-import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
+import type { DailyLog, Meal, UserSettings, HealthMetrics, MasterMeal } from '../types';
 
 interface InBodyMetrics {
   weight: number;
@@ -72,6 +72,7 @@ interface DashboardProps {
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
+  onUpdateMeal: (id: string, updates: Partial<Meal>) => void;
   onDeleteMeal: (mealId: string) => void;
   onRestoreMeal: (mealId: string) => void;
   onPermanentDeleteMeal: (mealId: string) => void;
@@ -80,6 +81,11 @@ interface DashboardProps {
   onDateChange: (date: string) => void;
   onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
+  // Community meals (saved to library OR logged for current day)
+  displayMasterMeals: MasterMeal[];
+  savedMasterMealIds: string[];
+  onToggleMasterMeal: (masterMealId: string, date: string) => void;
+  onRemoveFromLibrary: (masterMealId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -96,6 +102,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
   onAddMeal,
+  onUpdateMeal,
   onDeleteMeal,
   onRestoreMeal,
   onPermanentDeleteMeal,
@@ -104,6 +111,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDateChange,
   onLogScannedMeal,
   onSaveAndLogMeal,
+  displayMasterMeals,
+  savedMasterMealIds,
+  onToggleMasterMeal,
+  onRemoveFromLibrary,
 }) => {
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
@@ -549,8 +560,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           dailyLogs={dailyLogs}
           selectedDate={selectedDate}
           log={log}
+          displayMasterMeals={displayMasterMeals}
+          savedMasterMealIds={savedMasterMealIds}
           onToggleMeal={onToggleMeal}
+          onToggleMasterMeal={onToggleMasterMeal}
+          onRemoveFromLibrary={onRemoveFromLibrary}
           onAddMeal={onAddMeal}
+          onUpdateMeal={onUpdateMeal}
           onDeleteMeal={onDeleteMeal}
           onRestoreMeal={onRestoreMeal}
           onPermanentDeleteMeal={onPermanentDeleteMeal}
