@@ -40,9 +40,16 @@ body {
 /* App Layout */
 .app {
   min-height: 100vh;
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
   margin: 0 auto;
   padding-bottom: 80px;
+}
+
+@media (min-width: 1200px) {
+  .app {
+    max-width: 1200px;
+  }
 }
 
 .app-header {
