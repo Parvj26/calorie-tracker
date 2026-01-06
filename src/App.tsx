@@ -53,6 +53,14 @@ function AppContent() {
     getLatestInBodyMetrics,
   } = useCalorieTracker();
 
+  // All hooks must be called before any conditional returns
+  const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
+  const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
+  const weeklySummary = useMemo(() => getWeeklySummary(), [getWeeklySummary]);
+  const progressData = useMemo(() => getProgressData(), [getProgressData]);
+  const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
+  const latestInBodyMetrics = useMemo(() => getLatestInBodyMetrics(), [getLatestInBodyMetrics]);
+
   // Show loading screen while checking auth
   if (loading) {
     return (
@@ -67,13 +75,6 @@ function AppContent() {
   if (!user) {
     return <Auth />;
   }
-
-  const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
-  const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
-  const weeklySummary = useMemo(() => getWeeklySummary(), [getWeeklySummary]);
-  const progressData = useMemo(() => getProgressData(), [getProgressData]);
-  const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
-  const latestInBodyMetrics = useMemo(() => getLatestInBodyMetrics(), [getLatestInBodyMetrics]);
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
