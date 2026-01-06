@@ -32,16 +32,22 @@ export function useCalorieTracker() {
   // Load data from Supabase when user logs in
   useEffect(() => {
     if (user && !isLoaded) {
-      loadFromSupabase().then((data) => {
-        if (data) {
-          if (data.meals.length > 0) setMeals(data.meals);
-          if (data.dailyLogs.length > 0) setDailyLogs(data.dailyLogs);
-          if (data.weighIns.length > 0) setWeighIns(data.weighIns);
-          if (data.inBodyScans.length > 0) setInBodyScans(data.inBodyScans);
-          if (data.settings) setSettings(data.settings);
-        }
-        setIsLoaded(true);
-      });
+      loadFromSupabase()
+        .then((data) => {
+          if (data) {
+            if (data.meals.length > 0) setMeals(data.meals);
+            if (data.dailyLogs.length > 0) setDailyLogs(data.dailyLogs);
+            if (data.weighIns.length > 0) setWeighIns(data.weighIns);
+            if (data.inBodyScans.length > 0) setInBodyScans(data.inBodyScans);
+            if (data.settings) setSettings(data.settings);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to load from Supabase:', error);
+        })
+        .finally(() => {
+          setIsLoaded(true);
+        });
     }
   }, [user, isLoaded, loadFromSupabase, setMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
 
