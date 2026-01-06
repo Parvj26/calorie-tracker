@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { Upload, Loader2, Check, AlertCircle, Trash2, X } from 'lucide-react';
+import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { InBodyScan, AIProvider } from '../types';
 import { extractInBodyData } from '../utils/openai';
 import { groqExtractInBodyData } from '../utils/groq';
@@ -14,6 +14,26 @@ interface InBodyUploadProps {
   onDeleteScan: (id: string) => void;
 }
 
+interface ExtractedData {
+  // Basic metrics
+  weight: number;
+  bodyFatPercent: number;
+  muscleMass: number;
+  skeletalMuscle: number;
+  scanDate: string;
+  imageData: string;
+  // Enhanced metrics (Tier 1)
+  bmr?: number;
+  fatMass?: number;
+  visceralFatGrade?: number;
+  // Enhanced metrics (Tier 2)
+  waterWeight?: number;
+  trunkFatMass?: number;
+  bodyAge?: number;
+  proteinMass?: number;
+  boneMass?: number;
+}
+
 export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   scans,
   aiProvider,
@@ -25,14 +45,8 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   const apiKey = aiProvider === 'groq' ? groqApiKey : openAiApiKey;
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<{
-    weight: number;
-    bodyFatPercent: number;
-    muscleMass: number;
-    skeletalMuscle: number;
-    scanDate: string;
-    imageData: string;
-  } | null>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +82,21 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
             skeletalMuscle: data.skeletalMuscle || 0,
             scanDate: data.scanDate || format(new Date(), 'yyyy-MM-dd'),
             imageData: base64,
+            // Enhanced metrics
+            bmr: data.bmr || undefined,
+            fatMass: data.fatMass || undefined,
+            visceralFatGrade: data.visceralFatGrade || undefined,
+            waterWeight: data.waterWeight || undefined,
+            trunkFatMass: data.trunkFatMass || undefined,
+            bodyAge: data.bodyAge || undefined,
+            proteinMass: data.proteinMass || undefined,
+            boneMass: data.boneMass || undefined,
           });
+
+          // Auto-expand advanced if we have enhanced metrics
+          if (data.bmr || data.fatMass || data.visceralFatGrade) {
+            setShowAdvanced(true);
+          }
         } catch (err: any) {
           setError(err.message || 'Failed to extract data from image');
         }
@@ -96,16 +124,47 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   const handleConfirmScan = () => {
     if (!extractedData) return;
 
+    // Validation
+    if (extractedData.visceralFatGrade && (extractedData.visceralFatGrade < 1 || extractedData.visceralFatGrade > 20)) {
+      setError('Visceral fat grade must be between 1 and 20');
+      return;
+    }
+
+    if (extractedData.bmr && (extractedData.bmr < 1000 || extractedData.bmr > 3500)) {
+      setError('BMR seems unusual (expected 1000-3500). Please verify.');
+      return;
+    }
+
+    if (extractedData.fatMass && extractedData.weight && extractedData.fatMass >= extractedData.weight) {
+      setError('Fat mass cannot be greater than or equal to total weight');
+      return;
+    }
+
     onAddScan({
       date: extractedData.scanDate,
       weight: extractedData.weight,
       bodyFatPercent: extractedData.bodyFatPercent,
       muscleMass: extractedData.muscleMass,
       skeletalMuscle: extractedData.skeletalMuscle,
+      bmr: extractedData.bmr,
+      fatMass: extractedData.fatMass,
+      visceralFatGrade: extractedData.visceralFatGrade,
+      waterWeight: extractedData.waterWeight,
+      trunkFatMass: extractedData.trunkFatMass,
+      bodyAge: extractedData.bodyAge,
+      proteinMass: extractedData.proteinMass,
+      boneMass: extractedData.boneMass,
       imageData: extractedData.imageData,
     });
 
     setExtractedData(null);
+    setShowAdvanced(false);
+  };
+
+  const getVisceralFatStatus = (grade: number) => {
+    if (grade < 10) return { text: 'Healthy range', color: '#10b981' };
+    if (grade < 15) return { text: 'Elevated - monitor closely', color: '#f59e0b' };
+    return { text: 'High risk - consult doctor', color: '#ef4444' };
   };
 
   return (
@@ -160,6 +219,8 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
         <div className="card preview-card">
           <h3>Extracted Data</h3>
           <p className="preview-note">Please verify and adjust if needed</p>
+
+          {/* Basic Metrics */}
           <div className="preview-grid">
             <div className="preview-field">
               <label>Date</label>
@@ -228,12 +289,183 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
               />
             </div>
           </div>
+
+          {/* Enhanced Metrics Section */}
+          <div className="enhanced-metrics-section">
+            <div
+              className="enhanced-metrics-header"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <h4>Enhanced Metrics</h4>
+              <span className="toggle-icon">
+                {showAdvanced ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </span>
+            </div>
+
+            {showAdvanced && (
+              <div className="enhanced-metrics-content">
+                {/* Tier 1 - Critical Metrics */}
+                <div className="metrics-tier">
+                  <span className="tier-label">Critical for TDEE</span>
+
+                  <div className="preview-field bmr-field">
+                    <label>
+                      BMR - Basal Metabolic Rate (kcal/day)
+                    </label>
+                    <input
+                      type="number"
+                      value={extractedData.bmr || ''}
+                      onChange={(e) =>
+                        setExtractedData({
+                          ...extractedData,
+                          bmr: e.target.value ? Number(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="e.g., 1616"
+                    />
+                    <span className="field-hint">Resting calories burned per day</span>
+                  </div>
+
+                  <div className="preview-field">
+                    <label>Fat Mass (kg)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={extractedData.fatMass || ''}
+                      onChange={(e) =>
+                        setExtractedData({
+                          ...extractedData,
+                          fatMass: e.target.value ? Number(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="e.g., 16.6"
+                    />
+                  </div>
+
+                  <div className="preview-field">
+                    <label>Visceral Fat Grade (1-20)</label>
+                    <input
+                      type="number"
+                      value={extractedData.visceralFatGrade || ''}
+                      onChange={(e) =>
+                        setExtractedData({
+                          ...extractedData,
+                          visceralFatGrade: e.target.value ? Number(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="e.g., 6"
+                      min="1"
+                      max="20"
+                    />
+                    {extractedData.visceralFatGrade && (
+                      <div
+                        className="visceral-status"
+                        style={{ color: getVisceralFatStatus(extractedData.visceralFatGrade).color }}
+                      >
+                        {extractedData.visceralFatGrade < 10 && '✅ '}
+                        {extractedData.visceralFatGrade >= 10 && extractedData.visceralFatGrade < 15 && '⚠️ '}
+                        {extractedData.visceralFatGrade >= 15 && '🚨 '}
+                        {getVisceralFatStatus(extractedData.visceralFatGrade).text}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tier 2 - Additional Metrics */}
+                <div className="metrics-tier tier-2">
+                  <span className="tier-label">Additional Body Composition</span>
+
+                  <div className="preview-grid">
+                    <div className="preview-field">
+                      <label>Water Weight (kg)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={extractedData.waterWeight || ''}
+                        onChange={(e) =>
+                          setExtractedData({
+                            ...extractedData,
+                            waterWeight: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        placeholder="e.g., 42.3"
+                      />
+                    </div>
+
+                    <div className="preview-field">
+                      <label>Trunk Fat Mass (kg)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={extractedData.trunkFatMass || ''}
+                        onChange={(e) =>
+                          setExtractedData({
+                            ...extractedData,
+                            trunkFatMass: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        placeholder="e.g., 7.9"
+                      />
+                    </div>
+
+                    <div className="preview-field">
+                      <label>Body Age (years)</label>
+                      <input
+                        type="number"
+                        value={extractedData.bodyAge || ''}
+                        onChange={(e) =>
+                          setExtractedData({
+                            ...extractedData,
+                            bodyAge: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        placeholder="e.g., 26"
+                      />
+                    </div>
+
+                    <div className="preview-field">
+                      <label>Protein Mass (kg)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={extractedData.proteinMass || ''}
+                        onChange={(e) =>
+                          setExtractedData({
+                            ...extractedData,
+                            proteinMass: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        placeholder="e.g., 11.5"
+                      />
+                    </div>
+
+                    <div className="preview-field">
+                      <label>Bone Mass (kg)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={extractedData.boneMass || ''}
+                        onChange={(e) =>
+                          setExtractedData({
+                            ...extractedData,
+                            boneMass: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        placeholder="e.g., 3.9"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="preview-actions">
             <button onClick={handleConfirmScan} className="confirm-btn">
               <Check size={16} />
               Save Scan
             </button>
-            <button onClick={() => setExtractedData(null)} className="cancel-btn">
+            <button onClick={() => { setExtractedData(null); setShowAdvanced(false); }} className="cancel-btn">
               <X size={16} />
               Cancel
             </button>
@@ -251,7 +483,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
               <span>Weight</span>
               <span>Body Fat</span>
               <span>Muscle</span>
-              <span>SMM</span>
+              <span>BMR</span>
               <span></span>
             </div>
             {scans.map((scan) => (
@@ -260,7 +492,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
                 <span>{scan.weight} kg</span>
                 <span>{scan.bodyFatPercent}%</span>
                 <span>{scan.muscleMass} kg</span>
-                <span>{scan.skeletalMuscle} kg</span>
+                <span>{scan.bmr ? `${scan.bmr}` : '-'}</span>
                 <button
                   className="delete-btn"
                   onClick={() => onDeleteScan(scan.id)}

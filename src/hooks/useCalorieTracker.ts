@@ -294,12 +294,26 @@ export function useCalorieTracker() {
 
     const targetCalories = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;
 
+    // Get latest InBody scan with BMR for more accurate resting energy
+    const latestScanWithBMR = inBodyScans
+      .filter(scan => scan.bmr)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
     // Use health metrics if available for more accurate calculations
     const healthMetrics = log.healthMetrics;
-    const restingEnergy = healthMetrics?.restingEnergy || 0;
+
+    // Priority: InBody BMR > Apple Health Resting Energy > 0
+    const restingEnergy = latestScanWithBMR?.bmr || healthMetrics?.restingEnergy || 0;
     const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
     const tdee = restingEnergy + activeEnergy; // Total Daily Energy Expenditure
     const hasTDEE = restingEnergy > 0 && activeEnergy > 0;
+
+    // Track which source is being used for transparency
+    const tdeeSource = latestScanWithBMR?.bmr
+      ? 'InBody BMR + Apple Health Active'
+      : healthMetrics?.restingEnergy
+        ? 'Apple Health Estimated'
+        : null;
 
     // If we have TDEE data, calculate true deficit based on actual burn
     // Otherwise fall back to target-based calculation
@@ -317,16 +331,17 @@ export function useCalorieTracker() {
       deficit,
       caloriesRemaining,
       targetCalories,
-      // New health-based fields
+      // Health-based fields
       restingEnergy,
       activeEnergy,
       tdee,
       hasTDEE,
       trueDeficit,
+      tdeeSource,
       steps: healthMetrics?.steps || 0,
       exerciseMinutes: healthMetrics?.exerciseMinutes || 0,
     };
-  }, [meals, settings]);
+  }, [meals, settings, inBodyScans]);
 
   // Get weekly summary
   const getWeeklySummary = useCallback(() => {
@@ -422,6 +437,15 @@ export function useCalorieTracker() {
       bodyFat: scan.bodyFatPercent,
       muscleMass: scan.muscleMass,
       skeletalMuscle: scan.skeletalMuscle,
+      // Enhanced metrics for charts
+      bmr: scan.bmr,
+      fatMass: scan.fatMass,
+      visceralFatGrade: scan.visceralFatGrade,
+      waterWeight: scan.waterWeight,
+      trunkFatMass: scan.trunkFatMass,
+      bodyAge: scan.bodyAge,
+      proteinMass: scan.proteinMass,
+      boneMass: scan.boneMass,
     }));
 
     // Steps data from health metrics
@@ -507,6 +531,15 @@ export function useCalorieTracker() {
       muscleMass: latest.muscleMass,
       skeletalMuscle: latest.skeletalMuscle,
       date: latest.date,
+      // Enhanced metrics
+      bmr: latest.bmr,
+      fatMass: latest.fatMass,
+      visceralFatGrade: latest.visceralFatGrade,
+      waterWeight: latest.waterWeight,
+      trunkFatMass: latest.trunkFatMass,
+      bodyAge: latest.bodyAge,
+      proteinMass: latest.proteinMass,
+      boneMass: latest.boneMass,
       changes: previous ? {
         weight: Math.round((latest.weight - previous.weight) * 10) / 10,
         bodyFat: Math.round((latest.bodyFatPercent - previous.bodyFatPercent) * 10) / 10,

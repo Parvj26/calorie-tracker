@@ -107,8 +107,12 @@ All data syncs to Supabase in real-time:
 
 - Date selector for navigating days
 - Scan Food button (AI-powered)
-- TDEE card (when health data imported)
-- Body metrics from InBody
+- TDEE card (when health data imported, uses InBody BMR if available)
+- Body metrics from InBody:
+  - Basic: weight, body fat %, muscle mass, SMM
+  - BMR highlight (resting metabolism)
+  - Visceral fat grade with health status indicator
+  - Collapsible additional metrics (water, trunk fat, body age, protein, bone)
 - Goal progress bar
 - Circular calorie progress
 - Macros breakdown
@@ -146,15 +150,21 @@ True Deficit = TDEE - Calories Eaten
 **File:** `src/components/InBodyUpload.tsx`
 
 - Upload InBody scan photos
-- AI extracts: weight, body fat %, muscle mass, SMM
+- AI extracts comprehensive metrics:
+  - **Basic:** weight, body fat %, muscle mass, skeletal muscle
+  - **Tier 1 (Critical):** BMR, fat mass, visceral fat grade
+  - **Tier 2 (Valuable):** water weight, trunk fat, body age, protein mass, bone mass
+- Collapsible enhanced metrics section with validation
+- Visceral fat grade health indicator (green/yellow/red)
 - Auto-syncs weight to weigh-in tracking
-- View/delete scan history
+- BMR automatically improves TDEE calculations
+- View/delete scan history with BMR column
 
 ### 7. Progress Tracker
 
 **File:** `src/components/ProgressTracker.tsx`
 
-Four chart tabs:
+Seven chart tabs:
 - **Weight** - Trend line with goal reference
 - **Calories** - Daily intake over 30 days
 - **Steps** - Daily steps with 10k goal line + motivational stats:
@@ -162,7 +172,10 @@ Four chart tabs:
   - Daily average
   - Personal best
   - Total steps
-- **Body Comp** - Body fat % and muscle trends (from InBody)
+- **Body Comp** - Body fat % and skeletal muscle trends
+- **Fat vs Muscle** - Fat mass vs muscle mass comparison (requires enhanced InBody data)
+- **BMR** - Basal metabolic rate trend over time
+- **Visceral Fat** - Visceral fat grade with health risk zones (10 elevated, 15 high risk)
 
 Also includes:
 - Goal progress card
@@ -203,10 +216,25 @@ Tables with row-level security:
 | `meals` | User's meal library |
 | `daily_logs` | Daily logs with health metrics (JSONB) |
 | `weigh_ins` | Weight entries |
-| `inbody_scans` | Body composition scans |
+| `inbody_scans` | Body composition scans (12 metrics) |
 | `user_settings` | User preferences |
 
 All tables have `user_id` foreign key to `auth.users`.
+
+**InBody Scans Enhanced Columns:**
+```sql
+-- Basic columns: id, user_id, date, weight, body_fat_percent, muscle_mass, skeletal_muscle, image_data
+
+-- Enhanced metrics (added):
+bmr INTEGER,                    -- Basal Metabolic Rate in kcal
+fat_mass DECIMAL(5,2),          -- Total fat mass in kg
+visceral_fat_grade INTEGER,     -- 1-20 scale
+water_weight DECIMAL(5,2),      -- Water weight in kg
+trunk_fat_mass DECIMAL(5,2),    -- Belly/trunk fat in kg
+body_age INTEGER,               -- Body age in years
+protein_mass DECIMAL(5,2),      -- Protein mass in kg
+bone_mass DECIMAL(5,2)          -- Bone mass in kg
+```
 
 ---
 
@@ -243,11 +271,27 @@ interface DailyLog {
 interface InBodyScan {
   id: string;
   date: string;
+
+  // Basic metrics
   weight: number;
   bodyFatPercent: number;
   muscleMass: number;
   skeletalMuscle: number;
+
+  // Enhanced metrics (Tier 1 - Critical)
+  bmr?: number;              // Basal Metabolic Rate in kcal
+  fatMass?: number;          // Total fat mass in kg
+  visceralFatGrade?: number; // Internal organ fat grade (1-20)
+
+  // Enhanced metrics (Tier 2 - Valuable)
+  waterWeight?: number;      // Water weight in kg
+  trunkFatMass?: number;     // Trunk/belly fat in kg
+  bodyAge?: number;          // Metabolic body age in years
+  proteinMass?: number;      // Protein mass in kg
+  boneMass?: number;         // Bone mass in kg
+
   imageData?: string;
+  userId?: string;
 }
 
 interface WeighIn {
@@ -304,16 +348,20 @@ Model: `meta-llama/llama-4-scout-17b-16e-instruct`
 
 Functions:
 - `groqAnalyzeFood()` - Food recognition
-- `groqExtractInBodyData()` - InBody scan extraction
+- `groqExtractInBodyData()` - InBody scan extraction (12 metrics)
 - `groqExtractHealthData()` - Apple Health extraction
 
 ### OpenAI (Paid)
 
 **File:** `src/utils/openai.ts`
 
-Model: `gpt-4o`
+Model: `gpt-4o` (temperature: 0.1 for precision)
 
 Same functions as Groq.
+
+**InBody Extraction Fields:**
+- Basic: date, weight, bodyFatPercent, muscleMass, skeletalMuscle
+- Enhanced: bmr, fatMass, visceralFatGrade, waterWeight, trunkFatMass, bodyAge, proteinMass, boneMass
 
 ---
 
@@ -366,9 +414,14 @@ Deficit = Target - Net
 
 **With Health Data (TDEE):**
 ```
-TDEE = Resting + Active Energy
+TDEE = Resting Energy + Active Energy
 Deficit = TDEE - Eaten
 ```
+
+**Resting Energy Priority:**
+1. InBody BMR (most accurate - from body composition scan)
+2. Apple Health Resting Energy (estimated)
+3. Falls back to target-based calculation
 
 Weight projection: 7,700 cal = 1 kg
 

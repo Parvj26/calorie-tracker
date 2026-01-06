@@ -4,6 +4,16 @@ interface InBodyExtractedData {
   muscleMass: number | null;
   skeletalMuscle: number | null;
   scanDate: string | null;
+  // Enhanced metrics (Tier 1 - Critical)
+  bmr: number | null;              // Basal Metabolic Rate in kcal
+  fatMass: number | null;          // Total fat mass in kg
+  visceralFatGrade: number | null; // Internal organ fat grade (1-20)
+  // Enhanced metrics (Tier 2 - Valuable)
+  waterWeight: number | null;      // Water weight in kg
+  trunkFatMass: number | null;     // Trunk/belly fat in kg
+  bodyAge: number | null;          // Metabolic body age in years
+  proteinMass: number | null;      // Protein mass in kg
+  boneMass: number | null;         // Bone mass in kg
 }
 
 export interface HealthDataExtracted {
@@ -130,21 +140,31 @@ export async function extractInBodyData(
           content: [
             {
               type: 'text',
-              text: `Analyze this InBody scan result image and extract the following metrics. Return ONLY a JSON object with these exact keys (use null if a value cannot be found):
+              text: `Analyze this InBody body composition scan report. Extract ALL available metrics with high precision. Return ONLY valid JSON (no markdown) with this structure:
 
 {
-  "weight": <number in kg>,
-  "bodyFatPercent": <number, just the percentage value>,
-  "muscleMass": <number in kg, this might be labeled as "Lean Body Mass" or "Fat Free Mass">,
-  "skeletalMuscle": <number in kg, labeled as "Skeletal Muscle Mass" or "SMM">,
-  "scanDate": "<date in YYYY-MM-DD format if visible, otherwise null>"
+  "scanDate": "YYYY-MM-DD format from the scan",
+  "weight": number in kg,
+  "bodyFatPercent": number (percentage, not decimal),
+  "muscleMass": number in kg,
+  "skeletalMuscle": number in kg,
+  "bmr": number (Basal Metabolic Rate in kcal - look for "Basal metabolic rate" or "BMR"),
+  "fatMass": number in kg (look in body composition analysis),
+  "visceralFatGrade": number 1-20 (look for "Visceral fat grade" or "Visceral fat level"),
+  "waterWeight": number in kg (look for "Water weight" or "Total body water"),
+  "trunkFatMass": number in kg (look in "Segmental fat analysis" for trunk/torso fat),
+  "bodyAge": number in years (look for "Body age"),
+  "proteinMass": number in kg (look for "Protein mass"),
+  "boneMass": number in kg (look for "Bone mass" or "Bone mineral content")
 }
 
-Important:
-- Extract numerical values only (no units in the JSON)
-- For body fat percentage, just provide the number (e.g., 25.5 not "25.5%")
-- If the scan shows multiple readings, use the most prominent/main values
-- Return ONLY the JSON object, no other text`,
+CRITICAL INSTRUCTIONS:
+1. BMR (Basal Metabolic Rate) is one of the MOST IMPORTANT values - look carefully for it
+2. For any field not visible or readable in the image, use null
+3. Be extremely precise with numbers - double-check all values
+4. Date format must be YYYY-MM-DD
+5. Visceral fat grade is typically 1-20, with <10 being healthy
+6. Return ONLY the JSON object, no explanations or markdown formatting`,
             },
             {
               type: 'image_url',
@@ -157,7 +177,8 @@ Important:
           ],
         },
       ],
-      max_tokens: 500,
+      max_tokens: 800,
+      temperature: 0.1,
     }),
   });
 

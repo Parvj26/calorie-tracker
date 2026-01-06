@@ -63,7 +63,17 @@ export function useSupabaseSync() {
         bodyFatPercent: s.body_fat_percent,
         muscleMass: s.muscle_mass,
         skeletalMuscle: s.skeletal_muscle,
+        // Enhanced metrics
+        bmr: s.bmr || undefined,
+        fatMass: s.fat_mass || undefined,
+        visceralFatGrade: s.visceral_fat_grade || undefined,
+        waterWeight: s.water_weight || undefined,
+        trunkFatMass: s.trunk_fat_mass || undefined,
+        bodyAge: s.body_age || undefined,
+        proteinMass: s.protein_mass || undefined,
+        boneMass: s.bone_mass || undefined,
         imageData: s.image_data,
+        userId: s.user_id,
       }));
 
       const settings: UserSettings | null = settingsRes.data
@@ -165,6 +175,15 @@ export function useSupabaseSync() {
       body_fat_percent: scan.bodyFatPercent,
       muscle_mass: scan.muscleMass,
       skeletal_muscle: scan.skeletalMuscle,
+      // Enhanced metrics
+      bmr: scan.bmr || null,
+      fat_mass: scan.fatMass || null,
+      visceral_fat_grade: scan.visceralFatGrade || null,
+      water_weight: scan.waterWeight || null,
+      trunk_fat_mass: scan.trunkFatMass || null,
+      body_age: scan.bodyAge || null,
+      protein_mass: scan.proteinMass || null,
+      bone_mass: scan.boneMass || null,
       image_data: scan.imageData,
     });
   }, [user]);

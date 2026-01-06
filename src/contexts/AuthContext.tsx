@@ -53,7 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // Use 'local' scope to avoid 403 errors when session is already invalid
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      // Even if signOut fails, clear local state
+      console.warn('Sign out error (clearing local state anyway):', error);
+    }
+    // Ensure local state is cleared regardless of API response
+    setUser(null);
+    setSession(null);
   };
 
   return (

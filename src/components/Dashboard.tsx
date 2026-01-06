@@ -13,6 +13,15 @@ interface InBodyMetrics {
   muscleMass: number;
   skeletalMuscle: number;
   date: string;
+  // Enhanced metrics
+  bmr?: number;
+  fatMass?: number;
+  visceralFatGrade?: number;
+  waterWeight?: number;
+  trunkFatMass?: number;
+  bodyAge?: number;
+  proteinMass?: number;
+  boneMass?: number;
   changes: {
     weight: number;
     bodyFat: number;
@@ -243,6 +252,80 @@ export const Dashboard: React.FC<DashboardProps> = ({
               )}
             </div>
           </div>
+
+          {/* Enhanced Metrics */}
+          {inBodyMetrics.bmr && (
+            <div className="bmr-highlight">
+              <span className="bmr-label">BMR</span>
+              <span className="bmr-value">{inBodyMetrics.bmr} kcal/day</span>
+              <span className="bmr-subtitle">Resting metabolism</span>
+            </div>
+          )}
+
+          {(inBodyMetrics.fatMass || inBodyMetrics.visceralFatGrade) && (
+            <div className="enhanced-metrics-row">
+              {inBodyMetrics.fatMass && (
+                <div className="mini-metric">
+                  <span className="mini-label">Fat Mass</span>
+                  <span className="mini-value">{inBodyMetrics.fatMass} kg</span>
+                </div>
+              )}
+              {inBodyMetrics.visceralFatGrade && (
+                <div className={`mini-metric ${
+                  inBodyMetrics.visceralFatGrade < 10 ? 'status-success' :
+                  inBodyMetrics.visceralFatGrade < 15 ? 'status-warning' :
+                  'status-danger'
+                }`}>
+                  <span className="mini-label">Visceral Fat</span>
+                  <span className="mini-value">Grade {inBodyMetrics.visceralFatGrade}</span>
+                  <span className="mini-status">
+                    {inBodyMetrics.visceralFatGrade < 10 && 'Healthy'}
+                    {inBodyMetrics.visceralFatGrade >= 10 && inBodyMetrics.visceralFatGrade < 15 && 'Elevated'}
+                    {inBodyMetrics.visceralFatGrade >= 15 && 'High Risk'}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Additional details - collapsible */}
+          {(inBodyMetrics.waterWeight || inBodyMetrics.bodyAge || inBodyMetrics.trunkFatMass) && (
+            <details className="more-metrics-details">
+              <summary>More Details</summary>
+              <div className="more-metrics-grid">
+                {inBodyMetrics.waterWeight && (
+                  <div className="detail-item">
+                    <span className="detail-label">Water</span>
+                    <span className="detail-value">{inBodyMetrics.waterWeight} kg</span>
+                  </div>
+                )}
+                {inBodyMetrics.trunkFatMass && (
+                  <div className="detail-item">
+                    <span className="detail-label">Trunk Fat</span>
+                    <span className="detail-value">{inBodyMetrics.trunkFatMass} kg</span>
+                  </div>
+                )}
+                {inBodyMetrics.bodyAge && (
+                  <div className="detail-item">
+                    <span className="detail-label">Body Age</span>
+                    <span className="detail-value">{inBodyMetrics.bodyAge} yrs</span>
+                  </div>
+                )}
+                {inBodyMetrics.proteinMass && (
+                  <div className="detail-item">
+                    <span className="detail-label">Protein</span>
+                    <span className="detail-value">{inBodyMetrics.proteinMass} kg</span>
+                  </div>
+                )}
+                {inBodyMetrics.boneMass && (
+                  <div className="detail-item">
+                    <span className="detail-label">Bone</span>
+                    <span className="detail-value">{inBodyMetrics.boneMass} kg</span>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
         </div>
       )}
 

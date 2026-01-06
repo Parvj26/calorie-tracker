@@ -11,6 +11,7 @@ import {
   ReferenceLine,
   Area,
   AreaChart,
+  Legend,
 } from 'recharts';
 import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp } from 'lucide-react';
 import type { WeighIn, UserSettings } from '../types';
@@ -55,7 +56,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     date: format(new Date(), 'yyyy-MM-dd'),
     weight: '',
   });
-  const [activeChart, setActiveChart] = useState<'weight' | 'calories' | 'body' | 'steps'>('weight');
+  const [activeChart, setActiveChart] = useState<'weight' | 'calories' | 'body' | 'steps' | 'fatmuscle' | 'bmr' | 'visceral'>('weight');
 
   const handleAddWeighIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +169,30 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             onClick={() => setActiveChart('body')}
           >
             Body Comp
+          </button>
+        )}
+        {progressData.bodyCompData.filter((d: any) => d.fatMass).length > 0 && (
+          <button
+            className={activeChart === 'fatmuscle' ? 'active' : ''}
+            onClick={() => setActiveChart('fatmuscle')}
+          >
+            Fat vs Muscle
+          </button>
+        )}
+        {progressData.bodyCompData.filter((d: any) => d.bmr).length > 0 && (
+          <button
+            className={activeChart === 'bmr' ? 'active' : ''}
+            onClick={() => setActiveChart('bmr')}
+          >
+            BMR
+          </button>
+        )}
+        {progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
+          <button
+            className={activeChart === 'visceral' ? 'active' : ''}
+            onClick={() => setActiveChart('visceral')}
+          >
+            Visceral Fat
           </button>
         )}
       </div>
@@ -300,6 +325,149 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     stroke="#10b981"
                     strokeWidth={2}
                     dot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {/* Fat vs Muscle Chart */}
+        {activeChart === 'fatmuscle' && progressData.bodyCompData.filter((d: any) => d.fatMass).length > 0 && (
+          <>
+            <h3>Fat Mass vs Muscle Mass</h3>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={progressData.bodyCompData.filter((d: any) => d.fatMass)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="displayDate"
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                    label={{ value: 'kg', angle: -90, position: 'insideLeft', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value) => [`${value} kg`, '']}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="fatMass"
+                    name="Fat Mass"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#ef4444' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="muscleMass"
+                    name="Muscle Mass"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#10b981' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {/* BMR Trend Chart */}
+        {activeChart === 'bmr' && progressData.bodyCompData.filter((d: any) => d.bmr).length > 0 && (
+          <>
+            <h3>Basal Metabolic Rate (BMR) Trend</h3>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={progressData.bodyCompData.filter((d: any) => d.bmr)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="displayDate"
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                    label={{ value: 'kcal/day', angle: -90, position: 'insideLeft', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value) => [`${value} kcal/day`, 'BMR']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="bmr"
+                    name="BMR"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#f59e0b' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {/* Visceral Fat Chart */}
+        {activeChart === 'visceral' && progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
+          <>
+            <h3>Visceral Fat Grade</h3>
+            <p className="chart-subtitle">
+              <span className="healthy-zone">Grade 1-9: Healthy</span>
+              <span className="elevated-zone">Grade 10-14: Elevated</span>
+              <span className="danger-zone">Grade 15+: High Risk</span>
+            </p>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={progressData.bodyCompData.filter((d: any) => d.visceralFatGrade)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="displayDate"
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                  />
+                  <YAxis
+                    domain={[0, 20]}
+                    tick={{ fontSize: 12 }}
+                    stroke="#9ca3af"
+                    label={{ value: 'Grade', angle: -90, position: 'insideLeft', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value) => {
+                      const numValue = Number(value);
+                      return [
+                        `Grade ${value}`,
+                        numValue < 10 ? 'Healthy' : numValue < 15 ? 'Elevated' : 'High Risk'
+                      ];
+                    }}
+                  />
+                  <ReferenceLine y={10} stroke="#f59e0b" strokeDasharray="5 5" />
+                  <ReferenceLine y={15} stroke="#ef4444" strokeDasharray="5 5" />
+                  <Line
+                    type="monotone"
+                    dataKey="visceralFatGrade"
+                    name="Visceral Fat"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#8b5cf6' }}
                   />
                 </LineChart>
               </ResponsiveContainer>

@@ -2926,3 +2926,259 @@ body {
 .auth-switch:hover {
   text-decoration: underline;
 }
+
+/* ===========================================
+   ENHANCED INBODY METRICS STYLES
+   =========================================== */
+
+/* Enhanced Metrics Section in InBodyUpload */
+.enhanced-metrics-section {
+  margin-top: 20px;
+  border-top: 2px solid var(--primary);
+  padding-top: 16px;
+}
+
+.enhanced-metrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.enhanced-metrics-header h4 {
+  color: var(--primary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.toggle-icon {
+  color: var(--primary);
+}
+
+.enhanced-metrics-content {
+  margin-top: 12px;
+}
+
+.metrics-tier {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+}
+
+.metrics-tier.tier-2 {
+  border-left-color: var(--gray-300);
+}
+
+.tier-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.metrics-tier.tier-2 .tier-label {
+  color: var(--gray-500);
+}
+
+.bmr-field {
+  background: rgba(99, 102, 241, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.visceral-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* BMR Highlight in Dashboard */
+.bmr-highlight {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.bmr-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.bmr-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.bmr-subtitle {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+/* Enhanced Metrics Row in Dashboard */
+.enhanced-metrics-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mini-metric {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mini-metric.status-success {
+  border-left: 3px solid #10b981;
+}
+
+.mini-metric.status-warning {
+  border-left: 3px solid #f59e0b;
+}
+
+.mini-metric.status-danger {
+  border-left: 3px solid #ef4444;
+}
+
+.mini-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.mini-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.mini-status {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+/* More Metrics Details in Dashboard */
+.more-metrics-details {
+  margin-top: 12px;
+}
+
+.more-metrics-details summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.more-metrics-details summary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.more-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.detail-item {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.detail-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Chart Subtitle for Visceral Fat */
+.chart-subtitle {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.75rem;
+  margin-bottom: 12px;
+}
+
+.healthy-zone {
+  color: #10b981;
+}
+
+.elevated-zone {
+  color: #f59e0b;
+}
+
+.danger-zone {
+  color: #ef4444;
+}
+
+/* Chart tabs - make them scrollable on mobile */
+.chart-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chart-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.chart-tabs button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Mobile optimizations for enhanced metrics */
+@media (max-width: 480px) {
+  .more-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .enhanced-metrics-row {
+    flex-direction: column;
+  }
+
+  .chart-subtitle {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

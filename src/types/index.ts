@@ -33,11 +33,27 @@ export interface DailyLog {
 export interface InBodyScan {
   id: string;
   date: string;
+
+  // Existing basic metrics
   weight: number;
   bodyFatPercent: number;
   muscleMass: number;
   skeletalMuscle: number;
-  imageData?: string; // base64 encoded image
+
+  // Enhanced metrics (Tier 1 - Critical)
+  bmr?: number;              // Basal Metabolic Rate in kcal - MOST IMPORTANT
+  fatMass?: number;          // Total fat mass in kg
+  visceralFatGrade?: number; // Internal organ fat grade (1-20)
+
+  // Enhanced metrics (Tier 2 - Valuable)
+  waterWeight?: number;      // Water weight in kg
+  trunkFatMass?: number;     // Trunk/belly fat in kg
+  bodyAge?: number;          // Metabolic body age in years
+  proteinMass?: number;      // Protein mass in kg
+  boneMass?: number;         // Bone mass in kg
+
+  imageData?: string;        // base64 encoded image
+  userId?: string;           // user_id for Supabase
 }
 
 export interface WeighIn {
