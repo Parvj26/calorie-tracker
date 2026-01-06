@@ -324,21 +324,30 @@ Same functions as Groq.
 Run `supabase-schema.sql` in Supabase SQL Editor:
 https://supabase.com/dashboard/project/jjbozzkghpmvxpnoazwu/sql
 
-### 2. Create Account
+### 2. Configure Supabase Auth
+
+In Supabase Dashboard > Authentication > URL Configuration:
+
+| Setting | Value |
+|---------|-------|
+| Site URL | `https://calorie-tracker-self-five.vercel.app` |
+| Redirect URLs | `https://calorie-tracker-self-five.vercel.app/**` |
+
+### 3. Create Account
 
 - Open the app
 - Click "Sign Up"
 - Enter email + password
-- Check email for confirmation (if enabled)
+- Check email for confirmation link
 
-### 3. Configure AI Provider
+### 4. Configure AI Provider
 
 - Go to Settings
 - Select Groq (free) or OpenAI
 - Get API key from https://console.groq.com/keys
 - Save key
 
-### 4. Start Tracking
+### 5. Start Tracking
 
 - Import Apple Health screenshot for TDEE
 - Scan food with camera
