@@ -3905,3 +3905,836 @@ body {
 .generate-recipe-option input {
   margin-right: 8px;
 }
+
+/* ============================================
+   DISCOVER TAB - Community Meals
+   ============================================ */
+
+.discover-tab {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.discover-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.discover-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.discover-title h2 {
+  font-size: 1.5rem;
+  color: var(--gray-800);
+}
+
+.discover-title svg {
+  color: var(--primary);
+}
+
+.discover-subtitle {
+  color: var(--gray-500);
+  font-size: 0.95rem;
+}
+
+.discover-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.discover-search {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.discover-search .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+}
+
+.discover-search .search-input {
+  width: 100%;
+  padding: 12px 40px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.discover-search .search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.discover-search .clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.submit-meal-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-meal-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* Master Meals Section */
+.master-meals-section {
+  margin-top: 24px;
+}
+
+.master-meals-section h3 {
+  font-size: 1.1rem;
+  color: var(--gray-700);
+  margin-bottom: 16px;
+}
+
+.master-meals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-500);
+}
+
+.loading-state .spinner {
+  margin-bottom: 12px;
+  color: var(--primary);
+}
+
+.empty-state .empty-icon {
+  color: var(--gray-300);
+  margin-bottom: 12px;
+}
+
+.empty-state .empty-hint {
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Master Meal Card */
+.master-meal-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.master-meal-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.master-meal-card.added-today {
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.master-meal-header {
+  margin-bottom: 8px;
+}
+
+.master-meal-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.master-meal-name .recipe-indicator {
+  background: #eef2ff;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: #4338ca;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.master-meal-author {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-top: 2px;
+  display: block;
+}
+
+.master-meal-macros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.master-meal-macros .macro-item {
+  font-size: 0.8rem;
+  color: var(--gray-600);
+  background: var(--gray-100);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.master-meal-macros .macro-item.calories {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.master-meal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.usage-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.add-to-log-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-to-log-btn:hover {
+  background: var(--primary-dark);
+}
+
+.add-to-log-btn.added {
+  background: var(--success);
+  cursor: default;
+}
+
+.add-to-log-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Submit Meal Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.submit-meal-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.submit-meal-modal .modal-header h3 {
+  font-size: 1.2rem;
+  color: var(--gray-800);
+}
+
+.submit-meal-modal .close-btn {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.submit-meal-modal .close-btn:hover {
+  color: var(--gray-600);
+}
+
+.submit-meal-modal .modal-body {
+  padding: 20px;
+}
+
+.submit-info {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.no-meals-message {
+  text-align: center;
+  padding: 24px;
+  color: var(--gray-500);
+}
+
+.meal-select-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.meal-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.meal-select-item:hover {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+}
+
+.meal-select-item.selected {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.meal-select-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-300);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.meal-select-item.selected .meal-select-checkbox {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.meal-select-info {
+  flex: 1;
+}
+
+.meal-select-name {
+  font-weight: 500;
+  color: var(--gray-800);
+  display: block;
+}
+
+.meal-select-macros {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.selected-meal-preview {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: 10px;
+}
+
+.selected-meal-preview h4 {
+  font-size: 0.9rem;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+}
+
+.selected-meal-preview .preview-details {
+  font-size: 0.9rem;
+  color: var(--gray-700);
+}
+
+.selected-meal-preview .has-recipe {
+  color: var(--success);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.submit-meal-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: var(--gray-200);
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submit-success {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.submit-success .success-icon {
+  color: var(--success);
+  margin-bottom: 12px;
+}
+
+.submit-success h4 {
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.submit-success p {
+  color: var(--gray-500);
+}
+
+/* My Submissions Panel */
+.my-submissions-panel {
+  margin-bottom: 24px;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.submissions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--gray-50);
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.submissions-header:hover {
+  background: var(--gray-100);
+}
+
+.submissions-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pending-badge {
+  background: var(--warning);
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.submissions-content {
+  padding: 16px;
+  background: white;
+}
+
+.submission-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.submission-item:last-child {
+  margin-bottom: 0;
+}
+
+.submission-item.pending {
+  border-left: 3px solid var(--warning);
+}
+
+.submission-item.approved {
+  border-left: 3px solid var(--success);
+}
+
+.submission-item.rejected {
+  border-left: 3px solid var(--danger);
+}
+
+.submission-info {
+  flex: 1;
+}
+
+.submission-name {
+  font-weight: 500;
+  color: var(--gray-800);
+  display: block;
+}
+
+.submission-macros {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.submission-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.status-icon.pending { color: var(--warning); }
+.status-icon.approved { color: var(--success); }
+.status-icon.rejected { color: var(--danger); }
+
+.rejection-reason {
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin-top: 4px;
+  display: block;
+}
+
+.cancel-submission-btn {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.cancel-submission-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* Admin Panel */
+.admin-panel {
+  margin-bottom: 24px;
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(99, 102, 241, 0.05);
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.admin-header:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.admin-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-icon {
+  color: var(--primary);
+}
+
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.refresh-btn:hover {
+  color: var(--primary);
+}
+
+.pending-count-badge {
+  background: var(--danger);
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.admin-content {
+  padding: 16px;
+}
+
+.no-pending {
+  text-align: center;
+  padding: 24px;
+  color: var(--gray-500);
+}
+
+.no-pending .all-clear-icon {
+  color: var(--success);
+  margin-bottom: 8px;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.submission-review-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.submission-details h4 {
+  font-size: 1rem;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.submission-details .submission-macros {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.submission-details .submission-author {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.has-recipe-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.submission-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.approve-btn,
+.reject-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.approve-btn {
+  background: var(--success);
+  color: white;
+}
+
+.approve-btn:hover {
+  opacity: 0.9;
+}
+
+.reject-btn {
+  background: var(--gray-100);
+  color: var(--danger);
+}
+
+.reject-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.rejection-form {
+  margin-top: 12px;
+}
+
+.rejection-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.rejection-form input:focus {
+  outline: none;
+  border-color: var(--danger);
+}
+
+.rejection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancel-reject-btn {
+  padding: 8px 14px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.confirm-reject-btn {
+  padding: 8px 14px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.confirm-reject-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments for Discover tab */
+@media (max-width: 600px) {
+  .discover-tab {
+    padding: 16px;
+  }
+
+  .discover-actions {
+    flex-direction: column;
+  }
+
+  .discover-search {
+    width: 100%;
+  }
+
+  .submit-meal-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .master-meals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .master-meal-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .add-to-log-btn {
+    justify-content: center;
+  }
+
+  .submission-actions {
+    flex-direction: column;
+  }
+
+  .approve-btn,
+  .reject-btn {
+    justify-content: center;
+  }
+}

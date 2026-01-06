@@ -297,6 +297,57 @@ export function useCalorieTracker() {
     return Math.max(0, diffDays);
   }, []);
 
+  // Add a master meal to a daily log
+  const addMasterMealToLog = useCallback((masterMealId: string, date: string) => {
+    setDailyLogs((prev) => {
+      const existingLogIndex = prev.findIndex((log) => log.date === date);
+      let updatedLog: DailyLog;
+
+      if (existingLogIndex >= 0) {
+        const existingLog = prev[existingLogIndex];
+        // Check if already added
+        if (existingLog.masterMealIds?.includes(masterMealId)) {
+          return prev;
+        }
+        updatedLog = {
+          ...existingLog,
+          masterMealIds: [...(existingLog.masterMealIds || []), masterMealId],
+        };
+        const updatedLogs = [...prev];
+        updatedLogs[existingLogIndex] = updatedLog;
+        if (user) saveDailyLog(updatedLog);
+        return updatedLogs;
+      } else {
+        updatedLog = {
+          date,
+          meals: [],
+          masterMealIds: [masterMealId],
+          workoutCalories: 0,
+        };
+        if (user) saveDailyLog(updatedLog);
+        return [...prev, updatedLog];
+      }
+    });
+  }, [setDailyLogs, user, saveDailyLog]);
+
+  // Remove a master meal from a daily log
+  const removeMasterMealFromLog = useCallback((masterMealId: string, date: string) => {
+    setDailyLogs((prev) => {
+      const existingLogIndex = prev.findIndex((log) => log.date === date);
+      if (existingLogIndex < 0) return prev;
+
+      const existingLog = prev[existingLogIndex];
+      const updatedLog = {
+        ...existingLog,
+        masterMealIds: (existingLog.masterMealIds || []).filter((id) => id !== masterMealId),
+      };
+      const updatedLogs = [...prev];
+      updatedLogs[existingLogIndex] = updatedLog;
+      if (user) saveDailyLog(updatedLog);
+      return updatedLogs;
+    });
+  }, [setDailyLogs, user, saveDailyLog]);
+
   // Toggle favorite status for a meal
   const toggleFavorite = useCallback((mealId: string) => {
     setMeals((prev) => {
@@ -692,6 +743,10 @@ export function useCalorieTracker() {
     toggleFavorite,
     logScannedMeal,
     saveAndLogMeal,
+
+    // Master meal operations
+    addMasterMealToLog,
+    removeMasterMealFromLog,
 
     // InBody operations
     addInBodyScan,

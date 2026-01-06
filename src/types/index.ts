@@ -59,6 +59,7 @@ export interface HealthMetrics {
 export interface DailyLog {
   date: string; // YYYY-MM-DD format
   meals: string[]; // Array of meal IDs
+  masterMealIds?: string[]; // Array of master meal IDs (referenced/synced community meals)
   workoutCalories: number;  // Manual entry (fallback)
   healthMetrics?: HealthMetrics; // From Apple Health import
   notes?: string;
@@ -116,4 +117,61 @@ export interface AppState {
   settings: UserSettings;
 }
 
-export type TabType = 'dashboard' | 'progress' | 'inbody' | 'summary' | 'settings';
+export type TabType = 'dashboard' | 'discover' | 'progress' | 'inbody' | 'summary' | 'settings';
+
+// ============================================
+// MASTER MEAL LIBRARY TYPES
+// ============================================
+
+export type UserRole = 'user' | 'admin';
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  email?: string;
+  displayName?: string;
+  role: UserRole;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type MasterMealStatus = 'approved' | 'archived';
+
+export interface MasterMeal {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  recipe?: Recipe;
+  status: MasterMealStatus;
+  submittedBy?: string;
+  submittedByName?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  usageCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface MealSubmission {
+  id: string;
+  sourceMealId?: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  recipe?: Recipe;
+  submittedBy: string;
+  submittedByEmail?: string;
+  submittedAt: string;
+  status: SubmissionStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  masterMealId?: string;
+}

@@ -170,3 +170,147 @@ CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(user_id, deleted_at);
 CREATE INDEX IF NOT EXISTS idx_daily_logs_user_date ON daily_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_weigh_ins_user_date ON weigh_ins(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_inbody_scans_user_date ON inbody_scans(user_id, date);
+
+-- ============================================
+-- MASTER MEAL LIBRARY FEATURE
+-- ============================================
+
+-- User profiles table (for admin role management)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  email TEXT,
+  display_name TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Auto-create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.user_profiles (user_id, email)
+  VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Master meals table (community meal library)
+CREATE TABLE IF NOT EXISTS master_meals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  calories INTEGER NOT NULL DEFAULT 0,
+  protein REAL NOT NULL DEFAULT 0,
+  carbs REAL NOT NULL DEFAULT 0,
+  fat REAL NOT NULL DEFAULT 0,
+  recipe JSONB,
+  status TEXT DEFAULT 'approved' CHECK (status IN ('approved', 'archived')),
+  submitted_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  submitted_by_name TEXT,
+  approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  approved_at TIMESTAMPTZ,
+  usage_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Meal submissions table (pending approval queue)
+CREATE TABLE IF NOT EXISTS meal_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_meal_id UUID,
+  name TEXT NOT NULL,
+  calories INTEGER NOT NULL DEFAULT 0,
+  protein REAL NOT NULL DEFAULT 0,
+  carbs REAL NOT NULL DEFAULT 0,
+  fat REAL NOT NULL DEFAULT 0,
+  recipe JSONB,
+  submitted_by UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  submitted_by_email TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  master_meal_id UUID REFERENCES master_meals(id) ON DELETE SET NULL
+);
+
+-- Add master_meal_ids column to daily_logs for referenced community meals
+ALTER TABLE daily_logs
+ADD COLUMN IF NOT EXISTS master_meal_ids UUID[] DEFAULT '{}';
+
+COMMENT ON COLUMN daily_logs.master_meal_ids IS 'Array of master meal IDs logged for this day (synced/referenced meals)';
+
+-- Enable RLS on new tables
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE master_meals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meal_submissions ENABLE ROW LEVEL SECURITY;
+
+-- User profiles policies
+DROP POLICY IF EXISTS "Users can view own profile" ON user_profiles;
+CREATE POLICY "Users can view own profile" ON user_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
+CREATE POLICY "Users can update own profile" ON user_profiles
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Master meals policies (anyone can read approved meals)
+DROP POLICY IF EXISTS "Anyone can view approved master meals" ON master_meals;
+CREATE POLICY "Anyone can view approved master meals" ON master_meals
+  FOR SELECT USING (status = 'approved');
+
+DROP POLICY IF EXISTS "Admins can manage master meals" ON master_meals;
+CREATE POLICY "Admins can manage master meals" ON master_meals
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+-- Meal submissions policies
+DROP POLICY IF EXISTS "Users can view own submissions" ON meal_submissions;
+CREATE POLICY "Users can view own submissions" ON meal_submissions
+  FOR SELECT USING (auth.uid() = submitted_by);
+
+DROP POLICY IF EXISTS "Users can insert own submissions" ON meal_submissions;
+CREATE POLICY "Users can insert own submissions" ON meal_submissions
+  FOR INSERT WITH CHECK (auth.uid() = submitted_by);
+
+DROP POLICY IF EXISTS "Users can cancel own pending submissions" ON meal_submissions;
+CREATE POLICY "Users can cancel own pending submissions" ON meal_submissions
+  FOR DELETE USING (auth.uid() = submitted_by AND status = 'pending');
+
+DROP POLICY IF EXISTS "Admins can view all submissions" ON meal_submissions;
+CREATE POLICY "Admins can view all submissions" ON meal_submissions
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Admins can update submissions" ON meal_submissions;
+CREATE POLICY "Admins can update submissions" ON meal_submissions
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Admins can insert master meals" ON master_meals;
+CREATE POLICY "Admins can insert master meals" ON master_meals
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_id = auth.uid() AND role = 'admin')
+  );
+
+-- Indexes for master meal library
+CREATE INDEX IF NOT EXISTS idx_master_meals_status ON master_meals(status);
+CREATE INDEX IF NOT EXISTS idx_master_meals_name ON master_meals(name);
+CREATE INDEX IF NOT EXISTS idx_master_meals_usage ON master_meals(usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_meal_submissions_status ON meal_submissions(status);
+CREATE INDEX IF NOT EXISTS idx_meal_submissions_submitted_by ON meal_submissions(submitted_by);
+
+-- Set admin user (run after creating tables)
+-- Creates profile if not exists, or updates existing to admin
+INSERT INTO user_profiles (user_id, email, role)
+SELECT id, email, 'admin' FROM auth.users WHERE email = 'parvjain2503@gmail.com'
+ON CONFLICT (user_id) DO UPDATE SET role = 'admin';

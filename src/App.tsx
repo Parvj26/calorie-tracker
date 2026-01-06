@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import {
   LayoutDashboard,
@@ -10,15 +10,20 @@ import {
   Cloud,
   CloudOff,
   Loader2,
+  Globe,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useCalorieTracker } from './hooks/useCalorieTracker';
+import { useUserProfile } from './hooks/useUserProfile';
+import { useMasterMeals } from './hooks/useMasterMeals';
+import { useMealSubmissions } from './hooks/useMealSubmissions';
 import { Dashboard } from './components/Dashboard';
 import { ProgressTracker } from './components/ProgressTracker';
 import { InBodyUpload } from './components/InBodyUpload';
 import { WeeklySummary } from './components/WeeklySummary';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
+import { DiscoverTab } from './components/Discover/DiscoverTab';
 import type { TabType } from './types';
 import './App.css';
 
@@ -57,7 +62,44 @@ function AppContent() {
     getProgressData,
     getGoalProgress,
     getLatestInBodyMetrics,
+    addMasterMealToLog,
   } = useCalorieTracker();
+
+  // User profile and admin status
+  const { isAdmin } = useUserProfile();
+
+  // Master meals for discover tab
+  const {
+    masterMeals,
+    loading: masterMealsLoading,
+    searchQuery: masterMealSearchQuery,
+    setSearchQuery: setMasterMealSearchQuery,
+    loadMasterMeals,
+    incrementUsageCount,
+  } = useMasterMeals();
+
+  // Meal submissions (user submissions + admin management)
+  const {
+    submissions,
+    pendingCount,
+    submitMealForReview,
+    cancelSubmission,
+    approveSubmission,
+    rejectSubmission,
+    loadPendingSubmissions,
+  } = useMealSubmissions(isAdmin);
+
+  // Handle adding master meal to log with usage tracking
+  const handleAddMasterMealToLog = useCallback((mealId: string, date: string) => {
+    addMasterMealToLog(mealId, date);
+    incrementUsageCount(mealId);
+  }, [addMasterMealToLog, incrementUsageCount]);
+
+  // Refresh master meals after approval
+  const handleRefreshMasterMeals = useCallback(() => {
+    loadMasterMeals();
+    loadPendingSubmissions();
+  }, [loadMasterMeals, loadPendingSubmissions]);
 
   // All hooks must be called before any conditional returns
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
@@ -84,6 +126,7 @@ function AppContent() {
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'discover' as TabType, label: 'Discover', icon: Globe },
     { id: 'progress' as TabType, label: 'Progress', icon: TrendingUp },
     { id: 'inbody' as TabType, label: 'InBody', icon: ScanLine },
     { id: 'summary' as TabType, label: 'Summary', icon: Calendar },
@@ -150,6 +193,27 @@ function AppContent() {
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
+          />
+        )}
+
+        {activeTab === 'discover' && (
+          <DiscoverTab
+            meals={meals}
+            masterMeals={masterMeals}
+            masterMealsLoading={masterMealsLoading}
+            searchQuery={masterMealSearchQuery}
+            onSearchChange={setMasterMealSearchQuery}
+            selectedDate={selectedDate}
+            currentLog={currentLog}
+            onAddMasterMealToLog={handleAddMasterMealToLog}
+            isAdmin={isAdmin}
+            submissions={submissions}
+            pendingCount={pendingCount}
+            onSubmitMeal={submitMealForReview}
+            onCancelSubmission={cancelSubmission}
+            onApproveSubmission={approveSubmission}
+            onRejectSubmission={rejectSubmission}
+            onRefreshMasterMeals={handleRefreshMasterMeals}
           />
         )}
 

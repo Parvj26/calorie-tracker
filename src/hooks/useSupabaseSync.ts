@@ -49,6 +49,7 @@ export function useSupabaseSync() {
       const dailyLogs: DailyLog[] = (logsRes.data || []).map((l) => ({
         date: l.date,
         meals: l.meal_ids || [],
+        masterMealIds: l.master_meal_ids || [],
         workoutCalories: l.workout_calories || 0,
         healthMetrics: l.health_metrics || undefined,
         notes: l.notes,
@@ -176,6 +177,7 @@ export function useSupabaseSync() {
       user_id: user.id,
       date: log.date,
       meal_ids: log.meals,
+      master_meal_ids: log.masterMealIds || [],
       workout_calories: log.workoutCalories,
       health_metrics: log.healthMetrics || null,
       notes: log.notes,
