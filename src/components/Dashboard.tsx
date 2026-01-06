@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { CircularProgress } from './CircularProgress';
 import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
+import { HealthScanner } from './HealthScanner';
 import type { DailyLog, Meal, UserSettings } from '../types';
 
 interface InBodyMetrics {
@@ -74,6 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [workoutInput, setWorkoutInput] = useState(log.workoutCalories.toString());
   const [showScanner, setShowScanner] = useState(false);
+  const [showHealthScanner, setShowHealthScanner] = useState(false);
 
   useEffect(() => {
     setWorkoutInput(log.workoutCalories.toString());
@@ -281,6 +283,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
             />
             <span>calories burned</span>
           </div>
+          <button
+            className="import-health-btn"
+            onClick={() => setShowHealthScanner(true)}
+          >
+            <Smartphone size={16} />
+            Import from Health
+          </button>
         </div>
 
         {/* Net Deficit Card */}
@@ -336,6 +345,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onLogMeal={(meal) => onLogScannedMeal(meal, selectedDate)}
           onSaveAndLogMeal={(meal) => onSaveAndLogMeal(meal, selectedDate)}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Health Scanner Modal */}
+      {showHealthScanner && (
+        <HealthScanner
+          apiKey={settings.openAiApiKey || ''}
+          selectedDate={selectedDate}
+          currentWorkoutCalories={totals.workoutCalories}
+          onUpdateWorkoutCalories={onUpdateWorkoutCalories}
+          onClose={() => setShowHealthScanner(false)}
         />
       )}
     </div>
