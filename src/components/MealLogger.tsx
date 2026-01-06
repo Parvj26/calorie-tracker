@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { Meal, DailyLog } from '../types';
 
 interface MealLoggerProps {
@@ -23,6 +23,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   onDateChange,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [newMeal, setNewMeal] = useState({
     name: '',
     calories: '',
@@ -30,6 +31,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
     carbs: '',
     fat: '',
   });
+
+  // Filter meals based on search query
+  const filteredMeals = useMemo(() => {
+    if (!searchQuery.trim()) return meals;
+    const query = searchQuery.toLowerCase();
+    return meals.filter(meal =>
+      meal.name.toLowerCase().includes(query)
+    );
+  }, [meals, searchQuery]);
 
   const handleAddMeal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +88,34 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
 
       <div className="meal-list">
         <h3>Select meals eaten</h3>
-        {meals.map((meal) => {
+
+        <div className="meal-search">
+          <Search size={18} className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search meals..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+          {searchQuery && (
+            <button
+              className="clear-search"
+              onClick={() => setSearchQuery('')}
+              type="button"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {filteredMeals.length === 0 && searchQuery && (
+          <div className="no-meals-found">
+            No meals found for "{searchQuery}"
+          </div>
+        )}
+
+        {filteredMeals.map((meal) => {
           const isSelected = log.meals.includes(meal.id);
           return (
             <div

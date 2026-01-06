@@ -3182,3 +3182,70 @@ body {
     gap: 4px;
   }
 }
+
+/* ===========================================
+   MEAL SEARCH STYLES
+   =========================================== */
+
+.meal-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.meal-search .search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+.meal-search .search-input {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.meal-search .search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.meal-search .search-input::placeholder {
+  color: var(--gray-400);
+}
+
+.meal-search .clear-search {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.meal-search .clear-search:hover {
+  color: var(--gray-600);
+  background: var(--gray-100);
+}
+
+.no-meals-found {
+  text-align: center;
+  padding: 20px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
