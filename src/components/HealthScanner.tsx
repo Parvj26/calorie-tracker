@@ -163,7 +163,17 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
 
                   {extractedData.date && (
                     <p className="data-date">
-                      Date: {format(new Date(extractedData.date), 'MMM d, yyyy')}
+                      Date: {(() => {
+                        try {
+                          const parsedDate = new Date(extractedData.date);
+                          if (isNaN(parsedDate.getTime())) {
+                            return extractedData.date; // Show raw date if invalid
+                          }
+                          return format(parsedDate, 'MMM d, yyyy');
+                        } catch {
+                          return extractedData.date; // Fallback to raw date string
+                        }
+                      })()}
                     </p>
                   )}
 
