@@ -57,8 +57,12 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
+  position: sticky;
+  top: 0;
+  z-index: 101;
 }
 
 .header-left {
@@ -121,7 +125,7 @@ body {
   padding: 0 8px;
   overflow-x: auto;
   position: sticky;
-  top: 0;
+  top: calc(52px + env(safe-area-inset-top, 0px));
   z-index: 100;
 }
 
@@ -4800,11 +4804,7 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-.app-header {
-  padding-top: calc(16px + env(safe-area-inset-top, 0px));
-  padding-left: calc(16px + env(safe-area-inset-left, 0px));
-  padding-right: calc(16px + env(safe-area-inset-right, 0px));
-}
+/* Header safe area handled in main .app-header rule */
 
 /* Sticky nav with safe area */
 .app-nav {
@@ -4996,10 +4996,9 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* Card touch feedback */
+/* Card touch feedback - only for meal items, not colored cards */
 @media (hover: none) {
-  .meal-item:active,
-  .card:active {
+  .meal-item:active {
     background: var(--gray-100);
   }
 }
