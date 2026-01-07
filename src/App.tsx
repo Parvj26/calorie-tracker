@@ -68,8 +68,11 @@ function AppContent() {
     removeMasterMealFromLibrary,
     getMealId,
     getMealQuantity,
+    getMealUnit,
     getMasterMealId,
     getMasterMealQuantity,
+    getMasterMealUnit,
+    getServingMultiplier,
   } = useCalorieTracker();
 
   // User profile and admin status
@@ -213,8 +216,11 @@ function AppContent() {
             onRemoveFromLibrary={removeMasterMealFromLibrary}
             getMealId={getMealId}
             getMealQuantity={getMealQuantity}
+            getMealUnit={getMealUnit}
             getMasterMealId={getMasterMealId}
             getMasterMealQuantity={getMasterMealQuantity}
+            getMasterMealUnit={getMasterMealUnit}
+            getServingMultiplier={getServingMultiplier}
           />
         )}
 

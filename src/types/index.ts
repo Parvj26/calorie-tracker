@@ -35,6 +35,8 @@ export interface Recipe {
   instructions?: string[];
 }
 
+export type ServingSizeUnit = 'g' | 'ml' | 'oz';
+
 export interface Meal {
   id: string;
   name: string;
@@ -46,6 +48,8 @@ export interface Meal {
   favorite?: boolean;
   recipe?: Recipe;
   deletedAt?: string; // ISO timestamp for soft delete, undefined = active
+  servingSize?: number;        // e.g., 100 (grams per serving)
+  servingSizeUnit?: ServingSizeUnit;  // Default: 'g'
 }
 
 export interface HealthMetrics {
@@ -56,16 +60,20 @@ export interface HealthMetrics {
   standHours?: number;
 }
 
+export type QuantityUnit = 'serving' | 'g' | 'ml' | 'oz';
+
 // Meal entry with quantity for daily logging
 export interface MealLogEntry {
   mealId: string;
-  quantity: number; // 1 = 1 serving, 2 = 2 servings, 0.5 = half serving
+  quantity: number; // 1 = 1 serving, 2 = 2 servings, 0.5 = half serving, or grams if unit='g'
+  unit?: QuantityUnit; // Default: 'serving'
 }
 
 // Master meal entry with quantity
 export interface MasterMealLogEntry {
   mealId: string;
   quantity: number;
+  unit?: QuantityUnit; // Default: 'serving'
 }
 
 export interface DailyLog {
@@ -166,6 +174,8 @@ export interface MasterMeal {
   usageCount: number;
   createdAt?: string;
   updatedAt?: string;
+  servingSize?: number;
+  servingSizeUnit?: ServingSizeUnit;
 }
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';

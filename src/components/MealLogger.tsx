@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Plus, Minus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
-import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry } from '../types';
+import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
 import { groqFormatRecipeText } from '../utils/groq';
 
 // Combined meal type for display (personal or community)
@@ -17,6 +17,8 @@ interface DisplayMeal {
   favorite?: boolean;
   isCommunity: boolean;
   isInLibrary?: boolean; // For community meals: true if in library, false if only logged on this day
+  servingSize?: number;
+  servingSizeUnit?: 'g' | 'ml' | 'oz';
 }
 
 interface MealLoggerProps {
@@ -30,12 +32,15 @@ interface MealLoggerProps {
   savedMasterMealIds: string[];
   onToggleMeal: (mealId: string, date: string) => void;
   onToggleMasterMeal: (masterMealId: string, date: string) => void;
-  onUpdateMealQuantity: (mealId: string, date: string, quantity: number) => void;
-  onUpdateMasterMealQuantity: (masterMealId: string, date: string, quantity: number) => void;
+  onUpdateMealQuantity: (mealId: string, date: string, quantity: number, unit?: QuantityUnit) => void;
+  onUpdateMasterMealQuantity: (masterMealId: string, date: string, quantity: number, unit?: QuantityUnit) => void;
   getMealId: (entry: string | MealLogEntry) => string;
   getMealQuantity: (entry: string | MealLogEntry) => number;
+  getMealUnit: (entry: string | MealLogEntry) => QuantityUnit;
   getMasterMealId: (entry: string | MasterMealLogEntry) => string;
   getMasterMealQuantity: (entry: string | MasterMealLogEntry) => number;
+  getMasterMealUnit: (entry: string | MasterMealLogEntry) => QuantityUnit;
+  getServingMultiplier: (quantity: number, unit: QuantityUnit, servingSize?: number) => number;
   onRemoveFromLibrary: (masterMealId: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onUpdateMeal: (id: string, updates: Partial<Meal>) => void;
@@ -63,8 +68,11 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   onUpdateMasterMealQuantity,
   getMealId,
   getMealQuantity,
+  getMealUnit,
   getMasterMealId,
   getMasterMealQuantity,
+  getMasterMealUnit,
+  getServingMultiplier,
   onRemoveFromLibrary,
   onAddMeal,
   onUpdateMeal,
@@ -89,6 +97,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
     protein: '',
     carbs: '',
     fat: '',
+    servingSize: '',
   });
   const [recipeText, setRecipeText] = useState('');
   const [recipeError, setRecipeError] = useState<string | null>(null);
@@ -103,6 +112,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       protein: meal.protein.toString(),
       carbs: meal.carbs.toString(),
       fat: meal.fat.toString(),
+      servingSize: meal.servingSize?.toString() || '',
     });
     setRecipeText(meal.recipe?.rawText || '');
     setShowAddForm(true);
@@ -111,7 +121,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   // Cancel editing
   const cancelEdit = () => {
     setEditingMeal(null);
-    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '' });
+    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '', servingSize: '' });
     setRecipeText('');
     setRecipeError(null);
     setShowAddForm(false);
@@ -122,6 +132,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
     const personalMeals: DisplayMeal[] = meals.map(m => ({
       ...m,
       isCommunity: false,
+      servingSize: m.servingSize,
+      servingSizeUnit: m.servingSizeUnit,
     }));
 
     const communityMeals: DisplayMeal[] = displayMasterMeals.map(m => ({
@@ -134,6 +146,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       recipe: m.recipe,
       isCommunity: true,
       isInLibrary: savedMasterMealIds.includes(m.id),
+      servingSize: m.servingSize,
+      servingSizeUnit: m.servingSizeUnit,
     }));
 
     return [...personalMeals, ...communityMeals];
@@ -205,6 +219,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       setIsFormattingRecipe(false);
     }
 
+    const servingSizeValue = parseInt(newMeal.servingSize);
     const mealData = {
       name: newMeal.name,
       calories: parseInt(newMeal.calories) || 0,
@@ -212,6 +227,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       carbs: parseInt(newMeal.carbs) || 0,
       fat: parseInt(newMeal.fat) || 0,
       recipe: formattedRecipe || undefined,
+      servingSize: servingSizeValue > 0 ? servingSizeValue : undefined,
+      servingSizeUnit: servingSizeValue > 0 ? ('g' as const) : undefined,
     };
 
     if (editingMeal) {
@@ -284,7 +301,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
         )}
 
         {sortedMeals.map((meal) => {
-          // Find the meal entry in the log to get quantity
+          // Find the meal entry in the log to get quantity and unit
           const mealEntry = meal.isCommunity
             ? log.masterMealIds?.find((entry) => getMasterMealId(entry) === meal.id)
             : log.meals.find((entry) => getMealId(entry) === meal.id);
@@ -293,6 +310,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
           const quantity = mealEntry
             ? (meal.isCommunity ? getMasterMealQuantity(mealEntry) : getMealQuantity(mealEntry))
             : 1;
+          const unit: QuantityUnit = mealEntry
+            ? (meal.isCommunity ? getMasterMealUnit(mealEntry) : getMealUnit(mealEntry))
+            : 'serving';
+
+          // Check if meal supports gram-based quantities
+          const supportsGrams = !!meal.servingSize;
 
           const handleToggle = () => {
             if (meal.isCommunity) {
@@ -303,19 +326,52 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
           };
 
           const handleQuantityChange = (delta: number) => {
-            const newQuantity = Math.max(0.5, Math.min(10, quantity + delta));
+            // Different limits based on unit
+            const maxVal = unit === 'serving' ? 10 : 1000;
+            const minVal = unit === 'serving' ? 0.5 : 1;
+            const newQuantity = Math.max(minVal, Math.min(maxVal, quantity + delta));
             if (meal.isCommunity) {
-              onUpdateMasterMealQuantity(meal.id, selectedDate, newQuantity);
+              onUpdateMasterMealQuantity(meal.id, selectedDate, newQuantity, unit);
             } else {
-              onUpdateMealQuantity(meal.id, selectedDate, newQuantity);
+              onUpdateMealQuantity(meal.id, selectedDate, newQuantity, unit);
             }
           };
 
-          // Calculate displayed macros based on quantity
-          const displayCalories = Math.round(meal.calories * quantity);
-          const displayProtein = Math.round(meal.protein * quantity);
-          const displayCarbs = Math.round(meal.carbs * quantity);
-          const displayFat = Math.round(meal.fat * quantity);
+          const handleUnitChange = (newUnit: QuantityUnit) => {
+            // Convert quantity when switching units
+            let newQuantity = quantity;
+            if (unit === 'serving' && newUnit === 'g') {
+              // Convert servings to grams
+              newQuantity = Math.round(quantity * (meal.servingSize || 100));
+            } else if (unit === 'g' && newUnit === 'serving') {
+              // Convert grams to servings
+              newQuantity = Math.round((quantity / (meal.servingSize || 100)) * 10) / 10;
+              newQuantity = Math.max(0.5, newQuantity);
+            }
+            if (meal.isCommunity) {
+              onUpdateMasterMealQuantity(meal.id, selectedDate, newQuantity, newUnit);
+            } else {
+              onUpdateMealQuantity(meal.id, selectedDate, newQuantity, newUnit);
+            }
+          };
+
+          const handleQuantityInput = (value: string) => {
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue) && numValue > 0) {
+              if (meal.isCommunity) {
+                onUpdateMasterMealQuantity(meal.id, selectedDate, numValue, unit);
+              } else {
+                onUpdateMealQuantity(meal.id, selectedDate, numValue, unit);
+              }
+            }
+          };
+
+          // Calculate displayed macros based on quantity and unit
+          const servingMultiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+          const displayCalories = Math.round(meal.calories * servingMultiplier);
+          const displayProtein = Math.round(meal.protein * servingMultiplier);
+          const displayCarbs = Math.round(meal.carbs * servingMultiplier);
+          const displayFat = Math.round(meal.fat * servingMultiplier);
 
           return (
             <div
@@ -362,21 +418,48 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               {/* Quantity controls - show when selected */}
               {isSelected && (
                 <div className="quantity-controls" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="quantity-btn"
-                    onClick={() => handleQuantityChange(-0.5)}
-                    title="Decrease quantity"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="quantity-value">{quantity}</span>
-                  <button
-                    className="quantity-btn"
-                    onClick={() => handleQuantityChange(0.5)}
-                    title="Increase quantity"
-                  >
-                    <Plus size={14} />
-                  </button>
+                  {supportsGrams && unit === 'g' ? (
+                    // Gram input mode
+                    <input
+                      type="number"
+                      className="quantity-input"
+                      value={quantity}
+                      onChange={(e) => handleQuantityInput(e.target.value)}
+                      min="1"
+                      max="2000"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    // Serving mode with +/- buttons
+                    <>
+                      <button
+                        className="quantity-btn"
+                        onClick={() => handleQuantityChange(-0.5)}
+                        title="Decrease quantity"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="quantity-value">{quantity}</span>
+                      <button
+                        className="quantity-btn"
+                        onClick={() => handleQuantityChange(0.5)}
+                        title="Increase quantity"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </>
+                  )}
+                  {supportsGrams && (
+                    <select
+                      className="unit-select"
+                      value={unit}
+                      onChange={(e) => handleUnitChange(e.target.value as QuantityUnit)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="serving">serving</option>
+                      <option value="g">g</option>
+                    </select>
+                  )}
                 </div>
               )}
               <div className="meal-actions">
@@ -481,6 +564,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               value={newMeal.fat}
               onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
             />
+          </div>
+          <div className="serving-size-input">
+            <label>
+              <span>Serving size (optional)</span>
+              <div className="serving-size-row">
+                <input
+                  type="number"
+                  placeholder="e.g., 100"
+                  value={newMeal.servingSize}
+                  onChange={(e) => setNewMeal({ ...newMeal, servingSize: e.target.value })}
+                  min="1"
+                />
+                <span className="serving-size-unit">grams</span>
+              </div>
+              <span className="serving-size-hint">Set to enable gram-based logging</span>
+            </label>
           </div>
           <details className="recipe-editor">
             <summary>Add Recipe (Optional)</summary>

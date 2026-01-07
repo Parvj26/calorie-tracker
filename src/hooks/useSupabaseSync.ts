@@ -44,6 +44,8 @@ export function useSupabaseSync() {
         favorite: m.favorite ?? false,
         recipe: m.recipe || undefined,
         deletedAt: m.deleted_at || undefined,
+        servingSize: m.serving_size || undefined,
+        servingSizeUnit: m.serving_size_unit || undefined,
       }));
 
       const dailyLogs: DailyLog[] = (logsRes.data || []).map((l) => ({
@@ -126,6 +128,8 @@ export function useSupabaseSync() {
       is_custom: meal.isCustom ?? true,
       favorite: meal.favorite ?? false,
       recipe: meal.recipe ?? null,
+      serving_size: meal.servingSize ?? null,
+      serving_size_unit: meal.servingSizeUnit ?? null,
       updated_at: new Date().toISOString(),
     });
   }, [user]);

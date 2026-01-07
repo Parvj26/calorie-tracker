@@ -4,7 +4,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, parseISO } 
 import { useLocalStorage } from './useLocalStorage';
 import { useSupabaseSync } from './useSupabaseSync';
 import { useAuth } from '../contexts/AuthContext';
-import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry } from '../types';
+import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
 
 // Helper functions for meal entries with quantity
@@ -16,12 +16,34 @@ const getMealQuantity = (entry: string | MealLogEntry): number => {
   return typeof entry === 'string' ? 1 : entry.quantity;
 };
 
+const getMealUnit = (entry: string | MealLogEntry): QuantityUnit => {
+  return typeof entry === 'string' ? 'serving' : (entry.unit || 'serving');
+};
+
 const getMasterMealId = (entry: string | MasterMealLogEntry): string => {
   return typeof entry === 'string' ? entry : entry.mealId;
 };
 
 const getMasterMealQuantity = (entry: string | MasterMealLogEntry): number => {
   return typeof entry === 'string' ? 1 : entry.quantity;
+};
+
+const getMasterMealUnit = (entry: string | MasterMealLogEntry): QuantityUnit => {
+  return typeof entry === 'string' ? 'serving' : (entry.unit || 'serving');
+};
+
+// Convert quantity to serving multiplier based on unit
+const getServingMultiplier = (quantity: number, unit: QuantityUnit, servingSize?: number): number => {
+  if (unit === 'serving') return quantity;
+
+  // For unit-based quantities, we need servingSize to convert
+  const size = servingSize || 100; // Default to 100g if not specified
+
+  if (unit === 'g') return quantity / size;
+  if (unit === 'oz') return (quantity * 28.35) / size; // 1 oz = 28.35g
+  if (unit === 'ml') return quantity / size; // Assume 1ml = 1g for simplicity
+
+  return quantity;
 };
 
 export function useCalorieTracker() {
@@ -141,7 +163,7 @@ export function useCalorieTracker() {
   }, [setDailyLogs, user, saveDailyLog]);
 
   // Update meal quantity for a date
-  const updateMealQuantity = useCallback((mealId: string, date: string, quantity: number) => {
+  const updateMealQuantity = useCallback((mealId: string, date: string, quantity: number, unit?: QuantityUnit) => {
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
       if (existingLogIndex < 0) return prev;
@@ -149,7 +171,9 @@ export function useCalorieTracker() {
       const existingLog = prev[existingLogIndex];
       const updatedMeals = existingLog.meals.map((entry) => {
         if (getMealId(entry) === mealId) {
-          return { mealId, quantity } as MealLogEntry;
+          // Preserve existing unit if not provided
+          const existingUnit = getMealUnit(entry);
+          return { mealId, quantity, unit: unit || existingUnit } as MealLogEntry;
         }
         return entry;
       });
@@ -394,7 +418,7 @@ export function useCalorieTracker() {
   }, [setDailyLogs, user, saveDailyLog]);
 
   // Update master meal quantity for a date
-  const updateMasterMealQuantity = useCallback((masterMealId: string, date: string, quantity: number) => {
+  const updateMasterMealQuantity = useCallback((masterMealId: string, date: string, quantity: number, unit?: QuantityUnit) => {
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
       if (existingLogIndex < 0) return prev;
@@ -402,7 +426,9 @@ export function useCalorieTracker() {
       const existingLog = prev[existingLogIndex];
       const updatedMasterMeals = (existingLog.masterMealIds || []).map((entry) => {
         if (getMasterMealId(entry) === masterMealId) {
-          return { mealId: masterMealId, quantity } as MasterMealLogEntry;
+          // Preserve existing unit if not provided
+          const existingUnit = getMasterMealUnit(entry);
+          return { mealId: masterMealId, quantity, unit: unit || existingUnit } as MasterMealLogEntry;
         }
         return entry;
       });
@@ -550,22 +576,26 @@ export function useCalorieTracker() {
 
   // Calculate totals for a log
   const calculateTotals = useCallback((log: DailyLog) => {
-    // Map meal entries to meals with quantities
+    // Map meal entries to meals with quantities and units
     const logMealsWithQty = log.meals
       .map((entry) => {
         const mealId = getMealId(entry);
         const quantity = getMealQuantity(entry);
+        const unit = getMealUnit(entry);
         const meal = meals.find((m) => m.id === mealId);
-        return meal ? { meal, quantity } : null;
+        if (!meal) return null;
+        // Convert quantity to serving multiplier based on unit
+        const servingMultiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+        return { meal, servingMultiplier };
       })
-      .filter(Boolean) as { meal: Meal; quantity: number }[];
+      .filter(Boolean) as { meal: Meal; servingMultiplier: number }[];
 
     const totals = logMealsWithQty.reduce(
-      (acc, { meal, quantity }) => ({
-        calories: acc.calories + Math.round(meal.calories * quantity),
-        protein: acc.protein + Math.round(meal.protein * quantity),
-        carbs: acc.carbs + Math.round(meal.carbs * quantity),
-        fat: acc.fat + Math.round(meal.fat * quantity),
+      (acc, { meal, servingMultiplier }) => ({
+        calories: acc.calories + Math.round(meal.calories * servingMultiplier),
+        protein: acc.protein + Math.round(meal.protein * servingMultiplier),
+        carbs: acc.carbs + Math.round(meal.carbs * servingMultiplier),
+        fat: acc.fat + Math.round(meal.fat * servingMultiplier),
       }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
@@ -850,8 +880,11 @@ export function useCalorieTracker() {
     // Meal entry helpers (for UI to get meal ID/quantity from entries)
     getMealId,
     getMealQuantity,
+    getMealUnit,
     getMasterMealId,
     getMasterMealQuantity,
+    getMasterMealUnit,
+    getServingMultiplier,
 
     // Meal operations
     addMeal,
