@@ -63,7 +63,6 @@ function AppContent() {
     getWeeklySummary,
     getProgressData,
     getGoalProgress,
-    getLatestInBodyMetrics,
     addMasterMealToLog,
     removeMasterMealFromLog,
     updateMasterMealQuantity,
@@ -116,7 +115,6 @@ function AppContent() {
   const weeklySummary = useMemo(() => getWeeklySummary(), [getWeeklySummary]);
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
-  const latestInBodyMetrics = useMemo(() => getLatestInBodyMetrics(), [getLatestInBodyMetrics]);
 
   // Get master meals to display in Dashboard (saved to library OR logged for current day)
   const displayMasterMeals = useMemo(() => {
@@ -203,7 +201,6 @@ function AppContent() {
             log={currentLog}
             settings={settings}
             totals={totals}
-            inBodyMetrics={latestInBodyMetrics}
             goalProgress={goalProgress}
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onUpdateHealthMetrics={updateHealthMetrics}

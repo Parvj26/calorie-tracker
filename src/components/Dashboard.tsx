@@ -1,33 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { CircularProgress } from './CircularProgress';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
 import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
-
-interface InBodyMetrics {
-  weight: number;
-  bodyFatPercent: number;
-  muscleMass: number;
-  skeletalMuscle: number;
-  date: string;
-  // Enhanced metrics
-  bmr?: number;
-  fatMass?: number;
-  visceralFatGrade?: number;
-  waterWeight?: number;
-  trunkFatMass?: number;
-  bodyAge?: number;
-  proteinMass?: number;
-  boneMass?: number;
-  changes: {
-    weight: number;
-    bodyFat: number;
-    muscleMass: number;
-    skeletalMuscle: number;
-  } | null;
-}
 
 interface GoalProgress {
   startWeight: number;
@@ -62,7 +38,6 @@ interface DashboardProps {
     steps: number;
     exerciseMinutes: number;
   };
-  inBodyMetrics: InBodyMetrics | null;
   goalProgress: GoalProgress;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
@@ -76,7 +51,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   log,
   settings,
   totals,
-  inBodyMetrics,
   goalProgress,
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
@@ -98,8 +72,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     onUpdateWorkoutCalories(parseInt(value) || 0, selectedDate);
   };
 
-  const targetRange = `${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax}`;
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
+  const targetCalories = totals.hasTDEE ? totals.tdee : totals.targetCalories;
+  const calorieProgress = Math.min(100, (totals.calories / targetCalories) * 100);
+  const isOverTarget = totals.caloriesRemaining < 0;
 
   const changeDate = (days: number) => {
     const current = parseISO(selectedDate);
@@ -107,434 +83,202 @@ export const Dashboard: React.FC<DashboardProps> = ({
     onDateChange(format(current, 'yyyy-MM-dd'));
   };
 
-  const formatChange = (value: number, inverse: boolean = false) => {
-    const isPositive = inverse ? value < 0 : value > 0;
-    const sign = value > 0 ? '+' : '';
-    return (
-      <span className={isPositive ? 'change-positive' : value < 0 ? 'change-negative' : ''}>
-        {sign}{value}
-      </span>
-    );
-  };
-
   return (
-    <div className="dashboard">
-      {/* Date Selector at Top */}
-      <div className="card date-selector-card">
+    <div className="dashboard dashboard-v2">
+      {/* Date Selector */}
+      <div className="date-selector-compact">
         <button onClick={() => changeDate(-1)} className="date-nav-btn">
-          <ChevronLeft size={24} />
+          <ChevronLeft size={20} />
         </button>
-        <div className="date-display-main">
-          <Calendar size={20} />
-          <div className="date-text">
-            <span className="date-day">{isToday ? 'Today' : format(parseISO(selectedDate), 'EEEE')}</span>
-            <span className="date-full">{format(parseISO(selectedDate), 'MMMM d, yyyy')}</span>
-          </div>
+        <div className="date-display-compact">
+          <Calendar size={16} />
+          <span>{isToday ? 'Today' : format(parseISO(selectedDate), 'EEE, MMM d')}</span>
         </div>
         <button
           onClick={() => changeDate(1)}
           className="date-nav-btn"
           disabled={isToday}
         >
-          <ChevronRight size={24} />
+          <ChevronRight size={20} />
         </button>
       </div>
 
-      {/* Primary CTA - Scan Food Button */}
-      <div className="card scan-food-card" onClick={() => setShowScanner(true)}>
-        <button className="scan-food-btn">
-          <div className="icon-wrapper">
-            <Camera size={32} />
-          </div>
-          <div className="btn-text">
-            <span className="btn-title">Scan Your Food</span>
-            <span className="btn-subtitle">AI-powered calorie detection</span>
-          </div>
-        </button>
-      </div>
-
-      {/* TDEE Card - Show when health data is imported */}
-      {totals.hasTDEE && (
-        <div className="card tdee-card">
-          <div className="card-header">
-            <Zap size={20} />
-            <h3>Today's Energy</h3>
-          </div>
-          <div className="tdee-main">
-            <div className="tdee-value">{totals.tdee.toLocaleString()}</div>
-            <div className="tdee-label">Total Burn (TDEE)</div>
-          </div>
-          <div className="tdee-breakdown-row">
-            <div className="tdee-item">
-              <span className="tdee-item-value">{totals.restingEnergy.toLocaleString()}</span>
-              <span className="tdee-item-label">Resting</span>
-            </div>
-            <span className="tdee-plus">+</span>
-            <div className="tdee-item">
-              <span className="tdee-item-value">{totals.activeEnergy.toLocaleString()}</span>
-              <span className="tdee-item-label">Active</span>
-            </div>
-          </div>
-          <div className="tdee-stats-row">
-            {totals.steps > 0 && (
-              <div className="tdee-stat">
-                <Footprints size={16} />
-                <span>{totals.steps.toLocaleString()} steps</span>
-              </div>
-            )}
-            {totals.exerciseMinutes > 0 && (
-              <div className="tdee-stat">
-                <Clock size={16} />
-                <span>{totals.exerciseMinutes} min exercise</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Body Metrics Card - Show if we have InBody data */}
-      {inBodyMetrics && (
-        <div className="card body-metrics-card">
-          <div className="card-header">
-            <Scale size={20} />
-            <h3>Body Metrics</h3>
-            <span className="metrics-date">
-              {format(new Date(inBodyMetrics.date), 'MMM d')}
-            </span>
-          </div>
-          <div className="metrics-grid">
-            <div className="metric-item">
-              <span className="metric-value">{inBodyMetrics.weight}</span>
-              <span className="metric-unit">kg</span>
-              <span className="metric-label">Weight</span>
-              {inBodyMetrics.changes && (
-                <span className="metric-change">
-                  {formatChange(inBodyMetrics.changes.weight, true)}
-                </span>
-              )}
-            </div>
-            <div className="metric-item">
-              <span className="metric-value">{inBodyMetrics.bodyFatPercent}</span>
-              <span className="metric-unit">%</span>
-              <span className="metric-label">Body Fat</span>
-              {inBodyMetrics.changes && (
-                <span className="metric-change">
-                  {formatChange(inBodyMetrics.changes.bodyFat, true)}
-                </span>
-              )}
-            </div>
-            <div className="metric-item">
-              <span className="metric-value">{inBodyMetrics.muscleMass}</span>
-              <span className="metric-unit">kg</span>
-              <span className="metric-label">Muscle</span>
-              {inBodyMetrics.changes && (
-                <span className="metric-change">
-                  {formatChange(inBodyMetrics.changes.muscleMass)}
-                </span>
-              )}
-            </div>
-            <div className="metric-item">
-              <span className="metric-value">{inBodyMetrics.skeletalMuscle}</span>
-              <span className="metric-unit">kg</span>
-              <span className="metric-label">SMM</span>
-              {inBodyMetrics.changes && (
-                <span className="metric-change">
-                  {formatChange(inBodyMetrics.changes.skeletalMuscle)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Enhanced Metrics */}
-          {inBodyMetrics.bmr && (
-            <div className="bmr-highlight">
-              <span className="bmr-label">BMR</span>
-              <span className="bmr-value">{inBodyMetrics.bmr} kcal/day</span>
-              <span className="bmr-subtitle">Resting metabolism</span>
-            </div>
-          )}
-
-          {(inBodyMetrics.fatMass || inBodyMetrics.visceralFatGrade) && (
-            <div className="enhanced-metrics-row">
-              {inBodyMetrics.fatMass && (
-                <div className="mini-metric">
-                  <span className="mini-label">Fat Mass</span>
-                  <span className="mini-value">{inBodyMetrics.fatMass} kg</span>
-                </div>
-              )}
-              {inBodyMetrics.visceralFatGrade && (
-                <div className={`mini-metric ${
-                  inBodyMetrics.visceralFatGrade < 10 ? 'status-success' :
-                  inBodyMetrics.visceralFatGrade < 15 ? 'status-warning' :
-                  'status-danger'
-                }`}>
-                  <span className="mini-label">Visceral Fat</span>
-                  <span className="mini-value">Grade {inBodyMetrics.visceralFatGrade}</span>
-                  <span className="mini-status">
-                    {inBodyMetrics.visceralFatGrade < 10 && 'Healthy'}
-                    {inBodyMetrics.visceralFatGrade >= 10 && inBodyMetrics.visceralFatGrade < 15 && 'Elevated'}
-                    {inBodyMetrics.visceralFatGrade >= 15 && 'High Risk'}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Additional details - collapsible */}
-          {(inBodyMetrics.waterWeight || inBodyMetrics.bodyAge || inBodyMetrics.trunkFatMass) && (
-            <details className="more-metrics-details">
-              <summary>More Details</summary>
-              <div className="more-metrics-grid">
-                {inBodyMetrics.waterWeight && (
-                  <div className="detail-item">
-                    <span className="detail-label">Water</span>
-                    <span className="detail-value">{inBodyMetrics.waterWeight} kg</span>
-                  </div>
-                )}
-                {inBodyMetrics.trunkFatMass && (
-                  <div className="detail-item">
-                    <span className="detail-label">Trunk Fat</span>
-                    <span className="detail-value">{inBodyMetrics.trunkFatMass} kg</span>
-                  </div>
-                )}
-                {inBodyMetrics.bodyAge && (
-                  <div className="detail-item">
-                    <span className="detail-label">Body Age</span>
-                    <span className="detail-value">{inBodyMetrics.bodyAge} yrs</span>
-                  </div>
-                )}
-                {inBodyMetrics.proteinMass && (
-                  <div className="detail-item">
-                    <span className="detail-label">Protein</span>
-                    <span className="detail-value">{inBodyMetrics.proteinMass} kg</span>
-                  </div>
-                )}
-                {inBodyMetrics.boneMass && (
-                  <div className="detail-item">
-                    <span className="detail-label">Bone</span>
-                    <span className="detail-value">{inBodyMetrics.boneMass} kg</span>
-                  </div>
-                )}
-              </div>
-            </details>
-          )}
-        </div>
-      )}
-
-      {/* Goal Progress Card */}
-      <div className="card goal-progress-card">
-        <div className="card-header">
-          <Target size={20} />
-          <h3>Goal Progress</h3>
-        </div>
-        <div className="goal-mini-stats">
-          <span>{goalProgress.currentWeight} kg</span>
-          <span className="goal-arrow">→</span>
-          <span className="goal-target">{goalProgress.goalWeight} kg</span>
-        </div>
-        <div className="goal-mini-bar">
-          <div
-            className="goal-mini-fill"
-            style={{ width: `${goalProgress.progressPercent}%` }}
-          />
-        </div>
-        <div className="goal-mini-labels">
-          <span className="lost">{goalProgress.weightLost} kg lost</span>
-          <span className="remaining">{goalProgress.weightRemaining} kg to go</span>
-        </div>
-      </div>
-
-      <div className="dashboard-grid">
-        {/* Main Progress */}
-        <div className="card main-progress">
-          <div className="progress-header">
-            <h2>Daily Progress</h2>
-            <span className="target-badge">
-              {totals.hasTDEE ? `TDEE: ${totals.tdee}` : `Target: ${targetRange}`} cal
-            </span>
-          </div>
-          <div className="progress-content">
-            <CircularProgress
-              value={totals.calories}
-              max={totals.hasTDEE ? totals.tdee : totals.targetCalories}
-              size={180}
-              strokeWidth={14}
-              label="calories"
-              sublabel={`of ${totals.hasTDEE ? totals.tdee : totals.targetCalories}`}
+      {/* HERO: Calories Remaining */}
+      <div className={`hero-calories-card ${isOverTarget ? 'over-target' : ''}`}>
+        <div className="hero-ring">
+          <svg viewBox="0 0 100 100" className="progress-ring">
+            <circle
+              className="progress-ring-bg"
+              cx="50"
+              cy="50"
+              r="42"
+              fill="none"
+              strokeWidth="8"
             />
-          </div>
-          <div className="calories-remaining">
-            {totals.caloriesRemaining > 0 ? (
-              <>
-                <span className="remaining-value positive">{Math.round(totals.caloriesRemaining)}</span>
-                <span className="remaining-label">calories remaining</span>
-              </>
-            ) : (
-              <>
-                <span className="remaining-value negative">{Math.abs(Math.round(totals.caloriesRemaining))}</span>
-                <span className="remaining-label">calories over</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Macros Card */}
-        <div className="card macros-card">
-          <h3>Macros</h3>
-          <div className="macro-bars">
-            <div className="macro-row">
-              <div className="macro-label">
-                <span className="macro-name">Protein</span>
-                <span className="macro-value">{totals.protein}g</span>
-              </div>
-              <div className="macro-bar">
-                <div
-                  className="macro-bar-fill protein"
-                  style={{ width: `${Math.min(100, (totals.protein / 150) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className="macro-row">
-              <div className="macro-label">
-                <span className="macro-name">Carbs</span>
-                <span className="macro-value">{totals.carbs}g</span>
-              </div>
-              <div className="macro-bar">
-                <div
-                  className="macro-bar-fill carbs"
-                  style={{ width: `${Math.min(100, (totals.carbs / 200) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className="macro-row">
-              <div className="macro-label">
-                <span className="macro-name">Fat</span>
-                <span className="macro-value">{totals.fat}g</span>
-              </div>
-              <div className="macro-bar">
-                <div
-                  className="macro-bar-fill fat"
-                  style={{ width: `${Math.min(100, (totals.fat / 65) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className="macro-row">
-              <div className="macro-label">
-                <span className="macro-name">Fiber</span>
-                <span className="macro-value">{totals.fiber}g</span>
-              </div>
-              <div className="macro-bar">
-                <div
-                  className="macro-bar-fill fiber"
-                  style={{ width: `${Math.min(100, (totals.fiber / 28) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <div className="macro-row">
-              <div className="macro-label">
-                <span className="macro-name">Sugar</span>
-                <span className="macro-value">{totals.sugar}g</span>
-              </div>
-              <div className="macro-bar">
-                <div
-                  className={`macro-bar-fill sugar ${totals.sugar > 36 ? 'over-limit' : ''}`}
-                  style={{ width: `${Math.min(100, (totals.sugar / 36) * 100)}%` }}
-                />
-              </div>
-            </div>
+            <circle
+              className={`progress-ring-fill ${isOverTarget ? 'over' : ''}`}
+              cx="50"
+              cy="50"
+              r="42"
+              fill="none"
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${calorieProgress * 2.64} 264`}
+              transform="rotate(-90 50 50)"
+            />
+          </svg>
+          <div className="hero-content">
+            <span className={`hero-number ${isOverTarget ? 'over' : ''}`}>
+              {Math.abs(Math.round(totals.caloriesRemaining))}
+            </span>
+            <span className="hero-label">
+              {isOverTarget ? 'over' : 'remaining'}
+            </span>
           </div>
         </div>
-
-        {/* Activity Card - replaces Workout Card when health data is available */}
-        <div className="card workout-card">
-          <div className="card-header">
-            <Dumbbell size={20} />
-            <h3>{totals.hasTDEE ? 'Activity' : 'Workout'}</h3>
+        <div className="hero-details">
+          <div className="hero-eaten">
+            <span className="detail-value">{totals.calories}</span>
+            <span className="detail-label">eaten</span>
           </div>
-          {!totals.hasTDEE ? (
+          <div className="hero-divider">/</div>
+          <div className="hero-target">
+            <span className="detail-value">{targetCalories}</span>
+            <span className="detail-label">{totals.hasTDEE ? 'TDEE' : 'target'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Compact Macros Row */}
+      <div className="macros-compact">
+        <div className="macro-pill protein">
+          <span className="macro-pill-value">{totals.protein}g</span>
+          <span className="macro-pill-label">protein</span>
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.protein / 150) * 100)}%` }} />
+        </div>
+        <div className="macro-pill carbs">
+          <span className="macro-pill-value">{totals.carbs}g</span>
+          <span className="macro-pill-label">carbs</span>
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.carbs / 200) * 100)}%` }} />
+        </div>
+        <div className="macro-pill fat">
+          <span className="macro-pill-value">{totals.fat}g</span>
+          <span className="macro-pill-label">fat</span>
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.fat / 65) * 100)}%` }} />
+        </div>
+        <div className="macro-pill fiber">
+          <span className="macro-pill-value">{totals.fiber}g</span>
+          <span className="macro-pill-label">fiber</span>
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.fiber / 28) * 100)}%` }} />
+        </div>
+        <div className={`macro-pill sugar ${totals.sugar > 36 ? 'over-limit' : ''}`}>
+          <span className="macro-pill-value">{totals.sugar}g</span>
+          <span className="macro-pill-label">sugar</span>
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.sugar / 36) * 100)}%` }} />
+        </div>
+      </div>
+
+      {/* Quick Stats Grid */}
+      <div className="quick-stats-grid">
+        {/* Energy/Deficit Card */}
+        <div className="stat-card energy-card">
+          <div className="stat-card-header">
+            <TrendingDown size={16} />
+            <span>{totals.hasTDEE ? 'Deficit' : 'Net'}</span>
+          </div>
+          <div className={`stat-card-value ${totals.deficit >= 0 ? 'positive' : 'negative'}`}>
+            {totals.deficit >= 0 ? '+' : ''}{Math.round(totals.deficit)}
+          </div>
+          <div className="stat-card-label">cal {totals.deficit >= 0 ? 'deficit' : 'surplus'}</div>
+        </div>
+
+        {/* Activity Card */}
+        <div className="stat-card activity-card" onClick={() => setShowHealthScanner(true)}>
+          <div className="stat-card-header">
+            {totals.hasTDEE ? <Zap size={16} /> : <Dumbbell size={16} />}
+            <span>{totals.hasTDEE ? 'Active' : 'Workout'}</span>
+          </div>
+          {totals.hasTDEE ? (
             <>
-              <div className="workout-input-group">
-                <input
-                  type="number"
-                  value={workoutInput}
-                  onChange={handleWorkoutChange}
-                  placeholder="0"
-                  min="0"
-                />
-                <span>calories burned</span>
-              </div>
-              <button
-                className="import-health-btn"
-                onClick={() => setShowHealthScanner(true)}
-              >
-                <Smartphone size={16} />
-                Import from Health
-              </button>
+              <div className="stat-card-value">{totals.activeEnergy}</div>
+              <div className="stat-card-label">cal burned</div>
             </>
           ) : (
             <>
-              <div className="activity-summary">
-                <div className="activity-value">{totals.activeEnergy.toLocaleString()}</div>
-                <div className="activity-label">active calories</div>
-              </div>
-              <button
-                className="import-health-btn"
-                onClick={() => setShowHealthScanner(true)}
-              >
-                <Smartphone size={16} />
-                Update from Health
-              </button>
+              <input
+                type="number"
+                className="workout-input-mini"
+                value={workoutInput}
+                onChange={handleWorkoutChange}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="0"
+                min="0"
+              />
+              <div className="stat-card-label">cal burned</div>
             </>
+          )}
+          {!totals.hasTDEE && (
+            <div className="stat-card-action">
+              <Smartphone size={12} />
+              <span>Import</span>
+            </div>
           )}
         </div>
 
-        {/* Net Deficit Card */}
-        <div className="card deficit-card">
-          <div className="card-header">
-            <TrendingDown size={20} />
-            <h3>{totals.hasTDEE ? 'True Deficit' : 'Net Deficit'}</h3>
+        {/* Goal Progress Card */}
+        <div className="stat-card goal-card">
+          <div className="stat-card-header">
+            <Target size={16} />
+            <span>Goal</span>
           </div>
-          <div className="deficit-value">
-            <span className={totals.deficit >= 0 ? 'positive' : 'negative'}>
-              {totals.deficit >= 0 ? '+' : ''}{Math.round(totals.deficit)}
-            </span>
-            <span className="deficit-label">cal {totals.deficit >= 0 ? 'deficit' : 'surplus'}</span>
+          <div className="stat-card-value">{goalProgress.progressPercent}%</div>
+          <div className="stat-card-label">
+            {goalProgress.currentWeight} → {goalProgress.goalWeight} kg
           </div>
-          <div className="deficit-breakdown">
-            {totals.hasTDEE ? (
-              <>
-                <div className="breakdown-row">
-                  <span>TDEE:</span>
-                  <span>{totals.tdee} cal</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Eaten:</span>
-                  <span>-{totals.calories} cal</span>
-                </div>
-                <div className="breakdown-row highlight">
-                  <span>= Deficit:</span>
-                  <span>{totals.deficit} cal</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="breakdown-row">
-                  <span>Target:</span>
-                  <span>{totals.targetCalories} cal</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Eaten:</span>
-                  <span>-{totals.calories} cal</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Burned:</span>
-                  <span>+{totals.workoutCalories} cal</span>
-                </div>
-              </>
-            )}
+          <div className="goal-mini-progress">
+            <div className="goal-mini-fill" style={{ width: `${goalProgress.progressPercent}%` }} />
           </div>
         </div>
       </div>
+
+      {/* TDEE Breakdown - Only show when available */}
+      {totals.hasTDEE && (
+        <div className="tdee-summary">
+          <div className="tdee-item">
+            <span className="tdee-icon">🔥</span>
+            <span className="tdee-value">{totals.tdee}</span>
+            <span className="tdee-label">TDEE</span>
+          </div>
+          <div className="tdee-breakdown">
+            <span>{totals.restingEnergy} resting + {totals.activeEnergy} active</span>
+          </div>
+          {(totals.steps > 0 || totals.exerciseMinutes > 0) && (
+            <div className="tdee-extras">
+              {totals.steps > 0 && (
+                <span className="tdee-extra">
+                  <Footprints size={14} />
+                  {totals.steps.toLocaleString()}
+                </span>
+              )}
+              {totals.exerciseMinutes > 0 && (
+                <span className="tdee-extra">
+                  <Clock size={14} />
+                  {totals.exerciseMinutes}min
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Scan Button */}
+      <button
+        className="floating-scan-btn"
+        onClick={() => setShowScanner(true)}
+        aria-label="Scan food"
+      >
+        <Camera size={24} />
+      </button>
 
       {/* Food Scanner Modal */}
       {showScanner && (
