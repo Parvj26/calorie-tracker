@@ -5,6 +5,7 @@ import type { Meal, MealSubmission } from '../../types';
 interface SubmitMealModalProps {
   meals: Meal[];
   submissions: MealSubmission[];
+  masterMealIds: string[]; // IDs of existing master meals
   checkDuplicateName: (name: string) => boolean;
   onSubmit: (meal: Meal) => Promise<boolean>;
   onClose: () => void;
@@ -13,6 +14,7 @@ interface SubmitMealModalProps {
 export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
   meals,
   submissions,
+  masterMealIds,
   checkDuplicateName,
   onSubmit,
   onClose,
@@ -23,15 +25,23 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
 
   const selectedMeal = meals.find((m) => m.id === selectedMealId);
 
-  // Get IDs of meals that already have a pending or approved submission
+  // Get IDs of meals that already have a pending submission OR approved submission with existing master meal
   const submittedMealIds = useMemo(() => {
     return new Set(
       submissions
-        .filter((s) => s.status === 'pending' || s.status === 'approved')
+        .filter((s) => {
+          // Always block pending submissions
+          if (s.status === 'pending') return true;
+          // For approved submissions, only block if the master meal still exists
+          if (s.status === 'approved' && s.masterMealId) {
+            return masterMealIds.includes(s.masterMealId);
+          }
+          return false;
+        })
         .map((s) => s.sourceMealId)
         .filter(Boolean)
     );
-  }, [submissions]);
+  }, [submissions, masterMealIds]);
 
   // Check if selected meal name is a duplicate
   const isDuplicateName = useMemo(() => {

@@ -156,6 +156,7 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
         <SubmitMealModal
           meals={meals}
           submissions={submissions}
+          masterMealIds={masterMeals.map((m) => m.id)}
           checkDuplicateName={checkDuplicateName}
           onSubmit={onSubmitMeal}
           onClose={() => setShowSubmitModal(false)}
