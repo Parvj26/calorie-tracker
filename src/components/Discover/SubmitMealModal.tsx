@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Upload, Check, AlertTriangle } from 'lucide-react';
+import { X, Upload, Check, AlertTriangle, Search } from 'lucide-react';
 import type { Meal, MealSubmission } from '../../types';
 
 interface SubmitMealModalProps {
@@ -22,6 +22,7 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const selectedMeal = meals.find((m) => m.id === selectedMealId);
 
@@ -75,9 +76,17 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
   };
 
   // Filter to only show custom meals (not deleted) that haven't been submitted
-  const customMeals = meals.filter(
-    (m) => m.isCustom && !m.deletedAt && !submittedMealIds.has(m.id)
-  );
+  const customMeals = useMemo(() => {
+    return meals.filter((m) => {
+      // Must be custom and not deleted and not already submitted
+      if (!m.isCustom || m.deletedAt || submittedMealIds.has(m.id)) return false;
+      // Filter by search query
+      if (searchQuery.trim()) {
+        return m.name.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+      return true;
+    });
+  }, [meals, submittedMealIds, searchQuery]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -103,10 +112,36 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
                 Once approved by an admin, it will be available for all users.
               </p>
 
+              <div className="submit-meal-search">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search your meals..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    className="clear-search"
+                    onClick={() => setSearchQuery('')}
+                    type="button"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
               {customMeals.length === 0 ? (
                 <div className="no-meals-message">
-                  <p>You don't have any custom meals to submit.</p>
-                  <p>Create a custom meal first in the Dashboard.</p>
+                  {searchQuery ? (
+                    <p>No meals found for "{searchQuery}"</p>
+                  ) : (
+                    <>
+                      <p>You don't have any custom meals to submit.</p>
+                      <p>Create a custom meal first in the Log tab.</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="meal-select-list">

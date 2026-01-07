@@ -2943,7 +2943,14 @@ body {
 .form-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
+}
+
+@media screen and (max-width: 500px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 .form-help {
@@ -5034,6 +5041,9 @@ body {
   border-radius: 12px;
   padding: 16px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .master-meal-card:hover {
@@ -5102,6 +5112,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .usage-count {
@@ -5245,7 +5257,51 @@ body {
 .submit-info {
   color: var(--gray-600);
   font-size: 0.9rem;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.submit-meal-search {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.submit-meal-search .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+}
+
+.submit-meal-search .search-input {
+  width: 100%;
+  padding: 10px 36px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--gray-50);
+}
+
+.submit-meal-search .search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+}
+
+.submit-meal-search .clear-search {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.submit-meal-search .clear-search:hover {
+  color: var(--gray-600);
 }
 
 .no-meals-message {
