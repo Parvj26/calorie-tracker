@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import type { InBodyScan, AIProvider } from '../types';
 import { extractInBodyData } from '../utils/openai';
 import { groqExtractInBodyData } from '../utils/groq';
@@ -47,7 +47,22 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Start manual entry with empty form
+  const handleStartManualEntry = () => {
+    setIsManualEntry(true);
+    setExtractedData({
+      weight: 0,
+      bodyFatPercent: 0,
+      muscleMass: 0,
+      skeletalMuscle: 0,
+      scanDate: format(new Date(), 'yyyy-MM-dd'),
+      imageData: '', // No image for manual entry
+    });
+    setError(null);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,11 +169,12 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
       bodyAge: extractedData.bodyAge,
       proteinMass: extractedData.proteinMass,
       boneMass: extractedData.boneMass,
-      imageData: extractedData.imageData,
+      imageData: extractedData.imageData || undefined, // Don't save empty string
     });
 
     setExtractedData(null);
     setShowAdvanced(false);
+    setIsManualEntry(false);
   };
 
   const getVisceralFatStatus = (grade: number) => {
@@ -176,34 +192,48 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
 
       {/* Upload Section */}
       <div className="card upload-card">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          accept="image/*"
-          style={{ display: 'none' }}
-        />
-        <button
-          className="upload-btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading || !apiKey}
-        >
-          {isUploading ? (
-            <>
-              <Loader2 size={24} className="spin" />
-              Analyzing scan...
-            </>
-          ) : (
-            <>
-              <Upload size={24} />
-              Upload InBody Screenshot
-            </>
-          )}
-        </button>
+        <div className="upload-options">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+          <button
+            className="upload-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || !apiKey}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 size={24} className="spin" />
+                Analyzing scan...
+              </>
+            ) : (
+              <>
+                <Upload size={24} />
+                Upload Screenshot
+              </>
+            )}
+          </button>
+
+          <span className="or-divider">or</span>
+
+          <button
+            className="manual-entry-btn"
+            onClick={handleStartManualEntry}
+            disabled={isUploading}
+          >
+            <Edit3 size={24} />
+            Enter Manually
+          </button>
+        </div>
+
         {!apiKey && (
           <p className="api-warning">
             <AlertCircle size={16} />
-            Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first
+            Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings for screenshot analysis
           </p>
         )}
         {error && (
@@ -217,8 +247,10 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
       {/* Extracted Data Preview */}
       {extractedData && (
         <div className="card preview-card">
-          <h3>Extracted Data</h3>
-          <p className="preview-note">Please verify and adjust if needed</p>
+          <h3>{isManualEntry ? 'Enter InBody Data' : 'Extracted Data'}</h3>
+          <p className="preview-note">
+            {isManualEntry ? 'Fill in your InBody scan values' : 'Please verify and adjust if needed'}
+          </p>
 
           {/* Basic Metrics */}
           <div className="preview-grid">
@@ -465,7 +497,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
               <Check size={16} />
               Save Scan
             </button>
-            <button onClick={() => { setExtractedData(null); setShowAdvanced(false); }} className="cancel-btn">
+            <button onClick={() => { setExtractedData(null); setShowAdvanced(false); setIsManualEntry(false); }} className="cancel-btn">
               <X size={16} />
               Cancel
             </button>
