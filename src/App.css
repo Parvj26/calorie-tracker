@@ -24,7 +24,7 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 
   /* Layout heights for fixed positioning - base heights without safe-area */
-  --header-content-height: 72px;
+  --header-content-height: 66px;
   --nav-height: 64px;
 }
 
