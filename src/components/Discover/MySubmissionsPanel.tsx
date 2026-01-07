@@ -70,7 +70,10 @@ export const MySubmissionsPanel: React.FC<MySubmissionsPanelProps> = ({
               <div className="submission-info">
                 <span className="submission-name">{submission.name}</span>
                 <span className="submission-macros">
-                  {submission.calories} cal • {submission.protein}g P
+                  {submission.calories} cal • {submission.protein}g P • {submission.carbs}g C • {submission.fat}g F
+                </span>
+                <span className="submission-macros secondary">
+                  {submission.fiber || 0}g fiber • {submission.sugar || 0}g sugar
                 </span>
                 <div className="submission-status">
                   {getStatusIcon(submission.status)}

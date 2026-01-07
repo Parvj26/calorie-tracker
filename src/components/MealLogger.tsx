@@ -384,6 +384,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
           const displayProtein = Math.round(meal.protein * servingMultiplier);
           const displayCarbs = Math.round(meal.carbs * servingMultiplier);
           const displayFat = Math.round(meal.fat * servingMultiplier);
+          const displayFiber = Math.round((meal.fiber || 0) * servingMultiplier);
+          const displaySugar = Math.round((meal.sugar || 0) * servingMultiplier);
 
           return (
             <div
@@ -424,6 +426,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                     <>{displayCalories} cal • {displayProtein}g P • {displayCarbs}g C • {displayFat}g F</>
                   ) : (
                     <>{meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F</>
+                  )}
+                </span>
+                <span className="meal-macros secondary">
+                  {isSelected && quantity !== 1 ? (
+                    <>{displayFiber}g fiber • {displaySugar}g sugar</>
+                  ) : (
+                    <>{meal.fiber || 0}g fiber • {meal.sugar || 0}g sugar</>
                   )}
                 </span>
               </div>
@@ -661,6 +670,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                       <span className="meal-name">{meal.name}</span>
                       <span className="meal-macros">
                         {meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F
+                      </span>
+                      <span className="meal-macros secondary">
+                        {meal.fiber || 0}g fiber • {meal.sugar || 0}g sugar
                       </span>
                       <span className={`expiry-badge ${daysLeft <= 7 ? 'expiring-soon' : ''}`}>
                         {daysLeft <= 0 ? 'Expiring today' : `${daysLeft} days left`}

@@ -83,6 +83,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <p className="submission-macros">
                       {submission.calories} cal • {submission.protein}g P • {submission.carbs}g C • {submission.fat}g F
                     </p>
+                    <p className="submission-macros secondary">
+                      {submission.fiber || 0}g fiber • {submission.sugar || 0}g sugar
+                    </p>
                     <p className="submission-author">
                       Submitted by: {submission.submittedByEmail || 'Unknown'}
                     </p>

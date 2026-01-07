@@ -17,6 +17,8 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
     protein: meal.protein,
     carbs: meal.carbs,
     fat: meal.fat,
+    fiber: meal.fiber,
+    sugar: meal.sugar,
   };
   const fallbackSections: RecipeSection[] = ingredients && ingredients.length > 0
     ? [{ title: 'Ingredients', ingredients }]
@@ -32,9 +34,9 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
     return '';
   };
 
-  const hasNutrition = (value?: { calories?: number | null; protein?: number | null; carbs?: number | null; fat?: number | null }) => {
+  const hasNutrition = (value?: { calories?: number | null; protein?: number | null; carbs?: number | null; fat?: number | null; fiber?: number | null; sugar?: number | null }) => {
     if (!value) return false;
-    return [value.calories, value.protein, value.carbs, value.fat].some((entry) => typeof entry === 'number');
+    return [value.calories, value.protein, value.carbs, value.fat, value.fiber, value.sugar].some((entry) => typeof entry === 'number');
   };
 
   const modalContent = (
@@ -65,6 +67,14 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
               <span className="label">Fat</span>
               <span className="value">{summaryNutrition.fat ?? meal.fat}g</span>
             </div>
+            <div className="nutrition-item fiber">
+              <span className="label">Fiber</span>
+              <span className="value">{summaryNutrition.fiber ?? meal.fiber ?? 0}g</span>
+            </div>
+            <div className="nutrition-item sugar">
+              <span className="label">Sugar</span>
+              <span className="value">{summaryNutrition.sugar ?? meal.sugar ?? 0}g</span>
+            </div>
           </div>
 
           <div className="recipe-info">
@@ -78,7 +88,7 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
                 <h3>{section.title}</h3>
                 {hasNutrition(section.nutrition) && (
                   <span className="section-nutrition">
-                    {(section.nutrition?.calories ?? 0)} cal · {(section.nutrition?.protein ?? 0)}g P · {(section.nutrition?.carbs ?? 0)}g C · {(section.nutrition?.fat ?? 0)}g F
+                    {(section.nutrition?.calories ?? 0)} cal · {(section.nutrition?.protein ?? 0)}g P · {(section.nutrition?.carbs ?? 0)}g C · {(section.nutrition?.fat ?? 0)}g F · {(section.nutrition?.fiber ?? 0)}g fiber · {(section.nutrition?.sugar ?? 0)}g sugar
                   </span>
                 )}
               </div>

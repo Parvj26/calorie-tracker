@@ -114,6 +114,9 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
                         <span className="meal-select-macros">
                           {meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F
                         </span>
+                        <span className="meal-select-macros secondary">
+                          {meal.fiber || 0}g fiber • {meal.sugar || 0}g sugar
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -126,7 +129,8 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
                   <div className="preview-details">
                     <p><strong>{selectedMeal.name}</strong></p>
                     <p>{selectedMeal.calories} calories</p>
-                    <p>Protein: {selectedMeal.protein}g | Carbs: {selectedMeal.carbs}g | Fat: {selectedMeal.fat}g</p>
+                    <p>{selectedMeal.protein}g P • {selectedMeal.carbs}g C • {selectedMeal.fat}g F</p>
+                    <p className="secondary-macros">{selectedMeal.fiber || 0}g fiber • {selectedMeal.sugar || 0}g sugar</p>
                     {selectedMeal.recipe && <p className="has-recipe">Includes recipe</p>}
                   </div>
                   {isDuplicateName && (

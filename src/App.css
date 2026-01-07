@@ -673,6 +673,12 @@ body {
   color: var(--gray-500);
 }
 
+.meal-macros.secondary {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  opacity: 0.85;
+}
+
 .delete-meal-btn {
   padding: 6px;
   background: none;
@@ -4680,6 +4686,13 @@ body {
   color: var(--gray-500);
 }
 
+.meal-select-macros.secondary {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  display: block;
+  margin-top: 2px;
+}
+
 .selected-meal-preview {
   margin-top: 16px;
   padding: 16px;
@@ -4851,6 +4864,12 @@ body {
 .submission-macros {
   font-size: 0.8rem;
   color: var(--gray-500);
+}
+
+.submission-macros.secondary {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-top: 2px;
 }
 
 .submission-status {
