@@ -125,7 +125,7 @@ body {
   padding: 0 8px;
   overflow-x: auto;
   position: sticky;
-  top: calc(52px + env(safe-area-inset-top, 0px));
+  top: calc(72px + env(safe-area-inset-top, 0px));
   z-index: 100;
 }
 
