@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw } from 'lucide-react';
-import type { UserSettings } from '../types';
+import { Save, RotateCcw, User } from 'lucide-react';
+import type { UserSettings, Gender } from '../types';
 import { defaultSettings } from '../data/defaultMeals';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 interface SettingsProps {
   settings: UserSettings;
@@ -12,12 +13,44 @@ export const Settings: React.FC<SettingsProps> = ({
   settings,
   onUpdateSettings,
 }) => {
+  const { profile, updateProfile } = useUserProfile();
   const [formData, setFormData] = useState(settings);
   const [saved, setSaved] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    gender: '' as Gender | '',
+  });
 
   useEffect(() => {
     setFormData(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        dateOfBirth: profile.dateOfBirth || '',
+        gender: profile.gender || '',
+      });
+    }
+  }, [profile]);
+
+  const handleSaveProfile = async () => {
+    const success = await updateProfile({
+      firstName: profileForm.firstName || undefined,
+      lastName: profileForm.lastName || undefined,
+      dateOfBirth: profileForm.dateOfBirth || undefined,
+      gender: profileForm.gender || undefined,
+    });
+    if (success) {
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    }
+  };
 
   const handleSave = () => {
     onUpdateSettings(formData);
@@ -38,6 +71,65 @@ export const Settings: React.FC<SettingsProps> = ({
     <div className="settings">
       <div className="settings-header">
         <h2>Settings</h2>
+      </div>
+
+      <div className="card settings-card profile-card">
+        <h3><User size={20} /> Profile</h3>
+        <div className="form-row">
+          <div className="form-group">
+            <label>First Name</label>
+            <input
+              type="text"
+              value={profileForm.firstName}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, firstName: e.target.value })
+              }
+              placeholder="Enter first name"
+            />
+          </div>
+          <div className="form-group">
+            <label>Last Name</label>
+            <input
+              type="text"
+              value={profileForm.lastName}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, lastName: e.target.value })
+              }
+              placeholder="Enter last name"
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Date of Birth</label>
+            <input
+              type="date"
+              value={profileForm.dateOfBirth}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, dateOfBirth: e.target.value })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label>Gender</label>
+            <select
+              value={profileForm.gender}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, gender: e.target.value as Gender | '' })
+              }
+            >
+              <option value="">Select...</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer-not-to-say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <button className="save-btn profile-save-btn" onClick={handleSaveProfile}>
+          <Save size={16} />
+          {profileSaved ? 'Saved!' : 'Save Profile'}
+        </button>
       </div>
 
       <div className="card settings-card">

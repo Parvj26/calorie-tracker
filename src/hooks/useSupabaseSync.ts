@@ -178,7 +178,7 @@ export function useSupabaseSync() {
   const saveDailyLog = useCallback(async (log: DailyLog) => {
     if (!user) return;
 
-    await supabase.from('daily_logs').upsert({
+    const { error } = await supabase.from('daily_logs').upsert({
       user_id: user.id,
       date: log.date,
       meal_ids: log.meals,
@@ -190,6 +190,10 @@ export function useSupabaseSync() {
     }, {
       onConflict: 'user_id,date',
     });
+
+    if (error) {
+      console.error('Error saving daily log:', error);
+    }
   }, [user]);
 
   // Save weigh-in to Supabase

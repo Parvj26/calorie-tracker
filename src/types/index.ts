@@ -145,12 +145,17 @@ export type TabType = 'dashboard' | 'discover' | 'progress' | 'inbody' | 'summar
 // ============================================
 
 export type UserRole = 'user' | 'admin';
+export type Gender = 'male' | 'female' | 'other' | 'prefer-not-to-say';
 
 export interface UserProfile {
   id: string;
   userId: string;
   email?: string;
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
   role: UserRole;
   createdAt?: string;
   updatedAt?: string;

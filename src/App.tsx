@@ -22,6 +22,7 @@ import { WeeklySummary } from './components/WeeklySummary';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { DiscoverTab } from './components/Discover/DiscoverTab';
+import { ProfileSetupModal } from './components/ProfileSetupModal';
 import type { TabType } from './types';
 import './App.css';
 
@@ -76,7 +77,7 @@ function AppContent() {
   } = useCalorieTracker();
 
   // User profile and admin status
-  const { isAdmin } = useUserProfile();
+  const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
 
   // Master meals for discover tab
   const {
@@ -164,6 +165,13 @@ function AppContent() {
           <span className="subtitle">Your personalized nutrition companion</span>
         </div>
         <div className="header-right">
+          {profile && (
+            <div className="user-initials" title={`${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.email}>
+              {profile.firstName && profile.lastName
+                ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase()
+                : profile.email?.[0]?.toUpperCase() || '?'}
+            </div>
+          )}
           <button className="logout-btn" onClick={signOut} title="Sign out">
             <LogOut size={18} />
           </button>
@@ -280,6 +288,15 @@ function AppContent() {
           />
         )}
       </main>
+
+      {needsProfileSetup && (
+        <ProfileSetupModal
+          onComplete={async (profileData) => {
+            const success = await updateProfile(profileData);
+            return success;
+          }}
+        />
+      )}
     </div>
   );
 }
