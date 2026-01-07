@@ -39,6 +39,7 @@ function AppContent() {
     settings,
     getLogForDate,
     toggleMealForDate,
+    updateMealQuantity,
     updateWorkoutCalories,
     updateHealthMetrics,
     calculateTotals,
@@ -62,8 +63,13 @@ function AppContent() {
     getLatestInBodyMetrics,
     addMasterMealToLog,
     removeMasterMealFromLog,
+    updateMasterMealQuantity,
     saveMasterMealToLibrary,
     removeMasterMealFromLibrary,
+    getMealId,
+    getMealQuantity,
+    getMasterMealId,
+    getMasterMealQuantity,
   } = useCalorieTracker();
 
   // User profile and admin status
@@ -187,6 +193,7 @@ function AppContent() {
             inBodyMetrics={latestInBodyMetrics}
             goalProgress={goalProgress}
             onToggleMeal={toggleMealForDate}
+            onUpdateMealQuantity={updateMealQuantity}
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onUpdateHealthMetrics={updateHealthMetrics}
             onAddMeal={addMeal}
@@ -202,7 +209,12 @@ function AppContent() {
             displayMasterMeals={displayMasterMeals}
             savedMasterMealIds={settings.savedMasterMealIds || []}
             onToggleMasterMeal={handleToggleMasterMeal}
+            onUpdateMasterMealQuantity={updateMasterMealQuantity}
             onRemoveFromLibrary={removeMasterMealFromLibrary}
+            getMealId={getMealId}
+            getMealQuantity={getMealQuantity}
+            getMasterMealId={getMasterMealId}
+            getMasterMealQuantity={getMasterMealQuantity}
           />
         )}
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
-import type { Meal, DailyLog, MasterMeal } from '../types';
+import { Plus, Minus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
+import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry } from '../types';
 import { groqFormatRecipeText } from '../utils/groq';
 
 // Combined meal type for display (personal or community)
@@ -30,6 +30,12 @@ interface MealLoggerProps {
   savedMasterMealIds: string[];
   onToggleMeal: (mealId: string, date: string) => void;
   onToggleMasterMeal: (masterMealId: string, date: string) => void;
+  onUpdateMealQuantity: (mealId: string, date: string, quantity: number) => void;
+  onUpdateMasterMealQuantity: (masterMealId: string, date: string, quantity: number) => void;
+  getMealId: (entry: string | MealLogEntry) => string;
+  getMealQuantity: (entry: string | MealLogEntry) => number;
+  getMasterMealId: (entry: string | MasterMealLogEntry) => string;
+  getMasterMealQuantity: (entry: string | MasterMealLogEntry) => number;
   onRemoveFromLibrary: (masterMealId: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onUpdateMeal: (id: string, updates: Partial<Meal>) => void;
@@ -53,6 +59,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   savedMasterMealIds,
   onToggleMeal,
   onToggleMasterMeal,
+  onUpdateMealQuantity,
+  onUpdateMasterMealQuantity,
+  getMealId,
+  getMealQuantity,
+  getMasterMealId,
+  getMasterMealQuantity,
   onRemoveFromLibrary,
   onAddMeal,
   onUpdateMeal,
@@ -272,9 +284,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
         )}
 
         {sortedMeals.map((meal) => {
-          const isSelected = meal.isCommunity
-            ? log.masterMealIds?.includes(meal.id) || false
-            : log.meals.includes(meal.id);
+          // Find the meal entry in the log to get quantity
+          const mealEntry = meal.isCommunity
+            ? log.masterMealIds?.find((entry) => getMasterMealId(entry) === meal.id)
+            : log.meals.find((entry) => getMealId(entry) === meal.id);
+
+          const isSelected = !!mealEntry;
+          const quantity = mealEntry
+            ? (meal.isCommunity ? getMasterMealQuantity(mealEntry) : getMealQuantity(mealEntry))
+            : 1;
 
           const handleToggle = () => {
             if (meal.isCommunity) {
@@ -283,6 +301,21 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               onToggleMeal(meal.id, selectedDate);
             }
           };
+
+          const handleQuantityChange = (delta: number) => {
+            const newQuantity = Math.max(0.5, Math.min(10, quantity + delta));
+            if (meal.isCommunity) {
+              onUpdateMasterMealQuantity(meal.id, selectedDate, newQuantity);
+            } else {
+              onUpdateMealQuantity(meal.id, selectedDate, newQuantity);
+            }
+          };
+
+          // Calculate displayed macros based on quantity
+          const displayCalories = Math.round(meal.calories * quantity);
+          const displayProtein = Math.round(meal.protein * quantity);
+          const displayCarbs = Math.round(meal.carbs * quantity);
+          const displayFat = Math.round(meal.fat * quantity);
 
           return (
             <div
@@ -319,9 +352,33 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                   )}
                 </span>
                 <span className="meal-macros">
-                  {meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F
+                  {isSelected && quantity !== 1 ? (
+                    <>{displayCalories} cal • {displayProtein}g P • {displayCarbs}g C • {displayFat}g F</>
+                  ) : (
+                    <>{meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F</>
+                  )}
                 </span>
               </div>
+              {/* Quantity controls - show when selected */}
+              {isSelected && (
+                <div className="quantity-controls" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="quantity-btn"
+                    onClick={() => handleQuantityChange(-0.5)}
+                    title="Decrease quantity"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="quantity-value">{quantity}</span>
+                  <button
+                    className="quantity-btn"
+                    onClick={() => handleQuantityChange(0.5)}
+                    title="Increase quantity"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              )}
               <div className="meal-actions">
                 {!meal.isCommunity ? (
                   <>

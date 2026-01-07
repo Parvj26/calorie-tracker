@@ -4,8 +4,25 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, parseISO } 
 import { useLocalStorage } from './useLocalStorage';
 import { useSupabaseSync } from './useSupabaseSync';
 import { useAuth } from '../contexts/AuthContext';
-import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics } from '../types';
+import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
+
+// Helper functions for meal entries with quantity
+const getMealId = (entry: string | MealLogEntry): string => {
+  return typeof entry === 'string' ? entry : entry.mealId;
+};
+
+const getMealQuantity = (entry: string | MealLogEntry): number => {
+  return typeof entry === 'string' ? 1 : entry.quantity;
+};
+
+const getMasterMealId = (entry: string | MasterMealLogEntry): string => {
+  return typeof entry === 'string' ? entry : entry.mealId;
+};
+
+const getMasterMealQuantity = (entry: string | MasterMealLogEntry): number => {
+  return typeof entry === 'string' ? 1 : entry.quantity;
+};
 
 export function useCalorieTracker() {
   const { user } = useAuth();
@@ -91,7 +108,7 @@ export function useCalorieTracker() {
     return existingLog || { date, meals: [], workoutCalories: 0 };
   }, [dailyLogs]);
 
-  // Toggle meal for today
+  // Toggle meal for today (add with quantity 1 or remove)
   const toggleMealForDate = useCallback((mealId: string, date: string) => {
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
@@ -99,10 +116,10 @@ export function useCalorieTracker() {
 
       if (existingLogIndex >= 0) {
         const existingLog = prev[existingLogIndex];
-        const mealIndex = existingLog.meals.indexOf(mealId);
+        const mealIndex = existingLog.meals.findIndex((entry) => getMealId(entry) === mealId);
         const updatedMeals = mealIndex >= 0
-          ? existingLog.meals.filter((id) => id !== mealId)
-          : [...existingLog.meals, mealId];
+          ? existingLog.meals.filter((entry) => getMealId(entry) !== mealId)
+          : [...existingLog.meals, { mealId, quantity: 1 } as MealLogEntry];
 
         const updatedLogs = [...prev];
         updatedLog = { ...existingLog, meals: updatedMeals };
@@ -113,13 +130,36 @@ export function useCalorieTracker() {
 
         return updatedLogs;
       } else {
-        updatedLog = { date, meals: [mealId], workoutCalories: 0 };
+        updatedLog = { date, meals: [{ mealId, quantity: 1 }], workoutCalories: 0 };
 
         // Sync to Supabase
         if (user) saveDailyLog(updatedLog);
 
         return [...prev, updatedLog];
       }
+    });
+  }, [setDailyLogs, user, saveDailyLog]);
+
+  // Update meal quantity for a date
+  const updateMealQuantity = useCallback((mealId: string, date: string, quantity: number) => {
+    setDailyLogs((prev) => {
+      const existingLogIndex = prev.findIndex((log) => log.date === date);
+      if (existingLogIndex < 0) return prev;
+
+      const existingLog = prev[existingLogIndex];
+      const updatedMeals = existingLog.meals.map((entry) => {
+        if (getMealId(entry) === mealId) {
+          return { mealId, quantity } as MealLogEntry;
+        }
+        return entry;
+      });
+
+      const updatedLogs = [...prev];
+      const updatedLog = { ...existingLog, meals: updatedMeals };
+      updatedLogs[existingLogIndex] = updatedLog;
+
+      if (user) saveDailyLog(updatedLog);
+      return updatedLogs;
     });
   }, [setDailyLogs, user, saveDailyLog]);
 
@@ -194,7 +234,7 @@ export function useCalorieTracker() {
     setMeals((prev) => [...prev, newMeal]);
     if (user) saveMeal(newMeal);
 
-    // Also add to the daily log
+    // Also add to the daily log with quantity 1
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
       let updatedLog: DailyLog;
@@ -204,13 +244,13 @@ export function useCalorieTracker() {
         const updatedLogs = [...prev];
         updatedLog = {
           ...existingLog,
-          meals: [...existingLog.meals, newMeal.id],
+          meals: [...existingLog.meals, { mealId: newMeal.id, quantity: 1 }],
         };
         updatedLogs[existingLogIndex] = updatedLog;
         if (user) saveDailyLog(updatedLog);
         return updatedLogs;
       } else {
-        updatedLog = { date, meals: [newMeal.id], workoutCalories: 0 };
+        updatedLog = { date, meals: [{ mealId: newMeal.id, quantity: 1 }], workoutCalories: 0 };
         if (user) saveDailyLog(updatedLog);
         return [...prev, updatedLog];
       }
@@ -250,7 +290,7 @@ export function useCalorieTracker() {
       prev.map((log) => {
         const updatedLog = {
           ...log,
-          meals: log.meals.filter((id) => id !== mealId),
+          meals: log.meals.filter((entry) => getMealId(entry) !== mealId),
         };
         if (user) saveDailyLog(updatedLog);
         return updatedLog;
@@ -306,12 +346,15 @@ export function useCalorieTracker() {
       if (existingLogIndex >= 0) {
         const existingLog = prev[existingLogIndex];
         // Check if already added
-        if (existingLog.masterMealIds?.includes(masterMealId)) {
+        const alreadyExists = existingLog.masterMealIds?.some(
+          (entry) => getMasterMealId(entry) === masterMealId
+        );
+        if (alreadyExists) {
           return prev;
         }
         updatedLog = {
           ...existingLog,
-          masterMealIds: [...(existingLog.masterMealIds || []), masterMealId],
+          masterMealIds: [...(existingLog.masterMealIds || []), { mealId: masterMealId, quantity: 1 }],
         };
         const updatedLogs = [...prev];
         updatedLogs[existingLogIndex] = updatedLog;
@@ -321,7 +364,7 @@ export function useCalorieTracker() {
         updatedLog = {
           date,
           meals: [],
-          masterMealIds: [masterMealId],
+          masterMealIds: [{ mealId: masterMealId, quantity: 1 }],
           workoutCalories: 0,
         };
         if (user) saveDailyLog(updatedLog);
@@ -339,10 +382,35 @@ export function useCalorieTracker() {
       const existingLog = prev[existingLogIndex];
       const updatedLog = {
         ...existingLog,
-        masterMealIds: (existingLog.masterMealIds || []).filter((id) => id !== masterMealId),
+        masterMealIds: (existingLog.masterMealIds || []).filter(
+          (entry) => getMasterMealId(entry) !== masterMealId
+        ),
       };
       const updatedLogs = [...prev];
       updatedLogs[existingLogIndex] = updatedLog;
+      if (user) saveDailyLog(updatedLog);
+      return updatedLogs;
+    });
+  }, [setDailyLogs, user, saveDailyLog]);
+
+  // Update master meal quantity for a date
+  const updateMasterMealQuantity = useCallback((masterMealId: string, date: string, quantity: number) => {
+    setDailyLogs((prev) => {
+      const existingLogIndex = prev.findIndex((log) => log.date === date);
+      if (existingLogIndex < 0) return prev;
+
+      const existingLog = prev[existingLogIndex];
+      const updatedMasterMeals = (existingLog.masterMealIds || []).map((entry) => {
+        if (getMasterMealId(entry) === masterMealId) {
+          return { mealId: masterMealId, quantity } as MasterMealLogEntry;
+        }
+        return entry;
+      });
+
+      const updatedLogs = [...prev];
+      const updatedLog = { ...existingLog, masterMealIds: updatedMasterMeals };
+      updatedLogs[existingLogIndex] = updatedLog;
+
       if (user) saveDailyLog(updatedLog);
       return updatedLogs;
     });
@@ -482,14 +550,22 @@ export function useCalorieTracker() {
 
   // Calculate totals for a log
   const calculateTotals = useCallback((log: DailyLog) => {
-    const logMeals = log.meals.map((id) => meals.find((m) => m.id === id)).filter(Boolean) as Meal[];
+    // Map meal entries to meals with quantities
+    const logMealsWithQty = log.meals
+      .map((entry) => {
+        const mealId = getMealId(entry);
+        const quantity = getMealQuantity(entry);
+        const meal = meals.find((m) => m.id === mealId);
+        return meal ? { meal, quantity } : null;
+      })
+      .filter(Boolean) as { meal: Meal; quantity: number }[];
 
-    const totals = logMeals.reduce(
-      (acc, meal) => ({
-        calories: acc.calories + meal.calories,
-        protein: acc.protein + meal.protein,
-        carbs: acc.carbs + meal.carbs,
-        fat: acc.fat + meal.fat,
+    const totals = logMealsWithQty.reduce(
+      (acc, { meal, quantity }) => ({
+        calories: acc.calories + Math.round(meal.calories * quantity),
+        protein: acc.protein + Math.round(meal.protein * quantity),
+        carbs: acc.carbs + Math.round(meal.carbs * quantity),
+        fat: acc.fat + Math.round(meal.fat * quantity),
       }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
@@ -766,9 +842,16 @@ export function useCalorieTracker() {
     getTodayLog,
     getLogForDate,
     toggleMealForDate,
+    updateMealQuantity,
     updateWorkoutCalories,
     updateHealthMetrics,
     calculateTotals,
+
+    // Meal entry helpers (for UI to get meal ID/quantity from entries)
+    getMealId,
+    getMealQuantity,
+    getMasterMealId,
+    getMasterMealQuantity,
 
     // Meal operations
     addMeal,
@@ -784,6 +867,7 @@ export function useCalorieTracker() {
     // Master meal operations
     addMasterMealToLog,
     removeMasterMealFromLog,
+    updateMasterMealQuantity,
     saveMasterMealToLibrary,
     removeMasterMealFromLibrary,
 

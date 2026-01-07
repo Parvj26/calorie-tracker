@@ -6,7 +6,7 @@ import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
 import RecipeModal from './RecipeModal';
-import type { DailyLog, Meal, UserSettings, HealthMetrics, MasterMeal } from '../types';
+import type { DailyLog, Meal, UserSettings, HealthMetrics, MasterMeal, MealLogEntry, MasterMealLogEntry } from '../types';
 
 interface InBodyMetrics {
   weight: number;
@@ -69,6 +69,7 @@ interface DashboardProps {
   inBodyMetrics: InBodyMetrics | null;
   goalProgress: GoalProgress;
   onToggleMeal: (mealId: string, date: string) => void;
+  onUpdateMealQuantity: (mealId: string, date: string, quantity: number) => void;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
@@ -85,7 +86,13 @@ interface DashboardProps {
   displayMasterMeals: MasterMeal[];
   savedMasterMealIds: string[];
   onToggleMasterMeal: (masterMealId: string, date: string) => void;
+  onUpdateMasterMealQuantity: (masterMealId: string, date: string, quantity: number) => void;
   onRemoveFromLibrary: (masterMealId: string) => void;
+  // Meal entry helpers
+  getMealId: (entry: string | MealLogEntry) => string;
+  getMealQuantity: (entry: string | MealLogEntry) => number;
+  getMasterMealId: (entry: string | MasterMealLogEntry) => string;
+  getMasterMealQuantity: (entry: string | MasterMealLogEntry) => number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -99,6 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   inBodyMetrics,
   goalProgress,
   onToggleMeal,
+  onUpdateMealQuantity,
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
   onAddMeal,
@@ -114,7 +122,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   displayMasterMeals,
   savedMasterMealIds,
   onToggleMasterMeal,
+  onUpdateMasterMealQuantity,
   onRemoveFromLibrary,
+  getMealId,
+  getMealQuantity,
+  getMasterMealId,
+  getMasterMealQuantity,
 }) => {
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
@@ -564,6 +577,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           savedMasterMealIds={savedMasterMealIds}
           onToggleMeal={onToggleMeal}
           onToggleMasterMeal={onToggleMasterMeal}
+          onUpdateMealQuantity={onUpdateMealQuantity}
+          onUpdateMasterMealQuantity={onUpdateMasterMealQuantity}
+          getMealId={getMealId}
+          getMealQuantity={getMealQuantity}
+          getMasterMealId={getMasterMealId}
+          getMasterMealQuantity={getMasterMealQuantity}
           onRemoveFromLibrary={onRemoveFromLibrary}
           onAddMeal={onAddMeal}
           onUpdateMeal={onUpdateMeal}
