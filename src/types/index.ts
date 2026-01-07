@@ -4,6 +4,7 @@ export interface Macros {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar: number;
 }
 
 export interface RecipeNutrition {
@@ -13,6 +14,7 @@ export interface RecipeNutrition {
   fat?: number | null;
   fiber?: number | null;
   sugar?: number | null;
+  addedSugar?: number | null;
 }
 
 export interface RecipeIngredient {
@@ -50,6 +52,7 @@ export interface Meal {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar?: number;  // Added sugar only (not from natural sources like fruit/dairy)
   isCustom?: boolean;
   favorite?: boolean;
   recipe?: Recipe;
@@ -178,6 +181,7 @@ export interface MasterMeal {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar?: number;  // Added sugar only (not from natural sources)
   recipe?: Recipe;
   status: MasterMealStatus;
   submittedBy?: string;
@@ -203,6 +207,7 @@ export interface MealSubmission {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar?: number;  // Added sugar only (not from natural sources)
   recipe?: Recipe;
   submittedBy: string;
   submittedByEmail?: string;

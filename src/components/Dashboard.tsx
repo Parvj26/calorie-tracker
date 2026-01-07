@@ -36,6 +36,7 @@ interface DashboardProps {
     fat: number;
     fiber: number;
     sugar: number;
+    addedSugar: number;
     workoutCalories: number;
     netCalories: number;
     deficit: number;
@@ -333,10 +334,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <span className="macro-pill-label">fiber</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.fiber / 28) * 100)}%` }} />
         </div>
-        <div className={`macro-pill sugar clickable ${totals.sugar > 36 ? 'over-limit' : ''}`} onClick={() => setSelectedMacro('sugar')}>
-          <span className="macro-pill-value">{totals.sugar}g</span>
+        <div className={`macro-pill sugar clickable ${totals.addedSugar > 36 ? 'over-limit' : ''}`} onClick={() => setSelectedMacro('sugar')}>
+          <span className="macro-pill-value">
+            {totals.sugar}g
+            {totals.addedSugar > 0 && <span className="added-sugar-indicator"> ({totals.addedSugar}g added)</span>}
+          </span>
           <span className="macro-pill-label">sugar</span>
-          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.sugar / 36) * 100)}%` }} />
+          <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.addedSugar / 36) * 100)}%` }} />
         </div>
       </div>
 

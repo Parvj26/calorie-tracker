@@ -11,6 +11,7 @@ export interface GroqFoodAnalysis {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar: number;  // Added sugar only (not from natural sources like fruit/dairy)
   confidence: 'high' | 'medium' | 'low';
   portionSize: string;
 }
@@ -172,7 +173,8 @@ Return ONLY a JSON array with this format (no other text):
     "carbs": <number in grams>,
     "fat": <number in grams>,
     "fiber": <number in grams>,
-    "sugar": <number in grams>,
+    "sugar": <number in grams - TOTAL sugars>,
+    "addedSugar": <number in grams - ADDED sugars only>,
     "confidence": "high" | "medium" | "low",
     "portionSize": "estimated portion description"
   }
@@ -185,7 +187,11 @@ Important:
 - Return an array even for single items
 - confidence should reflect how certain you are about the identification
 - fiber: dietary fiber content (vegetables, whole grains have higher fiber)
-- sugar: total sugars including natural and added sugars`;
+- sugar: TOTAL sugars including both natural (from fruits, dairy, vegetables) AND added sugars
+- addedSugar: ONLY added/processed sugars (sweeteners, syrups, refined sugar, honey, etc.)
+  * Fresh fruits, plain dairy, vegetables = 0g added sugar (all sugar is natural)
+  * Sweetened drinks, candy, pastries, flavored yogurt = most or all of sugar is added
+  * If unsure, estimate conservatively (lower added sugar for whole foods)`;
 
   const content = await callGroqVision(imageBase64, prompt, apiKey);
 
@@ -211,12 +217,12 @@ export async function groqFormatRecipeText(
 {
   "servings": number | null,
   "totalTime": number | null,
-  "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null, "fiber": number | null, "sugar": number | null } | null,
+  "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null, "fiber": number | null, "sugar": number | null, "addedSugar": number | null } | null,
   "sections": [
     {
       "title": string,
       "ingredients": [ { "item": string, "portion": string } ],
-      "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null, "fiber": number | null, "sugar": number | null } | null,
+      "nutrition": { "calories": number | null, "protein": number | null, "carbs": number | null, "fat": number | null, "fiber": number | null, "sugar": number | null, "addedSugar": number | null } | null,
       "notes": [string]
     }
   ],
@@ -229,7 +235,8 @@ Guidelines:
 - Portion should keep units (e.g., "1 pack (100g)", "1/4 cup (35g)", "to taste").
 - Nutrition values should be numbers when present; otherwise null.
 - fiber: dietary fiber content in grams
-- sugar: total sugars in grams
+- sugar: TOTAL sugars in grams (including natural + added)
+- addedSugar: ONLY added/processed sugars (sweeteners, syrups, refined sugar). Natural sugars from fruits/dairy = 0g added sugar.
 - Return ONLY JSON, no markdown.
 
 User text:

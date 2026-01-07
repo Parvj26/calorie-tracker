@@ -14,6 +14,7 @@ interface DisplayMeal {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar?: number;
   recipe?: Meal['recipe'];
   isCustom?: boolean;
   favorite?: boolean;
@@ -139,6 +140,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       ...m,
       fiber: m.fiber || 0,
       sugar: m.sugar || 0,
+      addedSugar: m.addedSugar || 0,
       isCommunity: false,
       servingSize: m.servingSize,
       servingSizeUnit: m.servingSizeUnit,
@@ -153,6 +155,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       fat: m.fat,
       fiber: m.fiber || 0,
       sugar: m.sugar || 0,
+      addedSugar: m.addedSugar || 0,
       recipe: m.recipe,
       isCommunity: true,
       isInLibrary: savedMasterMealIds.includes(m.id),
@@ -386,6 +389,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
           const displayFat = Math.round(meal.fat * servingMultiplier);
           const displayFiber = Math.round((meal.fiber || 0) * servingMultiplier);
           const displaySugar = Math.round((meal.sugar || 0) * servingMultiplier);
+          const displayAddedSugar = Math.round((meal.addedSugar || 0) * servingMultiplier);
 
           return (
             <div
@@ -430,9 +434,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                 </span>
                 <span className="meal-macros secondary">
                   {isSelected && quantity !== 1 ? (
-                    <>{displayFiber}g fiber • {displaySugar}g sugar</>
+                    <>
+                      {displayFiber}g fiber • {displaySugar}g sugar
+                      {displayAddedSugar > 0 && <span className="added-sugar-indicator"> ({displayAddedSugar}g added)</span>}
+                    </>
                   ) : (
-                    <>{meal.fiber || 0}g fiber • {meal.sugar || 0}g sugar</>
+                    <>
+                      {meal.fiber || 0}g fiber • {meal.sugar || 0}g sugar
+                      {(meal.addedSugar || 0) > 0 && <span className="added-sugar-indicator"> ({meal.addedSugar}g added)</span>}
+                    </>
                   )}
                 </span>
               </div>

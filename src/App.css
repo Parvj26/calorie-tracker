@@ -1237,6 +1237,19 @@ body {
   margin-top: 2px;
 }
 
+.added-sugar-indicator {
+  font-size: 0.85em;
+  color: var(--gray-400);
+  opacity: 0.9;
+}
+
+/* Dashboard macro pill added sugar indicator */
+.macro-pill .added-sugar-indicator {
+  font-size: 0.7em;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
 .delete-meal-btn {
   padding: 6px;
   background: none;

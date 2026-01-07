@@ -13,6 +13,7 @@ interface DetectedFood {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar: number;
   confidence: 'high' | 'medium' | 'low';
   portionMultiplier: number;
 }
@@ -127,6 +128,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             fat: food.fat,
             fiber: food.fiber || 0,
             sugar: food.sugar || 0,
+            addedSugar: food.addedSugar || 0,
             confidence: food.confidence,
             portionMultiplier: 1,
           }))
@@ -152,7 +154,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                 content: [
                   {
                     type: 'text',
-                    text: 'Analyze this food image. Identify all foods visible, estimate portion sizes, and provide nutritional estimates. Return ONLY valid JSON (no markdown, no code blocks) with this structure: {"foods": [{"foodName": string, "portionSize": string, "portionUnit": string, "calories": number, "protein": number, "carbs": number, "fat": number, "fiber": number, "sugar": number, "confidence": "high"|"medium"|"low"}]}. If multiple foods, include all in the array. fiber = dietary fiber in grams, sugar = total sugars in grams.',
+                    text: 'Analyze this food image. Identify all foods visible, estimate portion sizes, and provide nutritional estimates. Return ONLY valid JSON (no markdown, no code blocks) with this structure: {"foods": [{"foodName": string, "portionSize": string, "portionUnit": string, "calories": number, "protein": number, "carbs": number, "fat": number, "fiber": number, "sugar": number, "addedSugar": number, "confidence": "high"|"medium"|"low"}]}. If multiple foods, include all in the array. fiber = dietary fiber in grams, sugar = TOTAL sugars in grams (natural + added), addedSugar = only added/processed sugars (0 for fresh fruits, dairy, vegetables).',
                   },
                   {
                     type: 'image_url',
@@ -193,6 +195,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             ...food,
             fiber: food.fiber || 0,
             sugar: food.sugar || 0,
+            addedSugar: food.addedSugar || 0,
             portionMultiplier: 1,
           }))
         );
@@ -220,6 +223,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     fat: Math.round(food.fat * food.portionMultiplier),
     fiber: Math.round(food.fiber * food.portionMultiplier),
     sugar: Math.round(food.sugar * food.portionMultiplier),
+    addedSugar: Math.round(food.addedSugar * food.portionMultiplier),
   });
 
   const buildGeneratedRecipe = (food: DetectedFood) => ({
@@ -247,6 +251,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       fat: adjusted.fat,
       fiber: adjusted.fiber,
       sugar: adjusted.sugar,
+      addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
     setDetectedFoods((prev) => prev.filter((f) => f !== food));
@@ -262,6 +267,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       fat: adjusted.fat,
       fiber: adjusted.fiber,
       sugar: adjusted.sugar,
+      addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
     setDetectedFoods((prev) => prev.filter((f) => f !== food));
@@ -278,6 +284,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         fat: adjusted.fat,
         fiber: adjusted.fiber,
         sugar: adjusted.sugar,
+        addedSugar: adjusted.addedSugar,
         recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
       });
     });
