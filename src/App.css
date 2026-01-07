@@ -23,8 +23,8 @@
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 
-  /* Layout heights for fixed positioning */
-  --header-height: 82px;
+  /* Layout heights for fixed positioning - base heights without safe-area */
+  --header-content-height: 72px;
   --nav-height: 64px;
 }
 
@@ -48,7 +48,7 @@ body {
   width: 100%;
   margin: 0 auto;
   padding-bottom: 80px;
-  scroll-padding-top: calc(var(--header-height) + var(--nav-height) + env(safe-area-inset-top, 0px));
+  scroll-padding-top: calc(var(--header-content-height) + var(--nav-height) + env(safe-area-inset-top, 0px));
 }
 
 @media (min-width: 1200px) {
@@ -132,7 +132,7 @@ body {
   padding: 0 8px;
   overflow-x: auto;
   position: fixed;
-  top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+  top: calc(var(--header-content-height) + env(safe-area-inset-top, 0px));
   left: 0;
   right: 0;
   z-index: 100;
@@ -167,7 +167,7 @@ body {
 /* Main Content */
 .app-main {
   padding: 16px;
-  padding-top: calc(var(--header-height) + var(--nav-height) + env(safe-area-inset-top, 0px) + 4px);
+  padding-top: calc(var(--header-content-height) + var(--nav-height) + env(safe-area-inset-top, 0px) + 8px);
 }
 
 /* Card Component */
