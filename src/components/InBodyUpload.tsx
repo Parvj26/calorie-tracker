@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { InBodyScan, AIProvider } from '../types';
 import { extractInBodyData } from '../utils/openai';
@@ -488,7 +488,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
             </div>
             {scans.map((scan) => (
               <div key={scan.id} className="table-row">
-                <span>{format(new Date(scan.date), 'MMM d, yyyy')}</span>
+                <span>{format(parseISO(scan.date), 'MMM d, yyyy')}</span>
                 <span>{scan.weight} kg</span>
                 <span>{scan.bodyFatPercent}%</span>
                 <span>{scan.muscleMass} kg</span>
