@@ -87,9 +87,14 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
               <div className="section-header">
                 <h3>{section.title}</h3>
                 {hasNutrition(section.nutrition) && (
-                  <span className="section-nutrition">
-                    {(section.nutrition?.calories ?? 0)} cal · {(section.nutrition?.protein ?? 0)}g P · {(section.nutrition?.carbs ?? 0)}g C · {(section.nutrition?.fat ?? 0)}g F · {(section.nutrition?.fiber ?? 0)}g fiber · {(section.nutrition?.sugar ?? 0)}g sugar
-                  </span>
+                  <div className="section-nutrition-container">
+                    <span className="section-nutrition">
+                      {(section.nutrition?.calories ?? 0)} cal · {(section.nutrition?.protein ?? 0)}g P · {(section.nutrition?.carbs ?? 0)}g C · {(section.nutrition?.fat ?? 0)}g F
+                    </span>
+                    <span className="section-nutrition secondary">
+                      {(section.nutrition?.fiber ?? 0)}g fiber · {(section.nutrition?.sugar ?? 0)}g sugar
+                    </span>
+                  </div>
                 )}
               </div>
               <ul className="ingredients-list">

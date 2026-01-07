@@ -202,6 +202,13 @@ function AppContent() {
             settings={settings}
             totals={totals}
             goalProgress={goalProgress}
+            meals={meals}
+            masterMeals={masterMeals}
+            getMealQuantity={getMealQuantity}
+            getMealUnit={getMealUnit}
+            getMasterMealQuantity={getMasterMealQuantity}
+            getMasterMealUnit={getMasterMealUnit}
+            getServingMultiplier={getServingMultiplier}
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onUpdateHealthMetrics={updateHealthMetrics}
             onDateChange={setSelectedDate}

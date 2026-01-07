@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { createPortal } from 'react-dom';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
-import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
+import type { DailyLog, Meal, MasterMeal, UserSettings, HealthMetrics, QuantityUnit } from '../types';
+
+type MacroType = 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar';
+
+interface MealContribution {
+  name: string;
+  value: number;
+  quantity: number;
+  unit: string;
+  isCommunity: boolean;
+}
 
 interface GoalProgress {
   startWeight: number;
@@ -39,6 +50,13 @@ interface DashboardProps {
     exerciseMinutes: number;
   };
   goalProgress: GoalProgress;
+  meals: Meal[];
+  masterMeals: MasterMeal[];
+  getMealQuantity: (mealId: string, date: string) => number;
+  getMealUnit: (mealId: string, date: string) => string;
+  getMasterMealQuantity: (mealId: string, date: string) => number;
+  getMasterMealUnit: (mealId: string, date: string) => string;
+  getServingMultiplier: (quantity: number, unit: QuantityUnit, servingSize?: number) => number;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
   onDateChange: (date: string) => void;
@@ -46,12 +64,37 @@ interface DashboardProps {
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
 }
 
+const macroLabels: Record<MacroType, string> = {
+  calories: 'Calories',
+  protein: 'Protein',
+  carbs: 'Carbs',
+  fat: 'Fat',
+  fiber: 'Fiber',
+  sugar: 'Sugar',
+};
+
+const macroUnits: Record<MacroType, string> = {
+  calories: 'cal',
+  protein: 'g',
+  carbs: 'g',
+  fat: 'g',
+  fiber: 'g',
+  sugar: 'g',
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({
   selectedDate,
   log,
   settings,
   totals,
   goalProgress,
+  meals,
+  masterMeals,
+  getMealQuantity,
+  getMealUnit,
+  getMasterMealQuantity,
+  getMasterMealUnit,
+  getServingMultiplier,
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
   onDateChange,
@@ -61,6 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
   const [showHealthScanner, setShowHealthScanner] = useState(false);
+  const [selectedMacro, setSelectedMacro] = useState<MacroType | null>(null);
 
   useEffect(() => {
     setWorkoutInput(totals.activeEnergy.toString());
@@ -83,6 +127,120 @@ export const Dashboard: React.FC<DashboardProps> = ({
     onDateChange(format(current, 'yyyy-MM-dd'));
   };
 
+  // Calculate meal contributions for a specific macro
+  const getMacroBreakdown = useMemo(() => {
+    return (macro: MacroType): MealContribution[] => {
+      const contributions: MealContribution[] = [];
+
+      // User meals - handle both string IDs and MealLogEntry objects
+      const loggedMealEntries = log.meals || [];
+      loggedMealEntries.forEach((entry) => {
+        const mealId = typeof entry === 'string' ? entry : entry.mealId;
+        const meal = meals.find((m) => m.id === mealId);
+        if (meal && !meal.deletedAt) {
+          const quantity = getMealQuantity(mealId, selectedDate);
+          const unit = getMealUnit(mealId, selectedDate) as QuantityUnit;
+          const multiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+          const value = Math.round((meal[macro] || 0) * multiplier);
+
+          if (value > 0) {
+            contributions.push({
+              name: meal.name,
+              value,
+              quantity,
+              unit,
+              isCommunity: false,
+            });
+          }
+        }
+      });
+
+      // Master meals (community) - handle both string IDs and MasterMealLogEntry objects
+      const loggedMasterMealEntries = log.masterMealIds || [];
+      loggedMasterMealEntries.forEach((entry) => {
+        const mealId = typeof entry === 'string' ? entry : entry.mealId;
+        const meal = masterMeals.find((m) => m.id === mealId);
+        if (meal) {
+          const quantity = getMasterMealQuantity(mealId, selectedDate);
+          const unit = getMasterMealUnit(mealId, selectedDate) as QuantityUnit;
+          const multiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+          const value = Math.round((meal[macro] || 0) * multiplier);
+
+          if (value > 0) {
+            contributions.push({
+              name: meal.name,
+              value,
+              quantity,
+              unit,
+              isCommunity: true,
+            });
+          }
+        }
+      });
+
+      // Sort by value descending
+      return contributions.sort((a, b) => b.value - a.value);
+    };
+  }, [log, meals, masterMeals, selectedDate, getMealQuantity, getMealUnit, getMasterMealQuantity, getMasterMealUnit, getServingMultiplier]);
+
+  const renderBreakdownModal = () => {
+    if (!selectedMacro) return null;
+
+    const breakdown = getMacroBreakdown(selectedMacro);
+    const total = totals[selectedMacro];
+    const unit = macroUnits[selectedMacro];
+
+    return createPortal(
+      <div className="modal-overlay" onClick={() => setSelectedMacro(null)}>
+        <div className="breakdown-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="breakdown-header">
+            <h3>{macroLabels[selectedMacro]} Breakdown</h3>
+            <button className="close-btn" onClick={() => setSelectedMacro(null)}>
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="breakdown-total">
+            <span className="breakdown-total-value">{total}{unit}</span>
+            <span className="breakdown-total-label">total {macroLabels[selectedMacro].toLowerCase()}</span>
+          </div>
+
+          {breakdown.length === 0 ? (
+            <div className="breakdown-empty">
+              <p>No meals logged yet today</p>
+            </div>
+          ) : (
+            <div className="breakdown-list">
+              {breakdown.map((item, index) => (
+                <div key={index} className="breakdown-item">
+                  <div className="breakdown-item-info">
+                    <span className="breakdown-item-name">
+                      {item.name}
+                      {item.isCommunity && <span className="community-badge">Community</span>}
+                    </span>
+                    <span className="breakdown-item-qty">
+                      {item.quantity !== 1 && `${item.quantity} ${item.unit}`}
+                    </span>
+                  </div>
+                  <div className="breakdown-item-value">
+                    {item.value}{unit}
+                  </div>
+                  <div className="breakdown-item-bar">
+                    <div
+                      className={`breakdown-item-fill ${selectedMacro}`}
+                      style={{ width: `${total > 0 ? (item.value / total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div className="dashboard dashboard-v2">
       {/* Date Selector */}
@@ -103,8 +261,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </div>
 
-      {/* HERO: Calories Remaining */}
-      <div className={`hero-calories-card ${isOverTarget ? 'over-target' : ''}`}>
+      {/* HERO: Calories Remaining - Clickable */}
+      <div
+        className={`hero-calories-card ${isOverTarget ? 'over-target' : ''} clickable`}
+        onClick={() => setSelectedMacro('calories')}
+      >
         <div className="hero-ring">
           <svg viewBox="0 0 100 100" className="progress-ring">
             <circle
@@ -147,31 +308,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <span className="detail-label">{totals.hasTDEE ? 'TDEE' : 'target'}</span>
           </div>
         </div>
+        <span className="tap-hint">Tap for breakdown</span>
       </div>
 
-      {/* Compact Macros Row */}
+      {/* Compact Macros Row - Clickable */}
       <div className="macros-compact">
-        <div className="macro-pill protein">
+        <div className="macro-pill protein clickable" onClick={() => setSelectedMacro('protein')}>
           <span className="macro-pill-value">{totals.protein}g</span>
           <span className="macro-pill-label">protein</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.protein / 150) * 100)}%` }} />
         </div>
-        <div className="macro-pill carbs">
+        <div className="macro-pill carbs clickable" onClick={() => setSelectedMacro('carbs')}>
           <span className="macro-pill-value">{totals.carbs}g</span>
           <span className="macro-pill-label">carbs</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.carbs / 200) * 100)}%` }} />
         </div>
-        <div className="macro-pill fat">
+        <div className="macro-pill fat clickable" onClick={() => setSelectedMacro('fat')}>
           <span className="macro-pill-value">{totals.fat}g</span>
           <span className="macro-pill-label">fat</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.fat / 65) * 100)}%` }} />
         </div>
-        <div className="macro-pill fiber">
+        <div className="macro-pill fiber clickable" onClick={() => setSelectedMacro('fiber')}>
           <span className="macro-pill-value">{totals.fiber}g</span>
           <span className="macro-pill-label">fiber</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.fiber / 28) * 100)}%` }} />
         </div>
-        <div className={`macro-pill sugar ${totals.sugar > 36 ? 'over-limit' : ''}`}>
+        <div className={`macro-pill sugar clickable ${totals.sugar > 36 ? 'over-limit' : ''}`} onClick={() => setSelectedMacro('sugar')}>
           <span className="macro-pill-value">{totals.sugar}g</span>
           <span className="macro-pill-label">sugar</span>
           <div className="macro-pill-bar" style={{ width: `${Math.min(100, (totals.sugar / 36) * 100)}%` }} />
@@ -279,6 +441,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       >
         <Camera size={24} />
       </button>
+
+      {/* Macro Breakdown Modal */}
+      {renderBreakdownModal()}
 
       {/* Food Scanner Modal */}
       {showScanner && (
