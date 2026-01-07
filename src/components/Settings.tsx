@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, RotateCcw, User, Target, BookOpen, Check } from 'lucide-react';
-import type { UserSettings, Gender, Meal } from '../types';
+import { Save, RotateCcw, User, Target } from 'lucide-react';
+import type { UserSettings, Gender } from '../types';
 import { defaultSettings } from '../data/defaultMeals';
-import { mealRecipes, getMealRecipeNames } from '../data/mealRecipes';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
 
@@ -10,22 +9,17 @@ interface SettingsProps {
   settings: UserSettings;
   onUpdateSettings: (settings: Partial<UserSettings>) => void;
   currentWeight?: number; // From weighIns or inBodyScans
-  meals?: Meal[];
-  onUpdateMeal?: (id: string, updates: Partial<Meal>) => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   settings,
   onUpdateSettings,
   currentWeight,
-  meals,
-  onUpdateMeal,
 }) => {
   const { profile, updateProfile } = useUserProfile();
   const [formData, setFormData] = useState(settings);
   const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
-  const [recipeImportStatus, setRecipeImportStatus] = useState<{ updated: number; total: number } | null>(null);
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
@@ -98,61 +92,6 @@ export const Settings: React.FC<SettingsProps> = ({
       aiProvider: settings.aiProvider,
     });
   };
-
-  // Import recipes for matching meals
-  const handleImportRecipes = () => {
-    if (!meals || !onUpdateMeal) return;
-
-    const recipeNames = getMealRecipeNames();
-    let updatedCount = 0;
-
-    meals.forEach((meal) => {
-      // Find matching recipe by name (case-insensitive)
-      const matchingRecipe = mealRecipes.find((recipe) => {
-        const mealNameLower = meal.name.toLowerCase().trim();
-        const recipeNameLower = recipe.name.toLowerCase().trim();
-        return (
-          mealNameLower === recipeNameLower ||
-          mealNameLower.includes(recipeNameLower) ||
-          recipeNameLower.includes(mealNameLower)
-        );
-      });
-
-      if (matchingRecipe) {
-        // Update meal with recipe data (nutrition + recipe details)
-        onUpdateMeal(meal.id, {
-          calories: matchingRecipe.calories,
-          protein: matchingRecipe.protein,
-          carbs: matchingRecipe.carbs,
-          fat: matchingRecipe.fat,
-          fiber: matchingRecipe.fiber,
-          sugar: matchingRecipe.sugar,
-          recipe: matchingRecipe.recipe,
-          servingSize: matchingRecipe.servingSize,
-        });
-        updatedCount++;
-      }
-    });
-
-    setRecipeImportStatus({ updated: updatedCount, total: recipeNames.length });
-    setTimeout(() => setRecipeImportStatus(null), 5000);
-  };
-
-  // Count how many meals can be updated
-  const matchingMealsCount = useMemo(() => {
-    if (!meals) return 0;
-    return meals.filter((meal) =>
-      mealRecipes.some((recipe) => {
-        const mealNameLower = meal.name.toLowerCase().trim();
-        const recipeNameLower = recipe.name.toLowerCase().trim();
-        return (
-          mealNameLower === recipeNameLower ||
-          mealNameLower.includes(recipeNameLower) ||
-          recipeNameLower.includes(mealNameLower)
-        );
-      })
-    ).length;
-  }, [meals]);
 
   return (
     <div className="settings">
@@ -439,41 +378,6 @@ export const Settings: React.FC<SettingsProps> = ({
       <div className="card data-card">
         <h3>Data Management</h3>
         <p className="form-help">All your data is synced to your account.</p>
-
-        {/* Recipe Import Section */}
-        {meals && onUpdateMeal && (
-          <div className="recipe-import-section">
-            <h4><BookOpen size={16} /> Import Detailed Recipes</h4>
-            <p className="form-help">
-              Update your meals with detailed recipes, ingredient portions, and accurate nutrition data.
-              Available recipes: {getMealRecipeNames().join(', ')}
-            </p>
-            {matchingMealsCount > 0 ? (
-              <p className="form-help" style={{ color: '#10b981' }}>
-                {matchingMealsCount} meal(s) in your library match available recipes.
-              </p>
-            ) : (
-              <p className="form-help" style={{ color: '#f59e0b' }}>
-                No matching meals found. Add meals with these names to import recipes.
-              </p>
-            )}
-            <button
-              className="import-recipe-btn"
-              onClick={handleImportRecipes}
-              disabled={matchingMealsCount === 0}
-            >
-              <BookOpen size={16} />
-              Import Recipes
-            </button>
-            {recipeImportStatus && (
-              <p className="form-help" style={{ color: '#10b981', marginTop: '0.5rem' }}>
-                <Check size={14} style={{ verticalAlign: 'middle' }} />
-                {' '}Updated {recipeImportStatus.updated} meal(s) with detailed recipes!
-              </p>
-            )}
-          </div>
-        )}
-
         <button
           className="export-btn"
           onClick={() => {
