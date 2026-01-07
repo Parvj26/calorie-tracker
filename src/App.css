@@ -1622,6 +1622,31 @@ body {
   border-color: var(--primary);
 }
 
+.preview-field .input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-field .input-with-unit input {
+  flex: 1;
+}
+
+.preview-field .input-with-unit .unit {
+  font-size: 0.9rem;
+  color: var(--gray-500);
+  min-width: 30px;
+}
+
+/* Health Manual Card */
+.health-manual-card {
+  border: 2px solid var(--primary);
+}
+
+.health-manual-card h3 {
+  margin-bottom: 4px;
+}
+
 .preview-actions {
   display: flex;
   gap: 12px;

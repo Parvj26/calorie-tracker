@@ -5,8 +5,6 @@ import { extractHealthData, type HealthDataExtracted } from '../utils/openai';
 import { groqExtractHealthData } from '../utils/groq';
 import type { AIProvider, HealthMetrics } from '../types';
 
-type EntryMode = 'upload' | 'manual';
-
 interface HealthScannerProps {
   aiProvider: AIProvider;
   openAiApiKey?: string;
@@ -27,12 +25,12 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
   onClose,
 }) => {
   const apiKey = aiProvider === 'groq' ? groqApiKey : openAiApiKey;
-  const [entryMode, setEntryMode] = useState<EntryMode>('upload');
   const [image, setImage] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<HealthDataExtracted | null>(null);
   const [imported, setImported] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manual entry form state
@@ -44,9 +42,21 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
     standHours: currentHealthMetrics?.standHours,
   });
 
+  const handleStartManualEntry = () => {
+    setShowManualForm(true);
+    setImage(null);
+    setExtractedData(null);
+    setError(null);
+  };
+
   const handleManualSave = () => {
     onUpdateHealthMetrics(manualForm, selectedDate);
     setImported(true);
+  };
+
+  const handleCancelManual = () => {
+    setShowManualForm(false);
+    setImported(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,180 +131,160 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
           </button>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="entry-mode-toggle">
-          <button
-            className={`mode-btn ${entryMode === 'upload' ? 'active' : ''}`}
-            onClick={() => setEntryMode('upload')}
-          >
-            <Upload size={18} />
-            Upload Screenshot
-          </button>
-          <button
-            className={`mode-btn ${entryMode === 'manual' ? 'active' : ''}`}
-            onClick={() => setEntryMode('manual')}
-          >
-            <Edit3 size={18} />
-            Manual Entry
-          </button>
-        </div>
-
         <div className="scanner-content">
-          {/* Manual Entry Mode */}
-          {entryMode === 'manual' && (
-            <div className="manual-entry-section">
-              {imported ? (
-                <div className="import-success">
-                  <Check size={48} className="success-icon" />
-                  <h3>Saved!</h3>
-                  <p>Health metrics updated for {format(new Date(selectedDate), 'MMM d, yyyy')}</p>
-                  <button className="done-btn" onClick={onClose}>Done</button>
+          {/* Upload Options - Side by side buttons like InBody */}
+          {!image && !showManualForm && (
+            <div className="upload-section">
+              <div className="upload-options">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  ref={fileInputRef}
+                  hidden
+                />
+                <button
+                  className="upload-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!apiKey || analyzing}
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader size={24} className="spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={24} />
+                      Upload Screenshot
+                    </>
+                  )}
+                </button>
+
+                <span className="or-divider">or</span>
+
+                <button
+                  className="manual-entry-btn"
+                  onClick={handleStartManualEntry}
+                  disabled={analyzing}
+                >
+                  <Edit3 size={24} />
+                  Enter Manually
+                </button>
+              </div>
+
+              {!apiKey && (
+                <p className="api-warning">
+                  <AlertCircle size={16} />
+                  Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings for screenshot analysis
+                </p>
+              )}
+              {error && (
+                <div className="error-message">
+                  <AlertCircle size={16} />
+                  {error}
                 </div>
-              ) : (
-                <>
-                  <div className="manual-form">
-                    <div className="form-row">
-                      <div className="form-field">
-                        <label>
-                          <Flame size={16} />
-                          Resting Energy (BMR)
-                        </label>
-                        <div className="input-with-unit">
-                          <input
-                            type="number"
-                            value={manualForm.restingEnergy || ''}
-                            onChange={(e) => setManualForm({
-                              ...manualForm,
-                              restingEnergy: parseInt(e.target.value) || 0,
-                            })}
-                            placeholder="e.g., 1600"
-                          />
-                          <span className="unit">cal</span>
-                        </div>
-                        <span className="field-hint">Calories burned at rest</span>
-                      </div>
-
-                      <div className="form-field">
-                        <label>
-                          <Activity size={16} />
-                          Active Energy
-                        </label>
-                        <div className="input-with-unit">
-                          <input
-                            type="number"
-                            value={manualForm.activeEnergy || ''}
-                            onChange={(e) => setManualForm({
-                              ...manualForm,
-                              activeEnergy: parseInt(e.target.value) || 0,
-                            })}
-                            placeholder="e.g., 500"
-                          />
-                          <span className="unit">cal</span>
-                        </div>
-                        <span className="field-hint">Move/exercise calories</span>
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-field">
-                        <label>
-                          <Footprints size={16} />
-                          Steps
-                        </label>
-                        <input
-                          type="number"
-                          value={manualForm.steps || ''}
-                          onChange={(e) => setManualForm({
-                            ...manualForm,
-                            steps: parseInt(e.target.value) || 0,
-                          })}
-                          placeholder="e.g., 8000"
-                        />
-                      </div>
-
-                      <div className="form-field">
-                        <label>
-                          <Clock size={16} />
-                          Exercise Minutes
-                        </label>
-                        <div className="input-with-unit">
-                          <input
-                            type="number"
-                            value={manualForm.exerciseMinutes || ''}
-                            onChange={(e) => setManualForm({
-                              ...manualForm,
-                              exerciseMinutes: parseInt(e.target.value) || 0,
-                            })}
-                            placeholder="e.g., 45"
-                          />
-                          <span className="unit">min</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* TDEE Preview */}
-                    {(manualForm.restingEnergy > 0 || manualForm.activeEnergy > 0) && (
-                      <div className="tdee-preview">
-                        <Zap size={20} />
-                        <div className="tdee-info">
-                          <span className="tdee-label">Total Daily Energy (TDEE)</span>
-                          <span className="tdee-value">
-                            {(manualForm.restingEnergy + manualForm.activeEnergy).toLocaleString()} cal
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="manual-actions">
-                    <button className="save-btn" onClick={handleManualSave}>
-                      <Check size={20} />
-                      Save Health Metrics
-                    </button>
-                  </div>
-                </>
               )}
             </div>
           )}
 
-          {/* Upload Mode */}
-          {entryMode === 'upload' && !image ? (
-            <div className="upload-section">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                ref={fileInputRef}
-                hidden
-              />
-              <button
-                className="upload-health-btn"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!apiKey}
-              >
-                <Upload size={32} />
-                <span className="upload-title">Upload Health Screenshot</span>
-                <span className="upload-hint">Screenshot your Apple Health summary page</span>
-              </button>
-              {!apiKey && (
-                <p className="api-warning">
-                  <AlertCircle size={16} />
-                  Add {aiProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in Settings first
-                </p>
+          {/* Manual Entry Form */}
+          {showManualForm && (
+            <div className="card health-manual-card">
+              <h3>Enter Health Data</h3>
+              <p className="preview-note">Fill in your health metrics for {format(new Date(selectedDate), 'MMM d, yyyy')}</p>
+
+              <div className="preview-grid">
+                <div className="preview-field">
+                  <label>Resting Energy (BMR)</label>
+                  <div className="input-with-unit">
+                    <input
+                      type="number"
+                      value={manualForm.restingEnergy || ''}
+                      onChange={(e) => setManualForm({
+                        ...manualForm,
+                        restingEnergy: parseInt(e.target.value) || 0,
+                      })}
+                      placeholder="e.g., 1600"
+                    />
+                    <span className="unit">cal</span>
+                  </div>
+                </div>
+
+                <div className="preview-field">
+                  <label>Active Energy</label>
+                  <div className="input-with-unit">
+                    <input
+                      type="number"
+                      value={manualForm.activeEnergy || ''}
+                      onChange={(e) => setManualForm({
+                        ...manualForm,
+                        activeEnergy: parseInt(e.target.value) || 0,
+                      })}
+                      placeholder="e.g., 500"
+                    />
+                    <span className="unit">cal</span>
+                  </div>
+                </div>
+
+                <div className="preview-field">
+                  <label>Steps</label>
+                  <input
+                    type="number"
+                    value={manualForm.steps || ''}
+                    onChange={(e) => setManualForm({
+                      ...manualForm,
+                      steps: parseInt(e.target.value) || 0,
+                    })}
+                    placeholder="e.g., 8000"
+                  />
+                </div>
+
+                <div className="preview-field">
+                  <label>Exercise Minutes</label>
+                  <div className="input-with-unit">
+                    <input
+                      type="number"
+                      value={manualForm.exerciseMinutes || ''}
+                      onChange={(e) => setManualForm({
+                        ...manualForm,
+                        exerciseMinutes: parseInt(e.target.value) || 0,
+                      })}
+                      placeholder="e.g., 45"
+                    />
+                    <span className="unit">min</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TDEE Preview */}
+              {(manualForm.restingEnergy > 0 || manualForm.activeEnergy > 0) && (
+                <div className="tdee-preview">
+                  <Zap size={20} />
+                  <div className="tdee-info">
+                    <span className="tdee-label">Total Daily Energy (TDEE)</span>
+                    <span className="tdee-value">
+                      {(manualForm.restingEnergy + manualForm.activeEnergy).toLocaleString()} cal
+                    </span>
+                  </div>
+                </div>
               )}
-              <div className="health-tips">
-                <h4>Data we'll extract:</h4>
-                <ul>
-                  <li>Resting Energy (BMR)</li>
-                  <li>Active Energy (Move calories)</li>
-                  <li>Steps</li>
-                  <li>Exercise Minutes</li>
-                </ul>
+
+              <div className="preview-actions">
+                <button onClick={handleManualSave} className="confirm-btn">
+                  <Check size={16} />
+                  Save
+                </button>
+                <button onClick={handleCancelManual} className="cancel-btn">
+                  <X size={16} />
+                  Cancel
+                </button>
               </div>
             </div>
-          ) : null}
+          )}
 
-          {entryMode === 'upload' && image && (
+          {/* Image Analysis Section */}
+          {image && (
             <div className="analysis-section">
               <div className="image-preview-small">
                 <img src={image} alt="Health screenshot" />
