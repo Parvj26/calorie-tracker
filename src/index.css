@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -7,9 +8,17 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+html {
+  height: -webkit-fill-available;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
 }

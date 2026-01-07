@@ -4788,3 +4788,228 @@ body {
     justify-content: center;
   }
 }
+
+/* ===========================================
+   iPHONE SAFARI OPTIMIZATIONS
+   =========================================== */
+
+/* Safe area insets for notch and home indicator */
+.app {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.app-header {
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+}
+
+/* Sticky nav with safe area */
+.app-nav {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Main content with safe area */
+.app-main {
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+}
+
+/* Fix 100vh issue in Safari */
+.app {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent input zoom on focus - ensure 16px minimum */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="time"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth scrolling momentum for all scrollable areas */
+.food-scanner,
+.modal-content,
+.settings-content,
+.meal-list,
+.scans-history,
+.scans-table,
+.discover-tab,
+.health-scanner,
+.progress-tracker {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Fixed overlays with safe area */
+.food-scanner-overlay,
+.modal-overlay,
+.delete-confirm-overlay {
+  padding-top: env(safe-area-inset-top, 16px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+}
+
+/* Modal content max height accounting for safe areas */
+.food-scanner,
+.modal-content,
+.recipe-modal {
+  max-height: calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+/* Touch-friendly button sizes (minimum 44px) */
+.nav-btn,
+.date-nav-btn,
+.date-btn,
+.delete-meal-btn,
+.edit-meal-btn,
+.favorite-btn,
+.restore-btn,
+.perm-delete-btn,
+.close-btn,
+.close-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Prevent overscroll bounce on modals */
+.food-scanner-overlay,
+.modal-overlay,
+.delete-confirm-overlay {
+  overscroll-behavior: contain;
+}
+
+/* Fix for Safari flexbox gaps in older versions */
+@supports not (gap: 1px) {
+  .macro-bars > * + * {
+    margin-top: 12px;
+  }
+  
+  .food-actions > * + * {
+    margin-left: 8px;
+  }
+  
+  .header-right > * + * {
+    margin-left: 12px;
+  }
+}
+
+/* Improve touch scrolling performance */
+.meal-list,
+.scans-table,
+.master-meals-grid {
+  will-change: scroll-position;
+}
+
+/* Fix for sticky positioning in Safari */
+.app-nav {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Prevent text selection issues */
+.nav-btn,
+.capture-btn,
+.log-btn,
+.submit-btn,
+button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Safe area for delete confirmation dialog */
+.delete-confirm-dialog {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Horizontal scroll areas with momentum */
+.chart-tabs,
+.preset-buttons {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Fix range input styling for Safari */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -8px;
+}
+
+/* Improve button active states for touch */
+@media (hover: none) and (pointer: coarse) {
+  .nav-btn:active,
+  .capture-btn:active,
+  .log-btn:active,
+  .submit-btn:active,
+  .add-meal-btn:active,
+  .date-nav-btn:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+/* Fix for iOS Safari address bar resize */
+@supports (-webkit-touch-callout: none) {
+  .app {
+    min-height: -webkit-fill-available;
+  }
+  
+  .food-scanner-overlay,
+  .modal-overlay {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Card touch feedback */
+@media (hover: none) {
+  .meal-item:active,
+  .card:active {
+    background: var(--gray-100);
+  }
+}
+
+/* Ensure proper spacing at bottom of scrollable content */
+.meal-logger,
+.settings,
+.inbody-upload,
+.health-scanner,
+.progress-tracker,
+.discover-tab {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
