@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { Meal, RecipeIngredient, RecipeSection } from '../types';
 
@@ -36,7 +37,7 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
     return [value.calories, value.protein, value.carbs, value.fat].some((entry) => typeof entry === 'number');
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content recipe-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -124,4 +125,6 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
