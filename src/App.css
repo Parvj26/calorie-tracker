@@ -3024,6 +3024,50 @@ body {
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* Recipe Import Section */
+.recipe-import-section {
+  background: var(--gray-50);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--gray-200);
+}
+
+.recipe-import-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  margin: 0 0 8px 0;
+  color: var(--gray-800);
+}
+
+.import-recipe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+}
+
+.import-recipe-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.import-recipe-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Body Metrics Card */
 .body-metrics-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

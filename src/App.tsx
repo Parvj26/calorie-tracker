@@ -306,6 +306,8 @@ function AppContent() {
             settings={settings}
             onUpdateSettings={updateSettings}
             currentWeight={goalProgress.currentWeight}
+            meals={meals}
+            onUpdateMeal={updateMeal}
           />
         )}
       </main>
