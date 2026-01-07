@@ -44,6 +44,7 @@ body {
   width: 100%;
   margin: 0 auto;
   padding-bottom: 80px;
+  scroll-padding-top: calc(130px + env(safe-area-inset-top, 0px));
 }
 
 @media (min-width: 1200px) {
@@ -60,8 +61,10 @@ body {
   padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 101;
 }
 
@@ -124,8 +127,10 @@ body {
   border-bottom: 1px solid var(--gray-200);
   padding: 0 8px;
   overflow-x: auto;
-  position: sticky;
+  position: fixed;
   top: calc(72px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
   z-index: 100;
 }
 
@@ -157,6 +162,7 @@ body {
 /* Main Content */
 .app-main {
   padding: 16px;
+  padding-top: calc(140px + env(safe-area-inset-top, 0px));
 }
 
 /* Card Component */
