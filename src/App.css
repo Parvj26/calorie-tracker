@@ -4233,6 +4233,54 @@ body {
   cursor: not-allowed;
 }
 
+/* Master Meal Actions */
+.master-meal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-master-meal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-master-meal-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.delete-master-meal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Duplicate Warning */
+.duplicate-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.duplicate-warning svg {
+  flex-shrink: 0;
+}
+
 /* Submit Meal Modal */
 .modal-overlay {
   position: fixed;

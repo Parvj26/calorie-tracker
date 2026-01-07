@@ -138,7 +138,7 @@ export interface AppState {
   settings: UserSettings;
 }
 
-export type TabType = 'dashboard' | 'discover' | 'progress' | 'inbody' | 'summary' | 'settings';
+export type TabType = 'dashboard' | 'log' | 'discover' | 'progress' | 'inbody' | 'summary' | 'settings';
 
 // ============================================
 // MASTER MEAL LIBRARY TYPES

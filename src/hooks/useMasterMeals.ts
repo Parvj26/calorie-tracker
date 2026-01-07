@@ -130,6 +130,35 @@ export function useMasterMeals() {
     return masterMeals.find((m) => m.id === mealId);
   }, [masterMeals]);
 
+  // Delete a master meal (admin only - soft delete by archiving)
+  const deleteMasterMeal = useCallback(async (mealId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('master_meals')
+        .update({ status: 'archived' })
+        .eq('id', mealId);
+
+      if (error) {
+        console.error('Error deleting master meal:', error);
+        return false;
+      }
+
+      // Remove from local state
+      setMasterMeals((prev) => prev.filter((m) => m.id !== mealId));
+      return true;
+    } catch (err) {
+      console.error('Error deleting master meal:', err);
+      return false;
+    }
+  }, []);
+
+  // Check if a meal name already exists in master meals
+  const checkDuplicateName = useCallback((name: string): boolean => {
+    return masterMeals.some(
+      (m) => m.name.toLowerCase().trim() === name.toLowerCase().trim()
+    );
+  }, [masterMeals]);
+
   // Load master meals on mount
   useEffect(() => {
     if (user) {
@@ -154,5 +183,7 @@ export function useMasterMeals() {
     searchMasterMeals,
     incrementUsageCount,
     getMasterMealById,
+    deleteMasterMeal,
+    checkDuplicateName,
   };
 }

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Dumbbell, TrendingDown, Utensils, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, ChefHat } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Scale, Target, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { CircularProgress } from './CircularProgress';
-import { MealLogger } from './MealLogger';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
-import RecipeModal from './RecipeModal';
-import type { DailyLog, Meal, UserSettings, HealthMetrics, MasterMeal, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
+import type { DailyLog, Meal, UserSettings, HealthMetrics } from '../types';
 
 interface InBodyMetrics {
   weight: number;
@@ -41,9 +39,6 @@ interface GoalProgress {
 }
 
 interface DashboardProps {
-  meals: Meal[];
-  deletedMeals: Meal[];
-  dailyLogs: DailyLog[];
   selectedDate: string;
   log: DailyLog;
   settings: UserSettings;
@@ -57,7 +52,6 @@ interface DashboardProps {
     deficit: number;
     caloriesRemaining: number;
     targetCalories: number;
-    // New health-based fields
     restingEnergy: number;
     activeEnergy: number;
     tdee: number;
@@ -68,77 +62,29 @@ interface DashboardProps {
   };
   inBodyMetrics: InBodyMetrics | null;
   goalProgress: GoalProgress;
-  onToggleMeal: (mealId: string, date: string) => void;
-  onUpdateMealQuantity: (mealId: string, date: string, quantity: number, unit?: QuantityUnit) => void;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
-  onAddMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
-  onUpdateMeal: (id: string, updates: Partial<Meal>) => void;
-  onDeleteMeal: (mealId: string) => void;
-  onRestoreMeal: (mealId: string) => void;
-  onPermanentDeleteMeal: (mealId: string) => void;
-  getDaysUntilExpiry: (deletedAt: string) => number;
-  onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
-  // Community meals (saved to library OR logged for current day)
-  displayMasterMeals: MasterMeal[];
-  savedMasterMealIds: string[];
-  onToggleMasterMeal: (masterMealId: string, date: string) => void;
-  onUpdateMasterMealQuantity: (masterMealId: string, date: string, quantity: number, unit?: QuantityUnit) => void;
-  onRemoveFromLibrary: (masterMealId: string) => void;
-  // Meal entry helpers
-  getMealId: (entry: string | MealLogEntry) => string;
-  getMealQuantity: (entry: string | MealLogEntry) => number;
-  getMealUnit: (entry: string | MealLogEntry) => QuantityUnit;
-  getMasterMealId: (entry: string | MasterMealLogEntry) => string;
-  getMasterMealQuantity: (entry: string | MasterMealLogEntry) => number;
-  getMasterMealUnit: (entry: string | MasterMealLogEntry) => QuantityUnit;
-  getServingMultiplier: (quantity: number, unit: QuantityUnit, servingSize?: number) => number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-  meals,
-  deletedMeals,
-  dailyLogs,
   selectedDate,
   log,
   settings,
   totals,
   inBodyMetrics,
   goalProgress,
-  onToggleMeal,
-  onUpdateMealQuantity,
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
-  onAddMeal,
-  onUpdateMeal,
-  onDeleteMeal,
-  onRestoreMeal,
-  onPermanentDeleteMeal,
-  getDaysUntilExpiry,
-  onToggleFavorite,
   onDateChange,
   onLogScannedMeal,
   onSaveAndLogMeal,
-  displayMasterMeals,
-  savedMasterMealIds,
-  onToggleMasterMeal,
-  onUpdateMasterMealQuantity,
-  onRemoveFromLibrary,
-  getMealId,
-  getMealQuantity,
-  getMealUnit,
-  getMasterMealId,
-  getMasterMealQuantity,
-  getMasterMealUnit,
-  getServingMultiplier,
 }) => {
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
   const [showHealthScanner, setShowHealthScanner] = useState(false);
-  const [recipeModalMeal, setRecipeModalMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     setWorkoutInput(totals.activeEnergy.toString());
@@ -152,9 +98,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const targetRange = `${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax}`;
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
-  const loggedMeals = log.meals
-    .map((mealId) => meals.find((meal) => meal.id === mealId))
-    .filter((meal): meal is Meal => Boolean(meal));
 
   const changeDate = (days: number) => {
     const current = parseISO(selectedDate);
@@ -566,72 +509,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Meal Logger Section */}
-      <div className="card meal-section">
-        <div className="card-header">
-          <Utensils size={20} />
-          <h3>Log Meals</h3>
-        </div>
-        <MealLogger
-          meals={meals}
-          deletedMeals={deletedMeals}
-          dailyLogs={dailyLogs}
-          selectedDate={selectedDate}
-          log={log}
-          displayMasterMeals={displayMasterMeals}
-          savedMasterMealIds={savedMasterMealIds}
-          onToggleMeal={onToggleMeal}
-          onToggleMasterMeal={onToggleMasterMeal}
-          onUpdateMealQuantity={onUpdateMealQuantity}
-          onUpdateMasterMealQuantity={onUpdateMasterMealQuantity}
-          getMealId={getMealId}
-          getMealQuantity={getMealQuantity}
-          getMealUnit={getMealUnit}
-          getMasterMealId={getMasterMealId}
-          getMasterMealQuantity={getMasterMealQuantity}
-          getMasterMealUnit={getMasterMealUnit}
-          getServingMultiplier={getServingMultiplier}
-          onRemoveFromLibrary={onRemoveFromLibrary}
-          onAddMeal={onAddMeal}
-          onUpdateMeal={onUpdateMeal}
-          onDeleteMeal={onDeleteMeal}
-          onRestoreMeal={onRestoreMeal}
-          onPermanentDeleteMeal={onPermanentDeleteMeal}
-          getDaysUntilExpiry={getDaysUntilExpiry}
-          onToggleFavorite={onToggleFavorite}
-          onDateChange={onDateChange}
-          onOpenRecipe={(meal) => setRecipeModalMeal(meal)}
-          groqApiKey={settings.groqApiKey}
-        />
-        {loggedMeals.length > 0 && (
-          <div className="logged-meals">
-            <h4>Logged Meals</h4>
-            {loggedMeals.map((meal) => (
-              <div key={meal.id} className="logged-meal">
-                <span>{meal.name} - {meal.calories} cal</span>
-                {meal.recipe && (
-                  <button
-                    onClick={() => setRecipeModalMeal(meal)}
-                    className="recipe-btn"
-                    title="View recipe"
-                  >
-                    <ChefHat size={16} />
-                    <span>Recipe</span>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {recipeModalMeal && (
-        <RecipeModal
-          meal={recipeModalMeal}
-          onClose={() => setRecipeModalMeal(null)}
-        />
-      )}
 
       {/* Food Scanner Modal */}
       {showScanner && (

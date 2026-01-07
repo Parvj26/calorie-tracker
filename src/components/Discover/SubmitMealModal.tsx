@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
-import { X, Upload, Check } from 'lucide-react';
-import type { Meal } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { X, Upload, Check, AlertTriangle } from 'lucide-react';
+import type { Meal, MealSubmission } from '../../types';
 
 interface SubmitMealModalProps {
   meals: Meal[];
+  submissions: MealSubmission[];
+  checkDuplicateName: (name: string) => boolean;
   onSubmit: (meal: Meal) => Promise<boolean>;
   onClose: () => void;
 }
 
 export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
   meals,
+  submissions,
+  checkDuplicateName,
   onSubmit,
   onClose,
 }) => {
@@ -19,8 +23,34 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
 
   const selectedMeal = meals.find((m) => m.id === selectedMealId);
 
+  // Get IDs of meals that already have a pending or approved submission
+  const submittedMealIds = useMemo(() => {
+    return new Set(
+      submissions
+        .filter((s) => s.status === 'pending' || s.status === 'approved')
+        .map((s) => s.sourceMealId)
+        .filter(Boolean)
+    );
+  }, [submissions]);
+
+  // Check if selected meal name is a duplicate
+  const isDuplicateName = useMemo(() => {
+    if (!selectedMeal) return false;
+    return checkDuplicateName(selectedMeal.name);
+  }, [selectedMeal, checkDuplicateName]);
+
   const handleSubmit = async () => {
     if (!selectedMeal) return;
+
+    // Warn about duplicate name
+    if (isDuplicateName) {
+      if (!window.confirm(
+        `A meal named "${selectedMeal.name}" already exists in the community library. ` +
+        `Are you sure you want to submit anyway? The admin may reject it as a duplicate.`
+      )) {
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     const success = await onSubmit(selectedMeal);
@@ -34,8 +64,10 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
     }
   };
 
-  // Filter to only show custom meals (not deleted)
-  const customMeals = meals.filter((m) => m.isCustom && !m.deletedAt);
+  // Filter to only show custom meals (not deleted) that haven't been submitted
+  const customMeals = meals.filter(
+    (m) => m.isCustom && !m.deletedAt && !submittedMealIds.has(m.id)
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -97,6 +129,12 @@ export const SubmitMealModal: React.FC<SubmitMealModalProps> = ({
                     <p>Protein: {selectedMeal.protein}g | Carbs: {selectedMeal.carbs}g | Fat: {selectedMeal.fat}g</p>
                     {selectedMeal.recipe && <p className="has-recipe">Includes recipe</p>}
                   </div>
+                  {isDuplicateName && (
+                    <div className="duplicate-warning">
+                      <AlertTriangle size={16} />
+                      <span>A meal with this name already exists in the community library</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

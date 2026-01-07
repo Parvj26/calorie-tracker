@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import {
   LayoutDashboard,
+  Utensils,
   TrendingUp,
   ScanLine,
   Calendar,
@@ -16,6 +17,7 @@ import { useUserProfile } from './hooks/useUserProfile';
 import { useMasterMeals } from './hooks/useMasterMeals';
 import { useMealSubmissions } from './hooks/useMealSubmissions';
 import { Dashboard } from './components/Dashboard';
+import { LogMeals } from './components/LogMeals';
 import { ProgressTracker } from './components/ProgressTracker';
 import { InBodyUpload } from './components/InBodyUpload';
 import { WeeklySummary } from './components/WeeklySummary';
@@ -87,6 +89,8 @@ function AppContent() {
     setSearchQuery: setMasterMealSearchQuery,
     loadMasterMeals,
     incrementUsageCount,
+    deleteMasterMeal,
+    checkDuplicateName,
   } = useMasterMeals();
 
   // Meal submissions (user submissions + admin management)
@@ -150,6 +154,7 @@ function AppContent() {
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'log' as TabType, label: 'Log', icon: Utensils },
     { id: 'discover' as TabType, label: 'Discover', icon: Globe },
     { id: 'progress' as TabType, label: 'Progress', icon: TrendingUp },
     { id: 'inbody' as TabType, label: 'InBody', icon: ScanLine },
@@ -194,19 +199,41 @@ function AppContent() {
       <main className="app-main">
         {activeTab === 'dashboard' && (
           <Dashboard
-            meals={meals}
-            deletedMeals={deletedMeals}
-            dailyLogs={dailyLogs}
             selectedDate={selectedDate}
             log={currentLog}
             settings={settings}
             totals={totals}
             inBodyMetrics={latestInBodyMetrics}
             goalProgress={goalProgress}
-            onToggleMeal={toggleMealForDate}
-            onUpdateMealQuantity={updateMealQuantity}
             onUpdateWorkoutCalories={updateWorkoutCalories}
             onUpdateHealthMetrics={updateHealthMetrics}
+            onDateChange={setSelectedDate}
+            onLogScannedMeal={logScannedMeal}
+            onSaveAndLogMeal={saveAndLogMeal}
+          />
+        )}
+
+        {activeTab === 'log' && (
+          <LogMeals
+            meals={meals}
+            deletedMeals={deletedMeals}
+            dailyLogs={dailyLogs}
+            selectedDate={selectedDate}
+            log={currentLog}
+            displayMasterMeals={displayMasterMeals}
+            savedMasterMealIds={settings.savedMasterMealIds || []}
+            onToggleMeal={toggleMealForDate}
+            onToggleMasterMeal={handleToggleMasterMeal}
+            onUpdateMealQuantity={updateMealQuantity}
+            onUpdateMasterMealQuantity={updateMasterMealQuantity}
+            getMealId={getMealId}
+            getMealQuantity={getMealQuantity}
+            getMealUnit={getMealUnit}
+            getMasterMealId={getMasterMealId}
+            getMasterMealQuantity={getMasterMealQuantity}
+            getMasterMealUnit={getMasterMealUnit}
+            getServingMultiplier={getServingMultiplier}
+            onRemoveFromLibrary={removeMasterMealFromLibrary}
             onAddMeal={addMeal}
             onUpdateMeal={updateMeal}
             onDeleteMeal={deleteMeal}
@@ -215,20 +242,7 @@ function AppContent() {
             getDaysUntilExpiry={getDaysUntilExpiry}
             onToggleFavorite={toggleFavorite}
             onDateChange={setSelectedDate}
-            onLogScannedMeal={logScannedMeal}
-            onSaveAndLogMeal={saveAndLogMeal}
-            displayMasterMeals={displayMasterMeals}
-            savedMasterMealIds={settings.savedMasterMealIds || []}
-            onToggleMasterMeal={handleToggleMasterMeal}
-            onUpdateMasterMealQuantity={updateMasterMealQuantity}
-            onRemoveFromLibrary={removeMasterMealFromLibrary}
-            getMealId={getMealId}
-            getMealQuantity={getMealQuantity}
-            getMealUnit={getMealUnit}
-            getMasterMealId={getMasterMealId}
-            getMasterMealQuantity={getMasterMealQuantity}
-            getMasterMealUnit={getMasterMealUnit}
-            getServingMultiplier={getServingMultiplier}
+            groqApiKey={settings.groqApiKey}
           />
         )}
 
@@ -249,6 +263,8 @@ function AppContent() {
             onApproveSubmission={approveSubmission}
             onRejectSubmission={rejectSubmission}
             onRefreshMasterMeals={handleRefreshMasterMeals}
+            onDeleteMasterMeal={deleteMasterMeal}
+            checkDuplicateName={checkDuplicateName}
           />
         )}
 

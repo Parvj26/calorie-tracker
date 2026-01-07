@@ -23,6 +23,8 @@ interface DiscoverTabProps {
   onApproveSubmission: (submissionId: string, submitterName?: string) => Promise<boolean>;
   onRejectSubmission: (submissionId: string, reason: string) => Promise<boolean>;
   onRefreshMasterMeals: () => void;
+  onDeleteMasterMeal: (mealId: string) => Promise<boolean>;
+  checkDuplicateName: (name: string) => boolean;
 }
 
 export const DiscoverTab: React.FC<DiscoverTabProps> = ({
@@ -41,6 +43,8 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
   onApproveSubmission,
   onRejectSubmission,
   onRefreshMasterMeals,
+  onDeleteMasterMeal,
+  checkDuplicateName,
 }) => {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [recipeModalMeal, setRecipeModalMeal] = useState<MasterMeal | null>(null);
@@ -139,6 +143,8 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
                 onAddToLibrary={onSaveMasterMealToLibrary}
                 onViewRecipe={(m) => setRecipeModalMeal(m)}
                 isSaved={isMealSaved(meal.id)}
+                isAdmin={isAdmin}
+                onDelete={onDeleteMasterMeal}
               />
             ))}
           </div>
@@ -149,6 +155,8 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
       {showSubmitModal && (
         <SubmitMealModal
           meals={meals}
+          submissions={submissions}
+          checkDuplicateName={checkDuplicateName}
           onSubmit={onSubmitMeal}
           onClose={() => setShowSubmitModal(false)}
         />

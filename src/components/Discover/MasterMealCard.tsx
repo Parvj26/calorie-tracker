@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, ChefHat, Users, Library } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, ChefHat, Users, Library, Trash2, Loader2 } from 'lucide-react';
 import type { MasterMeal } from '../../types';
 
 interface MasterMealCardProps {
@@ -7,6 +7,8 @@ interface MasterMealCardProps {
   onAddToLibrary: (mealId: string) => void;
   onViewRecipe?: (meal: MasterMeal) => void;
   isSaved: boolean;
+  isAdmin?: boolean;
+  onDelete?: (mealId: string) => Promise<boolean>;
 }
 
 export const MasterMealCard: React.FC<MasterMealCardProps> = ({
@@ -14,7 +16,20 @@ export const MasterMealCard: React.FC<MasterMealCardProps> = ({
   onAddToLibrary,
   onViewRecipe,
   isSaved,
+  isAdmin,
+  onDelete,
 }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onDelete || !window.confirm(`Are you sure you want to remove "${meal.name}" from community meals?`)) {
+      return;
+    }
+    setIsDeleting(true);
+    await onDelete(meal.id);
+    setIsDeleting(false);
+  };
   return (
     <div className={`master-meal-card ${isSaved ? 'saved' : ''}`}>
       <div className="master-meal-header">
@@ -53,23 +68,36 @@ export const MasterMealCard: React.FC<MasterMealCardProps> = ({
           <span>{meal.usageCount}</span>
         </div>
 
-        <button
-          className={`add-to-library-btn ${isSaved ? 'saved' : ''}`}
-          onClick={() => onAddToLibrary(meal.id)}
-          disabled={isSaved}
-        >
-          {isSaved ? (
-            <>
-              <Check size={16} />
-              <span>In Library</span>
-            </>
-          ) : (
-            <>
-              <Library size={16} />
-              <span>Add to Library</span>
-            </>
+        <div className="master-meal-actions">
+          {isAdmin && onDelete && (
+            <button
+              className="delete-master-meal-btn"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              title="Remove from community"
+            >
+              {isDeleting ? <Loader2 size={16} className="spinner" /> : <Trash2 size={16} />}
+            </button>
           )}
-        </button>
+
+          <button
+            className={`add-to-library-btn ${isSaved ? 'saved' : ''}`}
+            onClick={() => onAddToLibrary(meal.id)}
+            disabled={isSaved}
+          >
+            {isSaved ? (
+              <>
+                <Check size={16} />
+                <span>In Library</span>
+              </>
+            ) : (
+              <>
+                <Library size={16} />
+                <span>Add to Library</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
