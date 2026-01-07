@@ -247,6 +247,10 @@ function AppContent() {
             onToggleFavorite={toggleFavorite}
             onDateChange={setSelectedDate}
             groqApiKey={settings.groqApiKey}
+            aiProvider={settings.aiProvider || 'groq'}
+            openAiApiKey={settings.openAiApiKey}
+            onLogScannedMeal={logScannedMeal}
+            onSaveAndLogMeal={saveAndLogMeal}
           />
         )}
 

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Utensils } from 'lucide-react';
+import { Utensils, Camera } from 'lucide-react';
 import { MealLogger } from './MealLogger';
+import { FoodScanner } from './FoodScanner';
 import RecipeModal from './RecipeModal';
-import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
+import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry, QuantityUnit, AIProvider } from '../types';
 
 interface LogMealsProps {
   meals: Meal[];
@@ -33,6 +34,11 @@ interface LogMealsProps {
   onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   groqApiKey?: string;
+  // Food scanner props
+  aiProvider: AIProvider;
+  openAiApiKey?: string;
+  onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
+  onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
 }
 
 export function LogMeals({
@@ -64,15 +70,26 @@ export function LogMeals({
   onToggleFavorite,
   onDateChange,
   groqApiKey,
+  aiProvider,
+  openAiApiKey,
+  onLogScannedMeal,
+  onSaveAndLogMeal,
 }: LogMealsProps) {
   const [recipeModalMeal, setRecipeModalMeal] = useState<Meal | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   return (
     <div className="log-meals-tab">
       <div className="card">
         <div className="card-header">
-          <Utensils size={20} />
-          <h3>Log Meals</h3>
+          <div className="card-header-left">
+            <Utensils size={20} />
+            <h3>Log Meals</h3>
+          </div>
+          <button className="scan-meal-btn" onClick={() => setShowScanner(true)}>
+            <Camera size={18} />
+            <span>Scan Meal</span>
+          </button>
         </div>
         <MealLogger
           meals={meals}
@@ -111,6 +128,17 @@ export function LogMeals({
         <RecipeModal
           meal={recipeModalMeal}
           onClose={() => setRecipeModalMeal(null)}
+        />
+      )}
+
+      {showScanner && (
+        <FoodScanner
+          aiProvider={aiProvider}
+          openAiApiKey={openAiApiKey}
+          groqApiKey={groqApiKey}
+          onLogMeal={(meal) => onLogScannedMeal(meal, selectedDate)}
+          onSaveAndLogMeal={(meal) => onSaveAndLogMeal(meal, selectedDate)}
+          onClose={() => setShowScanner(false)}
         />
       )}
     </div>
