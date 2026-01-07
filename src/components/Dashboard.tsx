@@ -47,6 +47,8 @@ interface DashboardProps {
     protein: number;
     carbs: number;
     fat: number;
+    fiber: number;
+    sugar: number;
     workoutCalories: number;
     netCalories: number;
     deficit: number;
@@ -413,6 +415,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div
                   className="macro-bar-fill fat"
                   style={{ width: `${Math.min(100, (totals.fat / 65) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="macro-row">
+              <div className="macro-label">
+                <span className="macro-name">Fiber</span>
+                <span className="macro-value">{totals.fiber}g</span>
+              </div>
+              <div className="macro-bar">
+                <div
+                  className="macro-bar-fill fiber"
+                  style={{ width: `${Math.min(100, (totals.fiber / 28) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="macro-row">
+              <div className="macro-label">
+                <span className="macro-name">Sugar</span>
+                <span className="macro-value">{totals.sugar}g</span>
+              </div>
+              <div className="macro-bar">
+                <div
+                  className={`macro-bar-fill sugar ${totals.sugar > 36 ? 'over-limit' : ''}`}
+                  style={{ width: `${Math.min(100, (totals.sugar / 36) * 100)}%` }}
                 />
               </div>
             </div>

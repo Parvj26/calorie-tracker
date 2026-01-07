@@ -8,6 +8,8 @@ export const defaultMeals: Meal[] = [
     protein: 31,
     carbs: 60,
     fat: 7,
+    fiber: 8,
+    sugar: 25,
     isCustom: false,
     recipe: {
       ingredients: [
@@ -40,6 +42,8 @@ export const defaultMeals: Meal[] = [
     protein: 60,
     carbs: 8,
     fat: 14,
+    fiber: 1,
+    sugar: 3,
     isCustom: false,
     recipe: {
       ingredients: [
@@ -80,6 +84,8 @@ export const defaultMeals: Meal[] = [
     protein: 34,
     carbs: 41,
     fat: 5,
+    fiber: 3,
+    sugar: 22,
     isCustom: false,
     recipe: {
       ingredients: [
@@ -105,6 +111,8 @@ export const defaultMeals: Meal[] = [
     protein: 36,
     carbs: 52,
     fat: 35,
+    fiber: 12,
+    sugar: 6,
     isCustom: false,
     recipe: {
       ingredients: [

@@ -40,6 +40,8 @@ export function useSupabaseSync() {
         protein: m.protein,
         carbs: m.carbs,
         fat: m.fat,
+        fiber: m.fiber || 0,
+        sugar: m.sugar || 0,
         isCustom: m.is_custom,
         favorite: m.favorite ?? false,
         recipe: m.recipe || undefined,

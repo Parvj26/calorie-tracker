@@ -172,6 +172,8 @@ export const DiscoverTab: React.FC<DiscoverTabProps> = ({
             protein: recipeModalMeal.protein,
             carbs: recipeModalMeal.carbs,
             fat: recipeModalMeal.fat,
+            fiber: recipeModalMeal.fiber || 0,
+            sugar: recipeModalMeal.sugar || 0,
             recipe: recipeModalMeal.recipe,
           }}
           onClose={() => setRecipeModalMeal(null)}

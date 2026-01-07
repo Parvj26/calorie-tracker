@@ -12,6 +12,8 @@ interface DisplayMeal {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
   recipe?: Meal['recipe'];
   isCustom?: boolean;
   favorite?: boolean;
@@ -97,6 +99,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
     protein: '',
     carbs: '',
     fat: '',
+    fiber: '',
+    sugar: '',
     servingSize: '',
   });
   const [recipeText, setRecipeText] = useState('');
@@ -112,6 +116,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       protein: meal.protein.toString(),
       carbs: meal.carbs.toString(),
       fat: meal.fat.toString(),
+      fiber: meal.fiber?.toString() || '',
+      sugar: meal.sugar?.toString() || '',
       servingSize: meal.servingSize?.toString() || '',
     });
     setRecipeText(meal.recipe?.rawText || '');
@@ -121,7 +127,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   // Cancel editing
   const cancelEdit = () => {
     setEditingMeal(null);
-    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '', servingSize: '' });
+    setNewMeal({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', sugar: '', servingSize: '' });
     setRecipeText('');
     setRecipeError(null);
     setShowAddForm(false);
@@ -131,6 +137,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   const allDisplayMeals = useMemo((): DisplayMeal[] => {
     const personalMeals: DisplayMeal[] = meals.map(m => ({
       ...m,
+      fiber: m.fiber || 0,
+      sugar: m.sugar || 0,
       isCommunity: false,
       servingSize: m.servingSize,
       servingSizeUnit: m.servingSizeUnit,
@@ -143,6 +151,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       protein: m.protein,
       carbs: m.carbs,
       fat: m.fat,
+      fiber: m.fiber || 0,
+      sugar: m.sugar || 0,
       recipe: m.recipe,
       isCommunity: true,
       isInLibrary: savedMasterMealIds.includes(m.id),
@@ -226,6 +236,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       protein: parseInt(newMeal.protein) || 0,
       carbs: parseInt(newMeal.carbs) || 0,
       fat: parseInt(newMeal.fat) || 0,
+      fiber: parseInt(newMeal.fiber) || 0,
+      sugar: parseInt(newMeal.sugar) || 0,
       recipe: formattedRecipe || undefined,
       servingSize: servingSizeValue > 0 ? servingSizeValue : undefined,
       servingSizeUnit: servingSizeValue > 0 ? ('g' as const) : undefined,
@@ -563,6 +575,18 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               placeholder="Fat (g)"
               value={newMeal.fat}
               onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Fiber (g)"
+              value={newMeal.fiber}
+              onChange={(e) => setNewMeal({ ...newMeal, fiber: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Sugar (g)"
+              value={newMeal.sugar}
+              onChange={(e) => setNewMeal({ ...newMeal, sugar: e.target.value })}
             />
           </div>
           <div className="serving-size-input">

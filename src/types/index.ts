@@ -2,6 +2,8 @@ export interface Macros {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
 }
 
 export interface RecipeNutrition {
@@ -9,6 +11,8 @@ export interface RecipeNutrition {
   protein?: number | null;
   carbs?: number | null;
   fat?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
 }
 
 export interface RecipeIngredient {
@@ -44,6 +48,8 @@ export interface Meal {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
   isCustom?: boolean;
   favorite?: boolean;
   recipe?: Recipe;
@@ -170,6 +176,8 @@ export interface MasterMeal {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
   recipe?: Recipe;
   status: MasterMealStatus;
   submittedBy?: string;
@@ -193,6 +201,8 @@ export interface MealSubmission {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
   recipe?: Recipe;
   submittedBy: string;
   submittedByEmail?: string;

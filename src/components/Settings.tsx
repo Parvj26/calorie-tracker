@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, User } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Save, RotateCcw, User, Target } from 'lucide-react';
 import type { UserSettings, Gender } from '../types';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
 
 interface SettingsProps {
   settings: UserSettings;
   onUpdateSettings: (settings: Partial<UserSettings>) => void;
+  currentWeight?: number; // From weighIns or inBodyScans
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   settings,
   onUpdateSettings,
+  currentWeight,
 }) => {
   const { profile, updateProfile } = useUserProfile();
   const [formData, setFormData] = useState(settings);
@@ -38,6 +41,29 @@ export const Settings: React.FC<SettingsProps> = ({
       });
     }
   }, [profile]);
+
+  // Calculate personalized nutrition goals based on user profile
+  const nutritionGoals: NutritionGoals = useMemo(() => {
+    const calorieTarget = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;
+    const weight = currentWeight || settings.startWeight || 70; // Default 70kg
+
+    // Check if we have enough profile data for personalized goals
+    if (profile?.dateOfBirth && profile?.gender && (profile.gender === 'male' || profile.gender === 'female')) {
+      const age = calculateAge(profile.dateOfBirth);
+      return calculateNutritionGoals({
+        age,
+        gender: profile.gender,
+        weightKg: weight,
+        calorieTarget,
+        activityLevel: 'light', // Default to light activity
+      });
+    }
+
+    // Fallback to default goals
+    return getDefaultNutritionGoals(calorieTarget);
+  }, [profile, settings, currentWeight]);
+
+  const hasCompleteProfile = profile?.dateOfBirth && profile?.gender && (profile.gender === 'male' || profile.gender === 'female');
 
   const handleSaveProfile = async () => {
     const success = await updateProfile({
@@ -163,6 +189,46 @@ export const Settings: React.FC<SettingsProps> = ({
             <span>calories</span>
           </div>
         </div>
+      </div>
+
+      <div className="card settings-card nutrition-goals-card">
+        <h3><Target size={20} /> Daily Nutrition Goals</h3>
+        {!hasCompleteProfile && (
+          <p className="form-help" style={{ color: '#f59e0b', marginBottom: '1rem' }}>
+            Complete your profile (date of birth, gender) for personalized goals.
+          </p>
+        )}
+        <div className="nutrition-goals-grid">
+          <div className="goal-item">
+            <span className="goal-label">Protein</span>
+            <span className="goal-value">{nutritionGoals.protein}g</span>
+            <span className="goal-note">Based on body weight</span>
+          </div>
+          <div className="goal-item">
+            <span className="goal-label">Carbs</span>
+            <span className="goal-value">{nutritionGoals.carbs}g</span>
+            <span className="goal-note">~50% of calories</span>
+          </div>
+          <div className="goal-item">
+            <span className="goal-label">Fat</span>
+            <span className="goal-value">{nutritionGoals.fat}g</span>
+            <span className="goal-note">~30% of calories</span>
+          </div>
+          <div className="goal-item fiber">
+            <span className="goal-label">Fiber</span>
+            <span className="goal-value">{nutritionGoals.fiber}g</span>
+            <span className="goal-note">14g per 1000 cal</span>
+          </div>
+          <div className="goal-item sugar">
+            <span className="goal-label">Sugar (max)</span>
+            <span className="goal-value">{nutritionGoals.sugar}g</span>
+            <span className="goal-note">AHA recommendation</span>
+          </div>
+        </div>
+        <p className="form-help" style={{ marginTop: '1rem', fontSize: '0.8rem' }}>
+          Goals are calculated based on your calorie target{hasCompleteProfile ? ', age, gender, and weight' : ''}.
+          These are general guidelines - adjust based on your specific needs.
+        </p>
       </div>
 
       <div className="card settings-card">

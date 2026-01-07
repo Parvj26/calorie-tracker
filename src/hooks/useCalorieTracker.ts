@@ -596,8 +596,10 @@ export function useCalorieTracker() {
         protein: acc.protein + Math.round(meal.protein * servingMultiplier),
         carbs: acc.carbs + Math.round(meal.carbs * servingMultiplier),
         fat: acc.fat + Math.round(meal.fat * servingMultiplier),
+        fiber: acc.fiber + Math.round((meal.fiber || 0) * servingMultiplier),
+        sugar: acc.sugar + Math.round((meal.sugar || 0) * servingMultiplier),
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 }
     );
 
     const targetCalories = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;

@@ -301,6 +301,7 @@ function AppContent() {
           <Settings
             settings={settings}
             onUpdateSettings={updateSettings}
+            currentWeight={goalProgress.currentWeight}
           />
         )}
       </main>
