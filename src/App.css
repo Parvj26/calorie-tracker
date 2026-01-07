@@ -162,7 +162,7 @@ body {
 /* Main Content */
 .app-main {
   padding: 16px;
-  padding-top: calc(150px + env(safe-area-inset-top, 0px));
+  padding-top: calc(140px + env(safe-area-inset-top, 0px));
 }
 
 /* Card Component */

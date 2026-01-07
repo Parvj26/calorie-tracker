@@ -56,10 +56,22 @@ export interface HealthMetrics {
   standHours?: number;
 }
 
+// Meal entry with quantity for daily logging
+export interface MealLogEntry {
+  mealId: string;
+  quantity: number; // 1 = 1 serving, 2 = 2 servings, 0.5 = half serving
+}
+
+// Master meal entry with quantity
+export interface MasterMealLogEntry {
+  mealId: string;
+  quantity: number;
+}
+
 export interface DailyLog {
   date: string; // YYYY-MM-DD format
-  meals: string[]; // Array of meal IDs
-  masterMealIds?: string[]; // Array of master meal IDs (referenced/synced community meals)
+  meals: (string | MealLogEntry)[]; // Array of meal IDs or entries with quantity (backward compatible)
+  masterMealIds?: (string | MasterMealLogEntry)[]; // Array of master meal IDs or entries with quantity
   workoutCalories: number;  // Manual entry (fallback)
   healthMetrics?: HealthMetrics; // From Apple Health import
   notes?: string;
