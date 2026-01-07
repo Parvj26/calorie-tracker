@@ -23,8 +23,7 @@
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 
-  /* Layout heights for fixed positioning - base heights without safe-area */
-  --header-content-height: 69px;
+  /* Nav height reference */
   --nav-height: 64px;
 }
 
@@ -48,7 +47,6 @@ body {
   width: 100%;
   margin: 0 auto;
   padding-bottom: 80px;
-  scroll-padding-top: calc(var(--header-content-height) + var(--nav-height) + env(safe-area-inset-top, 0px));
 }
 
 @media (min-width: 1200px) {
@@ -65,10 +63,8 @@ body {
   padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 101;
 }
 
@@ -129,14 +125,11 @@ body {
   display: flex;
   background: white;
   border-bottom: 1px solid var(--gray-200);
-  padding: 8px 8px 0 8px;
+  padding: 0 8px;
   overflow-x: auto;
-  position: fixed;
-  top: calc(var(--header-content-height) + env(safe-area-inset-top, 0px) - 8px);
-  left: 0;
-  right: 0;
+  position: sticky;
+  top: 0;
   z-index: 100;
-  height: calc(var(--nav-height) + 8px);
 }
 
 .nav-btn {
@@ -167,7 +160,6 @@ body {
 /* Main Content */
 .app-main {
   padding: 16px;
-  padding-top: calc(var(--header-content-height) + var(--nav-height) + env(safe-area-inset-top, 0px) + 8px);
 }
 
 /* Card Component */
@@ -4237,7 +4229,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
   padding: 20px;
 }
 
