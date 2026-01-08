@@ -1,7 +1,7 @@
 // Groq API integration for vision tasks
 // Uses Llama 3.2 Vision model (free tier available)
 
-import type { Recipe } from '../types';
+import type { Recipe, DailyLog, UserSettings, UserProfile, WeighIn, InBodyScan, DailyInsights, WeeklyInsights, MonthlyInsights } from '../types';
 
 export interface GroqFoodAnalysis {
   name: string;
@@ -324,4 +324,200 @@ Important:
   }
 
   return parsed;
+}
+
+// ============================================
+// AI INSIGHTS FUNCTIONS
+// ============================================
+
+interface DailyTotals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+}
+
+export async function generateDailyInsights(
+  _todayLog: DailyLog | undefined,
+  todayTotals: DailyTotals,
+  settings: UserSettings,
+  profile: UserProfile | null,
+  apiKey: string
+): Promise<DailyInsights> {
+  const targetCals = Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2);
+  const remaining = targetCals - todayTotals.calories;
+
+  const prompt = `You are a friendly nutrition coach. Give 2-3 brief, actionable tips based on today's progress.
+
+USER: ${profile?.gender || 'unknown'} gender, goal: ${settings.goalWeight < settings.startWeight ? 'lose' : settings.goalWeight > settings.startWeight ? 'gain' : 'maintain'} weight
+TARGET: ${targetCals} cal/day
+TODAY: ${todayTotals.calories} cal, ${todayTotals.protein}g protein, ${todayTotals.carbs}g carbs, ${todayTotals.fat}g fat, ${todayTotals.fiber}g fiber
+REMAINING: ${remaining} cal
+
+Return ONLY JSON (no markdown):
+{"tips":["tip1","tip2"],"remaining":"brief summary of what's left"}
+
+Tips should be specific and encouraging. Examples:
+- "Protein is low - add chicken or Greek yogurt to dinner"
+- "Great fiber intake! You're ahead of target"
+- "200 cal remaining - a banana and peanut butter would fit perfectly"`;
+
+  const content = await callGroqText(prompt, apiKey);
+  const parsed = parseJsonResponse<{ tips: string[]; remaining: string }>(content);
+
+  return {
+    tips: parsed.tips || [],
+    remaining: parsed.remaining || `${remaining} calories remaining`,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+export async function generateWeeklyInsights(
+  dailyLogs: DailyLog[],
+  weighIns: WeighIn[],
+  settings: UserSettings,
+  _profile: UserProfile | null,
+  apiKey: string
+): Promise<WeeklyInsights> {
+  // Get last 7 days of logs
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const weekLogs = dailyLogs.filter(log => {
+    const logDate = new Date(log.date);
+    return logDate >= weekAgo && logDate <= today;
+  });
+
+  const recentWeighIns = weighIns.filter(w => {
+    const wDate = new Date(w.date);
+    return wDate >= weekAgo && wDate <= today;
+  });
+
+  // Format data compactly
+  const logsData = weekLogs.map(log => ({
+    date: log.date,
+    meals: log.meals.length,
+    workout: log.workoutCalories || 0,
+  }));
+
+  const targetCals = Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2);
+  const weightChange = recentWeighIns.length >= 2
+    ? (recentWeighIns[recentWeighIns.length - 1].weight - recentWeighIns[0].weight).toFixed(1)
+    : 'N/A';
+
+  const prompt = `Analyze this week's nutrition data and provide insights.
+
+GOAL: ${settings.goalWeight < settings.startWeight ? 'Lose' : settings.goalWeight > settings.startWeight ? 'Gain' : 'Maintain'} weight (start: ${settings.startWeight}kg, target: ${settings.goalWeight}kg)
+TARGET: ${targetCals} cal/day
+WEEK DATA: ${JSON.stringify(logsData)}
+WEIGHT CHANGE: ${weightChange}kg this week
+DAYS LOGGED: ${weekLogs.length}/7
+
+Return ONLY JSON (no markdown):
+{
+  "summary": "2-3 sentence week overview",
+  "patterns": ["pattern1", "pattern2"],
+  "wins": ["achievement"],
+  "suggestions": ["tip1", "tip2"]
+}
+
+Be encouraging but honest. Focus on actionable insights.`;
+
+  const content = await callGroqText(prompt, apiKey);
+  const parsed = parseJsonResponse<{
+    summary: string;
+    patterns: string[];
+    wins: string[];
+    suggestions: string[];
+  }>(content);
+
+  return {
+    summary: parsed.summary || 'Week summary unavailable',
+    patterns: parsed.patterns || [],
+    wins: parsed.wins || [],
+    suggestions: parsed.suggestions || [],
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+export async function generateMonthlyInsights(
+  dailyLogs: DailyLog[],
+  weighIns: WeighIn[],
+  inBodyScans: InBodyScan[],
+  settings: UserSettings,
+  _profile: UserProfile | null,
+  apiKey: string
+): Promise<MonthlyInsights> {
+  // Get last 30 days of data
+  const today = new Date();
+  const monthAgo = new Date(today);
+  monthAgo.setDate(monthAgo.getDate() - 30);
+
+  const monthLogs = dailyLogs.filter(log => {
+    const logDate = new Date(log.date);
+    return logDate >= monthAgo && logDate <= today;
+  });
+
+  const monthWeighIns = weighIns.filter(w => {
+    const wDate = new Date(w.date);
+    return wDate >= monthAgo && wDate <= today;
+  });
+
+  // Calculate averages
+  const daysLogged = monthLogs.length;
+  const avgMealsPerDay = daysLogged > 0
+    ? (monthLogs.reduce((sum, log) => sum + log.meals.length, 0) / daysLogged).toFixed(1)
+    : '0';
+
+  // Weight trend
+  const weightStart = monthWeighIns.length > 0 ? monthWeighIns[0].weight : settings.startWeight;
+  const weightEnd = monthWeighIns.length > 0 ? monthWeighIns[monthWeighIns.length - 1].weight : weightStart;
+  const weightChange = (weightEnd - weightStart).toFixed(1);
+
+  // Goal progress
+  const totalToLose = settings.startWeight - settings.goalWeight;
+  const lost = settings.startWeight - weightEnd;
+  const progressPercent = totalToLose !== 0 ? Math.round((lost / totalToLose) * 100) : 0;
+
+  // InBody data
+  const recentScan = inBodyScans.length > 0 ? inBodyScans[inBodyScans.length - 1] : null;
+
+  const prompt = `Analyze this month's fitness data and provide long-term insights.
+
+GOAL: ${settings.goalWeight < settings.startWeight ? 'Lose' : settings.goalWeight > settings.startWeight ? 'Gain' : 'Maintain'} weight
+START: ${settings.startWeight}kg, TARGET: ${settings.goalWeight}kg, CURRENT: ${weightEnd}kg
+PROGRESS: ${progressPercent}% toward goal
+MONTH WEIGHT CHANGE: ${weightChange}kg
+DAYS LOGGED: ${daysLogged}/30
+AVG MEALS/DAY: ${avgMealsPerDay}
+${recentScan ? `BODY FAT: ${recentScan.bodyFatPercent}%, MUSCLE: ${recentScan.muscleMass}kg` : ''}
+
+Return ONLY JSON (no markdown):
+{
+  "summary": "Month overview in 2-3 sentences",
+  "trends": ["trend1", "trend2"],
+  "goalPrediction": "When they'll reach goal at current pace",
+  "comparison": "Brief comparison to expected progress"
+}
+
+Be realistic with predictions. If data is limited, acknowledge it.`;
+
+  const content = await callGroqText(prompt, apiKey);
+  const parsed = parseJsonResponse<{
+    summary: string;
+    trends: string[];
+    goalPrediction: string;
+    comparison: string;
+  }>(content);
+
+  return {
+    summary: parsed.summary || 'Month summary unavailable',
+    trends: parsed.trends || [],
+    goalPrediction: parsed.goalPrediction || 'Not enough data for prediction',
+    comparison: parsed.comparison || '',
+    generatedAt: new Date().toISOString(),
+  };
 }

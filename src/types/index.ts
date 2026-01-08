@@ -218,3 +218,29 @@ export interface MealSubmission {
   rejectionReason?: string;
   masterMealId?: string;
 }
+
+// ============================================
+// AI INSIGHTS TYPES
+// ============================================
+
+export interface DailyInsights {
+  tips: string[];              // 2-3 quick tips for today
+  remaining: string;           // Calories/macros remaining summary
+  generatedAt: string;         // ISO timestamp
+}
+
+export interface WeeklyInsights {
+  summary: string;             // 2-3 sentence overview
+  patterns: string[];          // Detected patterns
+  wins: string[];              // Positive achievements
+  suggestions: string[];       // Actionable tips
+  generatedAt: string;         // ISO timestamp
+}
+
+export interface MonthlyInsights {
+  summary: string;             // Month overview
+  trends: string[];            // Long-term trends
+  goalPrediction: string;      // When user will reach goal
+  comparison: string;          // vs last month
+  generatedAt: string;         // ISO timestamp
+}

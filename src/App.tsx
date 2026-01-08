@@ -16,6 +16,7 @@ import { useCalorieTracker } from './hooks/useCalorieTracker';
 import { useUserProfile } from './hooks/useUserProfile';
 import { useMasterMeals } from './hooks/useMasterMeals';
 import { useMealSubmissions } from './hooks/useMealSubmissions';
+import { useInsights } from './hooks/useInsights';
 import { Dashboard } from './components/Dashboard';
 import { LogMeals } from './components/LogMeals';
 import { ProgressTracker } from './components/ProgressTracker';
@@ -116,6 +117,24 @@ function AppContent() {
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
 
+  // AI Insights hook
+  const insights = useInsights({
+    dailyLogs,
+    weighIns,
+    inBodyScans,
+    settings,
+    profile,
+    selectedDate,
+    todayTotals: {
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      fiber: totals.fiber,
+      sugar: totals.sugar,
+    },
+  });
+
   // Get master meals to display in Dashboard (saved to library OR logged for current day)
   const displayMasterMeals = useMemo(() => {
     const savedIds = settings.savedMasterMealIds || [];
@@ -214,6 +233,11 @@ function AppContent() {
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
+            dailyInsights={insights.daily.insights}
+            dailyInsightsLoading={insights.daily.loading}
+            dailyInsightsError={insights.daily.error}
+            onGenerateDailyInsights={insights.daily.generate}
+            hasApiKey={insights.hasApiKey}
           />
         )}
 
@@ -284,6 +308,11 @@ function AppContent() {
             goalProgress={goalProgress}
             onAddWeighIn={addWeighIn}
             onDeleteWeighIn={deleteWeighIn}
+            monthlyInsights={insights.monthly.insights}
+            monthlyInsightsLoading={insights.monthly.loading}
+            monthlyInsightsError={insights.monthly.error}
+            onGenerateMonthlyInsights={insights.monthly.generate}
+            hasApiKey={insights.hasApiKey}
           />
         )}
 
@@ -302,6 +331,11 @@ function AppContent() {
           <WeeklySummary
             summary={weeklySummary}
             goalProgress={goalProgress}
+            weeklyInsights={insights.weekly.insights}
+            weeklyInsightsLoading={insights.weekly.loading}
+            weeklyInsightsError={insights.weekly.error}
+            onGenerateWeeklyInsights={insights.weekly.generate}
+            hasApiKey={insights.hasApiKey}
           />
         )}
 

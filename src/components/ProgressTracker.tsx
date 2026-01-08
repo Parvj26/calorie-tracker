@@ -13,8 +13,8 @@ import {
   AreaChart,
   Legend,
 } from 'recharts';
-import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp } from 'lucide-react';
-import type { WeighIn, UserSettings } from '../types';
+import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp, Sparkles, RefreshCw, Loader2, Calendar } from 'lucide-react';
+import type { WeighIn, UserSettings, MonthlyInsights } from '../types';
 
 interface ProgressTrackerProps {
   weighIns: WeighIn[];
@@ -42,6 +42,12 @@ interface ProgressTrackerProps {
   };
   onAddWeighIn: (weighIn: WeighIn) => void;
   onDeleteWeighIn: (date: string) => void;
+  // AI Insights
+  monthlyInsights: MonthlyInsights | null;
+  monthlyInsightsLoading: boolean;
+  monthlyInsightsError: string | null;
+  onGenerateMonthlyInsights: (forceRefresh?: boolean) => void;
+  hasApiKey: boolean;
 }
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
@@ -51,6 +57,11 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   goalProgress,
   onAddWeighIn,
   onDeleteWeighIn,
+  monthlyInsights,
+  monthlyInsightsLoading,
+  monthlyInsightsError,
+  onGenerateMonthlyInsights,
+  hasApiKey,
 }) => {
   const [newWeighIn, setNewWeighIn] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -115,6 +126,100 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </span>
           <span className="remaining">{goalProgress.weightRemaining} kg remaining</span>
         </div>
+      </div>
+
+      {/* AI Monthly Insights */}
+      <div className="card ai-insights-card monthly-insights">
+        <div className="ai-insights-header">
+          <div className="ai-insights-title">
+            <Sparkles size={20} />
+            <h3>Monthly AI Analysis</h3>
+          </div>
+          {hasApiKey && (
+            <button
+              className="insights-refresh-btn"
+              onClick={() => onGenerateMonthlyInsights(true)}
+              disabled={monthlyInsightsLoading}
+              title="Refresh insights"
+            >
+              {monthlyInsightsLoading ? (
+                <Loader2 size={16} className="spinner" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+            </button>
+          )}
+        </div>
+
+        {!hasApiKey ? (
+          <div className="insights-no-key">
+            <p>Configure your API key in Settings to get personalized AI insights.</p>
+          </div>
+        ) : monthlyInsightsLoading ? (
+          <div className="insights-loading">
+            <Loader2 size={24} className="spinner" />
+            <span>Analyzing your month...</span>
+          </div>
+        ) : monthlyInsightsError ? (
+          <div className="insights-error">
+            <p>{monthlyInsightsError}</p>
+            <button onClick={() => onGenerateMonthlyInsights(true)}>Try Again</button>
+          </div>
+        ) : monthlyInsights ? (
+          <div className="monthly-insights-content">
+            {/* Summary */}
+            <div className="monthly-insight-section summary-section">
+              <p className="monthly-summary-text">{monthlyInsights.summary}</p>
+            </div>
+
+            {/* Goal Prediction */}
+            {monthlyInsights.goalPrediction && (
+              <div className="monthly-insight-section prediction-section">
+                <div className="section-header">
+                  <Target size={16} />
+                  <span>Goal Prediction</span>
+                </div>
+                <p className="goal-prediction-text">{monthlyInsights.goalPrediction}</p>
+              </div>
+            )}
+
+            {/* Trends */}
+            {monthlyInsights.trends.length > 0 && (
+              <div className="monthly-insight-section">
+                <div className="section-header">
+                  <TrendingUp size={16} />
+                  <span>Trends</span>
+                </div>
+                <ul className="insight-list">
+                  {monthlyInsights.trends.map((trend, idx) => (
+                    <li key={idx}>{trend}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Comparison */}
+            {monthlyInsights.comparison && (
+              <div className="monthly-insight-section comparison-section">
+                <div className="section-header">
+                  <Calendar size={16} />
+                  <span>Progress Check</span>
+                </div>
+                <p>{monthlyInsights.comparison}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="insights-empty">
+            <button
+              className="generate-insights-btn"
+              onClick={() => onGenerateMonthlyInsights()}
+            >
+              <Sparkles size={16} />
+              Analyze My Month
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add Weigh-in Form */}
