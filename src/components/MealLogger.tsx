@@ -175,39 +175,54 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
     );
   }, [allDisplayMeals, searchQuery]);
 
-  // Sort meals: favorites first, then by recent usage, then alphabetically
+  // Sort meals: logged today first, then favorites, then by recent usage, then alphabetically
   const sortedMeals = useMemo(() => {
+    // Helper: check if meal is logged for current day
+    const isLoggedToday = (mealId: string, isCommunity: boolean): boolean => {
+      if (isCommunity) {
+        return log.masterMealIds?.some(entry => getMasterMealId(entry) === mealId) || false;
+      } else {
+        return log.meals.some(entry => getMealId(entry) === mealId);
+      }
+    };
+
     // Helper: get most recent date a meal was used (for personal meals)
     const getLastUsedDate = (mealId: string, isCommunity: boolean): string | null => {
       if (isCommunity) {
         const logsWithMeal = dailyLogs
-          .filter(log => log.masterMealIds?.includes(mealId))
+          .filter(l => l.masterMealIds?.includes(mealId))
           .sort((a, b) => b.date.localeCompare(a.date));
         return logsWithMeal[0]?.date || null;
       } else {
         const logsWithMeal = dailyLogs
-          .filter(log => log.meals.includes(mealId))
+          .filter(l => l.meals.includes(mealId))
           .sort((a, b) => b.date.localeCompare(a.date));
         return logsWithMeal[0]?.date || null;
       }
     };
 
     return [...filteredMeals].sort((a, b) => {
-      // 1. Favorites first (only personal meals have favorites)
+      // 1. Logged today first
+      const aLogged = isLoggedToday(a.id, a.isCommunity);
+      const bLogged = isLoggedToday(b.id, b.isCommunity);
+      if (aLogged && !bLogged) return -1;
+      if (!aLogged && bLogged) return 1;
+
+      // 2. Favorites first (only personal meals have favorites)
       if (a.favorite && !b.favorite) return -1;
       if (!a.favorite && b.favorite) return 1;
 
-      // 2. Recently used
+      // 3. Recently used
       const aDate = getLastUsedDate(a.id, a.isCommunity);
       const bDate = getLastUsedDate(b.id, b.isCommunity);
       if (aDate && bDate) return bDate.localeCompare(aDate);
       if (aDate && !bDate) return -1;
       if (!aDate && bDate) return 1;
 
-      // 3. Alphabetically
+      // 4. Alphabetically
       return a.name.localeCompare(b.name);
     });
-  }, [filteredMeals, dailyLogs]);
+  }, [filteredMeals, dailyLogs, log, getMealId, getMasterMealId]);
 
   const handleAddMeal = async (e: React.FormEvent) => {
     e.preventDefault();
