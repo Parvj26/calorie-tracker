@@ -10,6 +10,7 @@ interface InBodyUploadProps {
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
+  groqApiKeyBackup?: string;
   onAddScan: (scan: Omit<InBodyScan, 'id'>) => void;
   onDeleteScan: (id: string) => void;
 }
@@ -39,6 +40,7 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   aiProvider,
   openAiApiKey,
   groqApiKey,
+  groqApiKeyBackup,
   onAddScan,
   onDeleteScan,
 }) => {
@@ -85,7 +87,8 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
         try {
           let data;
           if (aiProvider === 'groq') {
-            data = await groqExtractInBodyData(base64, apiKey);
+            // Use Groq API (with automatic fallback to backup key if rate limited)
+            data = await groqExtractInBodyData(base64, groqApiKey, groqApiKeyBackup);
           } else {
             data = await extractInBodyData(base64, apiKey);
           }

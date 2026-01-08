@@ -11,6 +11,7 @@ interface HealthScannerProps {
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
+  groqApiKeyBackup?: string;
   selectedDate: string;
   currentHealthMetrics?: HealthMetrics;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
@@ -21,6 +22,7 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
   aiProvider,
   openAiApiKey,
   groqApiKey,
+  groqApiKeyBackup,
   selectedDate,
   currentHealthMetrics,
   onUpdateHealthMetrics,
@@ -70,7 +72,8 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
       try {
         let data: HealthDataExtracted;
         if (aiProvider === 'groq') {
-          data = await groqExtractHealthData(base64, apiKey);
+          // Use Groq API (with automatic fallback to backup key if rate limited)
+          data = await groqExtractHealthData(base64, groqApiKey, groqApiKeyBackup);
         } else {
           data = await extractHealthData(base64, apiKey);
         }

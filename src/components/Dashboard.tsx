@@ -530,6 +530,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           aiProvider={settings.aiProvider || 'groq'}
           openAiApiKey={settings.openAiApiKey}
           groqApiKey={settings.groqApiKey}
+          groqApiKeyBackup={settings.groqApiKeyBackup}
           onLogMeal={(meal) => onLogScannedMeal(meal, selectedDate)}
           onSaveAndLogMeal={(meal) => onSaveAndLogMeal(meal, selectedDate)}
           onClose={() => setShowScanner(false)}
@@ -542,6 +543,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           aiProvider={settings.aiProvider || 'groq'}
           openAiApiKey={settings.openAiApiKey}
           groqApiKey={settings.groqApiKey}
+          groqApiKeyBackup={settings.groqApiKeyBackup}
           selectedDate={selectedDate}
           currentHealthMetrics={log.healthMetrics}
           onUpdateHealthMetrics={onUpdateHealthMetrics}

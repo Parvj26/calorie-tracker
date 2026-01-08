@@ -55,6 +55,57 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 const TEXT_MODEL = 'llama-3.1-8b-instant';
 
+// ============================================
+// RATE LIMIT DETECTION & FALLBACK
+// ============================================
+
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes('rate limit') ||
+      msg.includes('rate_limit') ||
+      msg.includes('quota') ||
+      msg.includes('exceeded') ||
+      msg.includes('429') ||
+      msg.includes('too many requests')
+    );
+  }
+  return false;
+}
+
+async function callWithFallback<T>(
+  primaryKey: string | undefined,
+  backupKey: string | undefined,
+  apiCall: (key: string) => Promise<T>
+): Promise<T> {
+  const keys = [primaryKey, backupKey].filter(Boolean) as string[];
+
+  if (keys.length === 0) {
+    throw new Error('No API key configured');
+  }
+
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    try {
+      return await apiCall(key);
+    } catch (error) {
+      lastError = error as Error;
+      // Only try next key on rate limit errors
+      if (!isRateLimitError(error)) {
+        throw error;
+      }
+      if (i < keys.length - 1) {
+        console.log('Rate limit hit on primary key, trying backup key...');
+      }
+    }
+  }
+
+  throw lastError || new Error('All API keys exhausted');
+}
+
 async function callGroqVision(
   imageBase64: string,
   prompt: string,
@@ -160,7 +211,8 @@ function parseJsonResponse<T>(content: string): T {
 
 export async function groqAnalyzeFood(
   imageBase64: string,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<GroqFoodAnalysis[]> {
   const prompt = `Analyze this food image and identify all food items visible. For each item, estimate the nutritional information.
 
@@ -193,24 +245,27 @@ Important:
   * Sweetened drinks, candy, pastries, flavored yogurt = most or all of sugar is added
   * If unsure, estimate conservatively (lower added sugar for whole foods)`;
 
-  const content = await callGroqVision(imageBase64, prompt, apiKey);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqVision(imageBase64, prompt, apiKey);
 
-  try {
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('No JSON array found');
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('No JSON array found');
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) {
+      console.error('Failed to parse food response:', content);
+      throw new Error('Failed to parse food analysis from Groq');
     }
-    const parsed = JSON.parse(jsonMatch[0]);
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch (e) {
-    console.error('Failed to parse food response:', content);
-    throw new Error('Failed to parse food analysis from Groq');
-  }
+  });
 }
 
 export async function groqFormatRecipeText(
   rawText: string,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<Recipe> {
   const prompt = `You are a recipe formatter. Convert the user text into structured JSON that matches this schema:
 
@@ -242,17 +297,20 @@ Guidelines:
 User text:
 ${rawText}`;
 
-  const content = await callGroqText(prompt, apiKey);
-  const parsed = parseJsonResponse<Recipe>(content);
-  return {
-    ...parsed,
-    rawText: rawText.trim(),
-  };
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqText(prompt, apiKey);
+    const parsed = parseJsonResponse<Recipe>(content);
+    return {
+      ...parsed,
+      rawText: rawText.trim(),
+    };
+  });
 }
 
 export async function groqExtractInBodyData(
   imageBase64: string,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<GroqInBodyData> {
   const prompt = `Analyze this InBody body composition scan report. Extract ALL available metrics with high precision. Return ONLY valid JSON (no markdown) with this structure:
 
@@ -280,13 +338,16 @@ CRITICAL INSTRUCTIONS:
 5. Visceral fat grade is typically 1-20, with <10 being healthy
 6. Return ONLY the JSON object, no explanations or markdown formatting`;
 
-  const content = await callGroqVision(imageBase64, prompt, apiKey);
-  return parseJsonResponse<GroqInBodyData>(content);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqVision(imageBase64, prompt, apiKey);
+    return parseJsonResponse<GroqInBodyData>(content);
+  });
 }
 
 export async function groqExtractHealthData(
   imageBase64: string,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<GroqHealthData> {
   const prompt = `Analyze this Apple Health app screenshot and extract health metrics. Return ONLY a JSON object with these keys (use null if not visible):
 
@@ -315,15 +376,17 @@ Important:
 - For workouts array, include each workout shown. Empty array if none visible
 - Return ONLY the JSON object, no other text`;
 
-  const content = await callGroqVision(imageBase64, prompt, apiKey);
-  const parsed = parseJsonResponse<GroqHealthData>(content);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqVision(imageBase64, prompt, apiKey);
+    const parsed = parseJsonResponse<GroqHealthData>(content);
 
-  // Ensure workouts is always an array
-  if (!parsed.workouts) {
-    parsed.workouts = [];
-  }
+    // Ensure workouts is always an array
+    if (!parsed.workouts) {
+      parsed.workouts = [];
+    }
 
-  return parsed;
+    return parsed;
+  });
 }
 
 // ============================================
@@ -344,7 +407,8 @@ export async function generateDailyInsights(
   todayTotals: DailyTotals,
   settings: UserSettings,
   profile: UserProfile | null,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<DailyInsights> {
   const targetCals = Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2);
   const remaining = targetCals - todayTotals.calories;
@@ -364,14 +428,16 @@ Tips should be specific and encouraging. Examples:
 - "Great fiber intake! You're ahead of target"
 - "200 cal remaining - a banana and peanut butter would fit perfectly"`;
 
-  const content = await callGroqText(prompt, apiKey);
-  const parsed = parseJsonResponse<{ tips: string[]; remaining: string }>(content);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqText(prompt, apiKey);
+    const parsed = parseJsonResponse<{ tips: string[]; remaining: string }>(content);
 
-  return {
-    tips: parsed.tips || [],
-    remaining: parsed.remaining || `${remaining} calories remaining`,
-    generatedAt: new Date().toISOString(),
-  };
+    return {
+      tips: parsed.tips || [],
+      remaining: parsed.remaining || `${remaining} calories remaining`,
+      generatedAt: new Date().toISOString(),
+    };
+  });
 }
 
 export async function generateWeeklyInsights(
@@ -379,7 +445,8 @@ export async function generateWeeklyInsights(
   weighIns: WeighIn[],
   settings: UserSettings,
   _profile: UserProfile | null,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<WeeklyInsights> {
   // Get last 7 days of logs
   const today = new Date();
@@ -426,21 +493,23 @@ Return ONLY JSON (no markdown):
 
 Be encouraging but honest. Focus on actionable insights.`;
 
-  const content = await callGroqText(prompt, apiKey);
-  const parsed = parseJsonResponse<{
-    summary: string;
-    patterns: string[];
-    wins: string[];
-    suggestions: string[];
-  }>(content);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqText(prompt, apiKey);
+    const parsed = parseJsonResponse<{
+      summary: string;
+      patterns: string[];
+      wins: string[];
+      suggestions: string[];
+    }>(content);
 
-  return {
-    summary: parsed.summary || 'Week summary unavailable',
-    patterns: parsed.patterns || [],
-    wins: parsed.wins || [],
-    suggestions: parsed.suggestions || [],
-    generatedAt: new Date().toISOString(),
-  };
+    return {
+      summary: parsed.summary || 'Week summary unavailable',
+      patterns: parsed.patterns || [],
+      wins: parsed.wins || [],
+      suggestions: parsed.suggestions || [],
+      generatedAt: new Date().toISOString(),
+    };
+  });
 }
 
 export async function generateMonthlyInsights(
@@ -449,7 +518,8 @@ export async function generateMonthlyInsights(
   inBodyScans: InBodyScan[],
   settings: UserSettings,
   _profile: UserProfile | null,
-  apiKey: string
+  primaryKey: string | undefined,
+  backupKey?: string
 ): Promise<MonthlyInsights> {
   // Get last 30 days of data
   const today = new Date();
@@ -505,19 +575,21 @@ Return ONLY JSON (no markdown):
 
 Be realistic with predictions. If data is limited, acknowledge it.`;
 
-  const content = await callGroqText(prompt, apiKey);
-  const parsed = parseJsonResponse<{
-    summary: string;
-    trends: string[];
-    goalPrediction: string;
-    comparison: string;
-  }>(content);
+  return callWithFallback(primaryKey, backupKey, async (apiKey) => {
+    const content = await callGroqText(prompt, apiKey);
+    const parsed = parseJsonResponse<{
+      summary: string;
+      trends: string[];
+      goalPrediction: string;
+      comparison: string;
+    }>(content);
 
-  return {
-    summary: parsed.summary || 'Month summary unavailable',
-    trends: parsed.trends || [],
-    goalPrediction: parsed.goalPrediction || 'Not enough data for prediction',
-    comparison: parsed.comparison || '',
-    generatedAt: new Date().toISOString(),
-  };
+    return {
+      summary: parsed.summary || 'Month summary unavailable',
+      trends: parsed.trends || [],
+      goalPrediction: parsed.goalPrediction || 'Not enough data for prediction',
+      comparison: parsed.comparison || '',
+      generatedAt: new Date().toISOString(),
+    };
+  });
 }

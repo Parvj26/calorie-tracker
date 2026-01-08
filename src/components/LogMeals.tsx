@@ -34,6 +34,7 @@ interface LogMealsProps {
   onToggleFavorite: (mealId: string) => void;
   onDateChange: (date: string) => void;
   groqApiKey?: string;
+  groqApiKeyBackup?: string;
   // Food scanner props
   aiProvider: AIProvider;
   openAiApiKey?: string;
@@ -70,6 +71,7 @@ export function LogMeals({
   onToggleFavorite,
   onDateChange,
   groqApiKey,
+  groqApiKeyBackup,
   aiProvider,
   openAiApiKey,
   onLogScannedMeal,
@@ -136,6 +138,7 @@ export function LogMeals({
           aiProvider={aiProvider}
           openAiApiKey={openAiApiKey}
           groqApiKey={groqApiKey}
+          groqApiKeyBackup={groqApiKeyBackup}
           onLogMeal={(meal) => onLogScannedMeal(meal, selectedDate)}
           onSaveAndLogMeal={(meal) => onSaveAndLogMeal(meal, selectedDate)}
           onClose={() => setShowScanner(false)}

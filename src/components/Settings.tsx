@@ -89,6 +89,7 @@ export const Settings: React.FC<SettingsProps> = ({
       ...defaultSettings,
       openAiApiKey: settings.openAiApiKey,
       groqApiKey: settings.groqApiKey,
+      groqApiKeyBackup: settings.groqApiKeyBackup,
       aiProvider: settings.aiProvider,
     });
   };
@@ -306,7 +307,7 @@ export const Settings: React.FC<SettingsProps> = ({
         {formData.aiProvider === 'groq' && (
           <>
             <div className="form-group">
-              <label>Groq API Key</label>
+              <label>Groq API Key (Primary)</label>
               <p className="form-help">
                 Get your free API key from:{' '}
                 <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
@@ -327,7 +328,29 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
             {formData.groqApiKey && formData.groqApiKey.startsWith('gsk_') && (
               <p className="form-help" style={{ color: '#10b981' }}>
-                Groq API key configured
+                Primary key configured
+              </p>
+            )}
+            <div className="form-group">
+              <label>Groq API Key (Backup) - Optional</label>
+              <p className="form-help">
+                Add a second key to use automatically if the primary hits rate limits.
+              </p>
+              <input
+                type="password"
+                value={formData.groqApiKeyBackup || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    groqApiKeyBackup: e.target.value,
+                  })
+                }
+                placeholder="gsk_..."
+              />
+            </div>
+            {formData.groqApiKeyBackup && formData.groqApiKeyBackup.startsWith('gsk_') && (
+              <p className="form-help" style={{ color: '#10b981' }}>
+                Backup key configured
               </p>
             )}
           </>

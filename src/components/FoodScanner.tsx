@@ -22,6 +22,7 @@ interface FoodScannerProps {
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
+  groqApiKeyBackup?: string;
   onLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>) => void;
   onClose: () => void;
@@ -31,6 +32,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   aiProvider,
   openAiApiKey,
   groqApiKey,
+  groqApiKeyBackup,
   onLogMeal,
   onSaveAndLogMeal,
   onClose,
@@ -115,8 +117,8 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
 
     try {
       if (aiProvider === 'groq') {
-        // Use Groq API
-        const foods = await groqAnalyzeFood(base64Image, apiKey);
+        // Use Groq API (with automatic fallback to backup key if rate limited)
+        const foods = await groqAnalyzeFood(base64Image, groqApiKey, groqApiKeyBackup);
         setDetectedFoods(
           foods.map((food) => ({
             foodName: food.name,

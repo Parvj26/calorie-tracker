@@ -125,11 +125,16 @@ export function useInsights({
     error: null,
   });
 
-  // Get API key based on provider
+  // Get API keys based on provider
   const apiKey = useMemo(() => {
     const provider = settings.aiProvider || 'groq';
     return provider === 'groq' ? settings.groqApiKey : settings.openAiApiKey;
   }, [settings.aiProvider, settings.groqApiKey, settings.openAiApiKey]);
+
+  const backupApiKey = useMemo(() => {
+    const provider = settings.aiProvider || 'groq';
+    return provider === 'groq' ? settings.groqApiKeyBackup : undefined;
+  }, [settings.aiProvider, settings.groqApiKeyBackup]);
 
   const hasApiKey = Boolean(apiKey);
 
@@ -160,7 +165,8 @@ export function useInsights({
         todayTotals,
         settings,
         profile,
-        apiKey
+        apiKey,
+        backupApiKey
       );
 
       saveToCache(cacheKey, insights);
@@ -172,7 +178,7 @@ export function useInsights({
         error: error instanceof Error ? error.message : 'Failed to generate insights',
       });
     }
-  }, [apiKey, selectedDate, dailyLogs, todayTotals, settings, profile]);
+  }, [apiKey, backupApiKey, selectedDate, dailyLogs, todayTotals, settings, profile]);
 
   // Generate weekly insights
   const generateWeekly = useCallback(async (forceRefresh = false) => {
@@ -200,7 +206,8 @@ export function useInsights({
         weighIns,
         settings,
         profile,
-        apiKey
+        apiKey,
+        backupApiKey
       );
 
       saveToCache(cacheKey, insights);
@@ -212,7 +219,7 @@ export function useInsights({
         error: error instanceof Error ? error.message : 'Failed to generate insights',
       });
     }
-  }, [apiKey, selectedDate, dailyLogs, weighIns, settings, profile]);
+  }, [apiKey, backupApiKey, selectedDate, dailyLogs, weighIns, settings, profile]);
 
   // Generate monthly insights
   const generateMonthly = useCallback(async (forceRefresh = false) => {
@@ -241,7 +248,8 @@ export function useInsights({
         inBodyScans,
         settings,
         profile,
-        apiKey
+        apiKey,
+        backupApiKey
       );
 
       saveToCache(cacheKey, insights);
@@ -253,7 +261,7 @@ export function useInsights({
         error: error instanceof Error ? error.message : 'Failed to generate insights',
       });
     }
-  }, [apiKey, selectedDate, dailyLogs, weighIns, inBodyScans, settings, profile]);
+  }, [apiKey, backupApiKey, selectedDate, dailyLogs, weighIns, inBodyScans, settings, profile]);
 
   return {
     hasApiKey,

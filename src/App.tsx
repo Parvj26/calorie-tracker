@@ -271,6 +271,7 @@ function AppContent() {
             onToggleFavorite={toggleFavorite}
             onDateChange={setSelectedDate}
             groqApiKey={settings.groqApiKey}
+            groqApiKeyBackup={settings.groqApiKeyBackup}
             aiProvider={settings.aiProvider || 'groq'}
             openAiApiKey={settings.openAiApiKey}
             onLogScannedMeal={logScannedMeal}
@@ -322,6 +323,7 @@ function AppContent() {
             aiProvider={settings.aiProvider || 'groq'}
             openAiApiKey={settings.openAiApiKey}
             groqApiKey={settings.groqApiKey}
+            groqApiKeyBackup={settings.groqApiKeyBackup}
             onAddScan={addInBodyScan}
             onDeleteScan={deleteInBodyScan}
           />

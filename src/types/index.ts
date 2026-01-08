@@ -136,6 +136,7 @@ export interface UserSettings {
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
+  groqApiKeyBackup?: string; // Backup Groq key (auto-used if primary hits rate limits)
   savedMasterMealIds?: string[]; // Community meals saved to user's library
 }
 
