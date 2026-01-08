@@ -1643,11 +1643,60 @@ body {
 .macro-inputs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
 .macro-inputs input {
   margin-bottom: 0;
+}
+
+.macro-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.macro-field label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.macro-field input {
+  margin-bottom: 0;
+}
+
+.form-field {
+  margin-bottom: 12px;
+}
+
+.form-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.form-field input {
+  margin-bottom: 0;
+}
+
+/* Edit Meal Modal */
+.edit-meal-modal {
+  max-width: 480px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.edit-meal-modal .add-meal-form {
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .submit-btn {

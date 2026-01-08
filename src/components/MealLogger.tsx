@@ -564,64 +564,88 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
         })}
       </div>
 
-      {!showAddForm ? (
+      {!showAddForm && !editingMeal && (
         <button className="add-meal-btn" onClick={() => setShowAddForm(true)}>
           <Plus size={20} />
           Add Custom Meal
         </button>
-      ) : (
+      )}
+
+      {/* Add Meal Form (inline) */}
+      {showAddForm && !editingMeal && (
         <form className="add-meal-form" onSubmit={handleAddMeal}>
           <div className="form-header">
-            <h4>{editingMeal ? 'Edit Meal' : 'Add Custom Meal'}</h4>
+            <h4>Add Custom Meal</h4>
             <button type="button" onClick={cancelEdit}>
               <X size={20} />
             </button>
           </div>
-          <input
-            type="text"
-            placeholder="Meal name"
-            value={newMeal.name}
-            onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
-            required
-          />
-          <div className="macro-inputs">
+          <div className="form-field">
+            <label>Meal Name</label>
             <input
-              type="number"
-              placeholder="Calories"
-              value={newMeal.calories}
-              onChange={(e) => setNewMeal({ ...newMeal, calories: e.target.value })}
+              type="text"
+              placeholder="e.g., Chicken Salad"
+              value={newMeal.name}
+              onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
               required
             />
-            <input
-              type="number"
-              placeholder="Protein (g)"
-              value={newMeal.protein}
-              onChange={(e) => setNewMeal({ ...newMeal, protein: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Carbs (g)"
-              value={newMeal.carbs}
-              onChange={(e) => setNewMeal({ ...newMeal, carbs: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Fat (g)"
-              value={newMeal.fat}
-              onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Fiber (g)"
-              value={newMeal.fiber}
-              onChange={(e) => setNewMeal({ ...newMeal, fiber: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Sugar (g)"
-              value={newMeal.sugar}
-              onChange={(e) => setNewMeal({ ...newMeal, sugar: e.target.value })}
-            />
+          </div>
+          <div className="macro-inputs">
+            <div className="macro-field">
+              <label>Calories</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.calories}
+                onChange={(e) => setNewMeal({ ...newMeal, calories: e.target.value })}
+                required
+              />
+            </div>
+            <div className="macro-field">
+              <label>Protein (g)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.protein}
+                onChange={(e) => setNewMeal({ ...newMeal, protein: e.target.value })}
+              />
+            </div>
+            <div className="macro-field">
+              <label>Carbs (g)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.carbs}
+                onChange={(e) => setNewMeal({ ...newMeal, carbs: e.target.value })}
+              />
+            </div>
+            <div className="macro-field">
+              <label>Fat (g)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.fat}
+                onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
+              />
+            </div>
+            <div className="macro-field">
+              <label>Fiber (g)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.fiber}
+                onChange={(e) => setNewMeal({ ...newMeal, fiber: e.target.value })}
+              />
+            </div>
+            <div className="macro-field">
+              <label>Sugar (g)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={newMeal.sugar}
+                onChange={(e) => setNewMeal({ ...newMeal, sugar: e.target.value })}
+              />
+            </div>
           </div>
           <div className="serving-size-input">
             <label>
@@ -661,9 +685,132 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
             </div>
           </details>
           <button type="submit" className="submit-btn" disabled={isFormattingRecipe}>
-            {isFormattingRecipe ? 'Formatting Recipe...' : editingMeal ? 'Update Meal' : 'Add Meal'}
+            {isFormattingRecipe ? 'Formatting Recipe...' : 'Add Meal'}
           </button>
         </form>
+      )}
+
+      {/* Edit Meal Modal */}
+      {editingMeal && (
+        <div className="modal-overlay" onClick={cancelEdit}>
+          <div className="modal-content edit-meal-modal" onClick={(e) => e.stopPropagation()}>
+            <form className="add-meal-form" onSubmit={handleAddMeal}>
+              <div className="form-header">
+                <h4>Edit Meal</h4>
+                <button type="button" onClick={cancelEdit}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="form-field">
+                <label>Meal Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Chicken Salad"
+                  value={newMeal.name}
+                  onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="macro-inputs">
+                <div className="macro-field">
+                  <label>Calories</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.calories}
+                    onChange={(e) => setNewMeal({ ...newMeal, calories: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="macro-field">
+                  <label>Protein (g)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.protein}
+                    onChange={(e) => setNewMeal({ ...newMeal, protein: e.target.value })}
+                  />
+                </div>
+                <div className="macro-field">
+                  <label>Carbs (g)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.carbs}
+                    onChange={(e) => setNewMeal({ ...newMeal, carbs: e.target.value })}
+                  />
+                </div>
+                <div className="macro-field">
+                  <label>Fat (g)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.fat}
+                    onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
+                  />
+                </div>
+                <div className="macro-field">
+                  <label>Fiber (g)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.fiber}
+                    onChange={(e) => setNewMeal({ ...newMeal, fiber: e.target.value })}
+                  />
+                </div>
+                <div className="macro-field">
+                  <label>Sugar (g)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newMeal.sugar}
+                    onChange={(e) => setNewMeal({ ...newMeal, sugar: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="serving-size-input">
+                <label>
+                  <span>Serving size (optional)</span>
+                  <div className="serving-size-row">
+                    <input
+                      type="number"
+                      placeholder="e.g., 100"
+                      value={newMeal.servingSize}
+                      onChange={(e) => setNewMeal({ ...newMeal, servingSize: e.target.value })}
+                      min="1"
+                    />
+                    <span className="serving-size-unit">grams</span>
+                  </div>
+                  <span className="serving-size-hint">Set to enable gram-based logging</span>
+                </label>
+              </div>
+              <details className="recipe-editor">
+                <summary>Edit Recipe (Optional)</summary>
+                <div className="recipe-form">
+                  <label htmlFor="recipe-text-edit">Recipe & Ingredients</label>
+                  <textarea
+                    id="recipe-text-edit"
+                    className="recipe-textarea"
+                    placeholder="Paste ingredients and steps here. We'll format it for you."
+                    value={recipeText}
+                    onChange={(e) => {
+                      setRecipeText(e.target.value);
+                      if (recipeError) setRecipeError(null);
+                    }}
+                    rows={6}
+                  />
+                  {recipeError && <div className="recipe-error">{recipeError}</div>}
+                  <div className="recipe-hint">
+                    Tip: Include sections like Base, Toppings, Dressing, and any nutrition notes.
+                  </div>
+                </div>
+              </details>
+              <button type="submit" className="submit-btn" disabled={isFormattingRecipe}>
+                {isFormattingRecipe ? 'Formatting Recipe...' : 'Update Meal'}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Trash Section */}
