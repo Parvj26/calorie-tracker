@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Save, RotateCcw, User, Target } from 'lucide-react';
-import type { UserSettings, Gender } from '../types';
+import type { UserSettings, Gender, ActivityLevel } from '../types';
+import { ACTIVITY_LABELS } from '../utils/bmrCalculation';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
@@ -25,6 +26,8 @@ export const Settings: React.FC<SettingsProps> = ({
     lastName: '',
     dateOfBirth: '',
     gender: '' as Gender | '',
+    heightCm: '' as string,
+    activityLevel: '' as ActivityLevel | '',
   });
 
   useEffect(() => {
@@ -38,6 +41,8 @@ export const Settings: React.FC<SettingsProps> = ({
         lastName: profile.lastName || '',
         dateOfBirth: profile.dateOfBirth || '',
         gender: profile.gender || '',
+        heightCm: profile.heightCm?.toString() || '',
+        activityLevel: profile.activityLevel || '',
       });
     }
   }, [profile]);
@@ -71,6 +76,8 @@ export const Settings: React.FC<SettingsProps> = ({
       lastName: profileForm.lastName || undefined,
       dateOfBirth: profileForm.dateOfBirth || undefined,
       gender: profileForm.gender || undefined,
+      heightCm: profileForm.heightCm ? parseInt(profileForm.heightCm) : undefined,
+      activityLevel: profileForm.activityLevel || undefined,
     });
     if (success) {
       setProfileSaved(true);
@@ -151,6 +158,37 @@ export const Settings: React.FC<SettingsProps> = ({
               <option value="other">Other</option>
               <option value="prefer-not-to-say">Prefer not to say</option>
             </select>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Height (cm)</label>
+            <input
+              type="number"
+              value={profileForm.heightCm}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, heightCm: e.target.value })
+              }
+              placeholder="e.g., 175"
+              min="100"
+              max="250"
+            />
+            <span className="form-help">Used for BMR calculation</span>
+          </div>
+          <div className="form-group">
+            <label>Activity Level</label>
+            <select
+              value={profileForm.activityLevel}
+              onChange={(e) =>
+                setProfileForm({ ...profileForm, activityLevel: e.target.value as ActivityLevel | '' })
+              }
+            >
+              <option value="">Select...</option>
+              {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <span className="form-help">For daily calorie target</span>
           </div>
         </div>
         <button className="save-btn profile-save-btn" onClick={handleSaveProfile}>

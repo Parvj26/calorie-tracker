@@ -49,6 +49,8 @@ export function useUserProfile() {
               lastName: newProfile.last_name,
               dateOfBirth: newProfile.date_of_birth,
               gender: newProfile.gender,
+              heightCm: newProfile.height_cm,
+              activityLevel: newProfile.activity_level,
               role: newProfile.role,
               createdAt: newProfile.created_at,
               updatedAt: newProfile.updated_at,
@@ -65,6 +67,8 @@ export function useUserProfile() {
           lastName: data.last_name,
           dateOfBirth: data.date_of_birth,
           gender: data.gender,
+          heightCm: data.height_cm,
+          activityLevel: data.activity_level,
           role: data.role,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
@@ -112,6 +116,8 @@ export function useUserProfile() {
       if (updates.dateOfBirth !== undefined) dbUpdates.date_of_birth = updates.dateOfBirth;
       if (updates.gender !== undefined) dbUpdates.gender = updates.gender;
       if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+      if (updates.heightCm !== undefined) dbUpdates.height_cm = updates.heightCm;
+      if (updates.activityLevel !== undefined) dbUpdates.activity_level = updates.activityLevel;
 
       const { error } = await supabase
         .from('user_profiles')

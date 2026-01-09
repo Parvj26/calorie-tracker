@@ -8,6 +8,7 @@ interface ProfileSetupModalProps {
     lastName: string;
     dateOfBirth?: string;
     gender?: Gender;
+    heightCm?: number;
   }) => Promise<boolean>;
 }
 
@@ -16,6 +17,7 @@ export function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
   const [lastName, setLastName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
+  const [heightCm, setHeightCm] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,6 +37,7 @@ export function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
       lastName: lastName.trim(),
       dateOfBirth: dateOfBirth || undefined,
       gender: gender || undefined,
+      heightCm: heightCm ? parseInt(heightCm) : undefined,
     });
 
     if (!success) {
@@ -104,6 +107,20 @@ export function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
                 <option value="prefer-not-to-say">Prefer not to say</option>
               </select>
             </div>
+          </div>
+
+          <div className="form-group full-width">
+            <label htmlFor="heightCm">Height (cm)</label>
+            <input
+              id="heightCm"
+              type="number"
+              value={heightCm}
+              onChange={(e) => setHeightCm(e.target.value)}
+              placeholder="e.g., 175"
+              min="100"
+              max="250"
+            />
+            <span className="form-help">Needed for accurate calorie calculations</span>
           </div>
 
           {error && <div className="profile-setup-error">{error}</div>}

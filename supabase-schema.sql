@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   first_name TEXT,
   last_name TEXT,
   date_of_birth DATE,
-  gender TEXT CHECK (gender IN ('male', 'female', 'other')),
+  gender TEXT CHECK (gender IN ('male', 'female', 'other', 'prefer-not-to-say')),
+  height_cm NUMERIC,  -- Height in centimeters for BMR calculation
+  activity_level TEXT CHECK (activity_level IN ('sedentary', 'light', 'moderate', 'active', 'very_active')),
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -318,3 +320,14 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- MIGRATION: Add height and activity level
+-- Run this if you have an existing installation
+-- ============================================
+-- ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS height_cm NUMERIC;
+-- ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS activity_level TEXT
+--   CHECK (activity_level IN ('sedentary', 'light', 'moderate', 'active', 'very_active'));
+-- ALTER TABLE user_profiles DROP CONSTRAINT IF EXISTS user_profiles_gender_check;
+-- ALTER TABLE user_profiles ADD CONSTRAINT user_profiles_gender_check
+--   CHECK (gender IN ('male', 'female', 'other', 'prefer-not-to-say'));

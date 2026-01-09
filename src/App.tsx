@@ -36,6 +36,9 @@ function AppContent() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showAuth, setShowAuth] = useState(false);
 
+  // User profile and admin status (loaded first for BMR calculations)
+  const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
+
   const {
     meals,
     deletedMeals,
@@ -78,10 +81,7 @@ function AppContent() {
     getMasterMealQuantity,
     getMasterMealUnit,
     getServingMultiplier,
-  } = useCalorieTracker();
-
-  // User profile and admin status
-  const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
+  } = useCalorieTracker(profile);
 
   // Master meals for discover tab
   const {

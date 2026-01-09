@@ -4,8 +4,10 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, parseISO } 
 import { useLocalStorage } from './useLocalStorage';
 import { useSupabaseSync } from './useSupabaseSync';
 import { useAuth } from '../contexts/AuthContext';
-import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
+import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry, QuantityUnit, UserProfile } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
+import { getBMRWithPriority, calculateDailyTarget, type BMRSource } from '../utils/bmrCalculation';
+import { calculateAge } from '../utils/nutritionGoals';
 
 // Helper functions for meal entries with quantity
 const getMealId = (entry: string | MealLogEntry): string => {
@@ -46,7 +48,7 @@ const getServingMultiplier = (quantity: number, unit: QuantityUnit, servingSize?
   return quantity;
 };
 
-export function useCalorieTracker() {
+export function useCalorieTracker(userProfile?: UserProfile | null) {
   const { user } = useAuth();
   const [meals, setMeals] = useLocalStorage<Meal[]>('calorie-tracker-meals', defaultMeals);
   const [deletedMeals, setDeletedMeals] = useLocalStorage<Meal[]>('calorie-tracker-deleted-meals', []);
@@ -603,56 +605,113 @@ export function useCalorieTracker() {
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, addedSugar: 0 }
     );
 
-    const targetCalories = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;
+    // Fallback target calories from settings
+    const settingsTargetCalories = (settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2;
 
-    // Get latest InBody scan with BMR for more accurate resting energy
-    const latestScanWithBMR = inBodyScans
-      .filter(scan => scan.bmr)
+    // Get latest InBody scan for BMR and lean body mass
+    const latestScan = inBodyScans
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
-    // Use health metrics if available for more accurate calculations
+    // Calculate current weight from latest weigh-in or InBody
+    const latestWeighIn = weighIns[weighIns.length - 1];
+    const currentWeight = latestWeighIn?.weight || latestScan?.weight || settings.startWeight;
+
+    // Calculate lean body mass from InBody if available
+    const leanBodyMassKg = latestScan?.muscleMass ||
+      (latestScan?.weight && latestScan?.fatMass
+        ? latestScan.weight - latestScan.fatMass
+        : undefined);
+
+    // Calculate age from DOB if available
+    const ageYears = userProfile?.dateOfBirth
+      ? calculateAge(userProfile.dateOfBirth)
+      : undefined;
+
+    // Get BMR with priority: InBody > Katch-McArdle > Mifflin-St Jeor
+    const bmrResult = getBMRWithPriority({
+      inBodyBMR: latestScan?.bmr,
+      leanBodyMassKg,
+      weightKg: currentWeight,
+      heightCm: userProfile?.heightCm,
+      ageYears,
+      gender: userProfile?.gender,
+    });
+
+    const bmr = bmrResult.bmr;
+    const bmrSource: BMRSource = bmrResult.source;
+
+    // Use health metrics if available
     const healthMetrics = log.healthMetrics;
-
-    // Priority: InBody BMR > Apple Health Resting Energy > 0
-    const restingEnergy = latestScanWithBMR?.bmr || healthMetrics?.restingEnergy || 0;
     const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
-    const tdee = restingEnergy + activeEnergy; // Total Daily Energy Expenditure
-    const hasTDEE = restingEnergy > 0 && activeEnergy > 0;
 
-    // Track which source is being used for transparency
-    const tdeeSource = latestScanWithBMR?.bmr
-      ? 'InBody BMR + Apple Health Active'
-      : healthMetrics?.restingEnergy
-        ? 'Apple Health Estimated'
-        : null;
+    // Calculate target calories (MFP-style)
+    let baseCalories = bmr;
+    let targetCalories = settingsTargetCalories; // Default to settings
+    let hasBMR = bmr > 0;
 
-    // If we have TDEE data, calculate true deficit based on actual burn
-    // Otherwise fall back to target-based calculation
+    // If we have BMR and activity level, calculate proper target
+    if (bmr > 0 && userProfile?.activityLevel) {
+      const dailyTarget = calculateDailyTarget(bmr, userProfile.activityLevel);
+      baseCalories = dailyTarget.baseCalories;
+      targetCalories = dailyTarget.targetCalories;
+    } else if (bmr > 0) {
+      // Have BMR but no activity level - use BMR as base, settings as target
+      baseCalories = bmr;
+    }
+
+    // MFP-style: Exercise adds back calories
+    // Remaining = Target + Exercise - Food
+    const exerciseCalories = activeEnergy;
+    const adjustedTarget = targetCalories + exerciseCalories;
+    const caloriesRemaining = adjustedTarget - totals.calories;
+
+    // Calculate deficit (how much under TDEE we are)
+    // TDEE = BMR + Active Energy (or BMR * activity multiplier if no active data)
+    const tdee = baseCalories > 0 ? baseCalories + exerciseCalories : 0;
+    const hasTDEE = baseCalories > 0;
+    const deficit = hasTDEE ? (tdee - totals.calories) : (settingsTargetCalories - totals.calories);
+    const trueDeficit = hasTDEE ? deficit : 0;
+
+    // Legacy fields for backward compatibility
     const netCalories = totals.calories - activeEnergy;
-    const trueDeficit = hasTDEE ? (tdee - totals.calories) : 0;
-    const deficit = hasTDEE ? trueDeficit : (targetCalories - netCalories);
-    const caloriesRemaining = hasTDEE
-      ? (tdee - totals.calories)
-      : (targetCalories - totals.calories + activeEnergy);
+    const restingEnergy = bmr;
+
+    // Source description for UI
+    const tdeeSource = bmrSource === 'inbody'
+      ? 'InBody BMR'
+      : bmrSource === 'katch_mcardle'
+        ? 'Katch-McArdle (body composition)'
+        : bmrSource === 'mifflin_st_jeor'
+          ? 'Mifflin-St Jeor formula'
+          : null;
 
     return {
       ...totals,
+      // Legacy fields
       workoutCalories: activeEnergy,
       netCalories,
-      deficit,
-      caloriesRemaining,
+      // BMR-based fields (new)
+      bmr,
+      bmrSource,
+      baseCalories,
       targetCalories,
-      // Health-based fields
+      exerciseCalories,
+      adjustedTarget,
+      caloriesRemaining,
+      // TDEE fields
       restingEnergy,
       activeEnergy,
       tdee,
       hasTDEE,
+      hasBMR,
+      deficit,
       trueDeficit,
       tdeeSource,
+      // Health metrics
       steps: healthMetrics?.steps || 0,
       exerciseMinutes: healthMetrics?.exerciseMinutes || 0,
     };
-  }, [meals, settings, inBodyScans]);
+  }, [meals, settings, inBodyScans, weighIns, userProfile]);
 
   // Get weekly summary
   const getWeeklySummary = useCallback(() => {

@@ -156,6 +156,7 @@ export type TabType = 'dashboard' | 'log' | 'discover' | 'progress' | 'inbody' |
 
 export type UserRole = 'user' | 'admin';
 export type Gender = 'male' | 'female' | 'other' | 'prefer-not-to-say';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 
 export interface UserProfile {
   id: string;
@@ -166,6 +167,8 @@ export interface UserProfile {
   lastName?: string;
   dateOfBirth?: string;
   gender?: Gender;
+  heightCm?: number;              // Height in cm for BMR calculation
+  activityLevel?: ActivityLevel;  // Activity level for NEAT calculation
   role: UserRole;
   createdAt?: string;
   updatedAt?: string;
