@@ -730,6 +730,8 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       // Health metrics
       steps: healthMetrics?.steps || 0,
       exerciseMinutes: healthMetrics?.exerciseMinutes || 0,
+      // Body composition from InBody
+      skeletalMuscle: latestScan?.skeletalMuscle || 0,
     };
   }, [meals, settings, inBodyScans, weighIns, userProfile]);
 

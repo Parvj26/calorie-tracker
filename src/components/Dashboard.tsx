@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
 import type { DailyLog, Meal, MasterMeal, UserSettings, HealthMetrics, QuantityUnit, DailyInsights } from '../types';
+import { formatWeightValue } from '../utils/weightConversion';
 
 type MacroType = 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar';
 
@@ -50,6 +51,7 @@ interface DashboardProps {
     trueDeficit: number;
     steps: number;
     exerciseMinutes: number;
+    skeletalMuscle: number;
     // New BMR-based fields
     bmr?: number;
     bmrSource?: 'inbody' | 'katch_mcardle' | 'mifflin_st_jeor' | 'none';
@@ -426,6 +428,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
 
+        {/* Steps Card */}
+        <div className="stat-card steps-card">
+          <div className="stat-card-header">
+            <Footprints size={16} />
+            <span>Steps</span>
+          </div>
+          <div className="stat-card-value">{totals.steps.toLocaleString()}</div>
+          <div className="stat-card-label">today</div>
+        </div>
+
+        {/* Skeletal Muscle Card - Only show if InBody data available */}
+        {totals.skeletalMuscle > 0 && (
+          <div className="stat-card muscle-card">
+            <div className="stat-card-header">
+              <Dumbbell size={16} />
+              <span>Muscle</span>
+            </div>
+            <div className="stat-card-value">{formatWeightValue(totals.skeletalMuscle, settings.weightUnit || 'kg')}</div>
+            <div className="stat-card-label">{settings.weightUnit || 'kg'} skeletal</div>
+          </div>
+        )}
+
         {/* Goal Progress Card */}
         <div className="stat-card goal-card">
           <div className="stat-card-header">
@@ -434,7 +458,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <div className="stat-card-value">{goalProgress.progressPercent}%</div>
           <div className="stat-card-label">
-            {goalProgress.currentWeight} → {goalProgress.goalWeight} kg
+            {formatWeightValue(goalProgress.currentWeight, settings.weightUnit || 'kg')} → {formatWeightValue(goalProgress.goalWeight, settings.weightUnit || 'kg')} {settings.weightUnit || 'kg'}
           </div>
           <div className="goal-mini-progress">
             <div className="goal-mini-fill" style={{ width: `${goalProgress.progressPercent}%` }} />

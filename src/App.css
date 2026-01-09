@@ -845,6 +845,20 @@ body {
   color: var(--primary);
 }
 
+/* Steps Card styling */
+.stat-card.steps-card .stat-card-header {
+  color: #f59e0b;
+}
+
+/* Muscle Card styling */
+.stat-card.muscle-card .stat-card-header {
+  color: #8b5cf6;
+}
+
+.stat-card.muscle-card .stat-card-value {
+  color: #8b5cf6;
+}
+
 .stat-card-label {
   font-size: 0.7rem;
   color: var(--gray-500);
@@ -4468,6 +4482,36 @@ body {
 .provider-tag.paid {
   background: rgba(245, 158, 11, 0.15);
   color: var(--warning);
+}
+
+/* Unit Toggle */
+.unit-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.unit-btn {
+  flex: 1;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.unit-btn:hover {
+  border-color: var(--gray-300);
+}
+
+.unit-btn.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* Auth Styles */

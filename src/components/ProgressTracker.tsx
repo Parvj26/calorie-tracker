@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp, Sparkles, RefreshCw, Loader2, Calendar } from 'lucide-react';
 import type { WeighIn, UserSettings, MonthlyInsights } from '../types';
+import { formatWeightValue, convertWeight, convertToKg } from '../utils/weightConversion';
 
 interface ProgressTrackerProps {
   weighIns: WeighIn[];
@@ -63,6 +64,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   onGenerateMonthlyInsights,
   hasApiKey,
 }) => {
+  const weightUnit = settings.weightUnit || 'kg';
   const [newWeighIn, setNewWeighIn] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     weight: '',
@@ -73,9 +75,13 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     e.preventDefault();
     if (!newWeighIn.weight) return;
 
+    // Convert to kg for storage if using lbs
+    const weightValue = parseFloat(newWeighIn.weight);
+    const weightInKg = weightUnit === 'lbs' ? convertToKg(weightValue, 'lbs') : weightValue;
+
     onAddWeighIn({
       date: newWeighIn.date,
-      weight: parseFloat(newWeighIn.weight),
+      weight: Math.round(weightInKg * 10) / 10, // Round to 1 decimal
     });
 
     setNewWeighIn({
@@ -98,16 +104,16 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         </div>
         <div className="goal-stats">
           <div className="stat">
-            <span className="stat-value">{goalProgress.startWeight}</span>
-            <span className="stat-label">Start (kg)</span>
+            <span className="stat-value">{formatWeightValue(goalProgress.startWeight, weightUnit)}</span>
+            <span className="stat-label">Start ({weightUnit})</span>
           </div>
           <div className="stat current">
-            <span className="stat-value">{goalProgress.currentWeight}</span>
-            <span className="stat-label">Current (kg)</span>
+            <span className="stat-value">{formatWeightValue(goalProgress.currentWeight, weightUnit)}</span>
+            <span className="stat-label">Current ({weightUnit})</span>
           </div>
           <div className="stat">
-            <span className="stat-value">{goalProgress.goalWeight}</span>
-            <span className="stat-label">Goal (kg)</span>
+            <span className="stat-value">{formatWeightValue(goalProgress.goalWeight, weightUnit)}</span>
+            <span className="stat-label">Goal ({weightUnit})</span>
           </div>
         </div>
         <div className="goal-progress-bar">
@@ -122,9 +128,9 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         <div className="goal-details">
           <span className="lost">
             <TrendingDown size={16} />
-            {goalProgress.weightLost} kg lost
+            {formatWeightValue(goalProgress.weightLost, weightUnit)} {weightUnit} lost
           </span>
-          <span className="remaining">{goalProgress.weightRemaining} kg remaining</span>
+          <span className="remaining">{formatWeightValue(goalProgress.weightRemaining, weightUnit)} {weightUnit} remaining</span>
         </div>
       </div>
 
@@ -239,7 +245,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               value={newWeighIn.weight}
               onChange={(e) => setNewWeighIn({ ...newWeighIn, weight: e.target.value })}
             />
-            <span>kg</span>
+            <span>{weightUnit}</span>
           </div>
           <button type="submit">
             <Plus size={16} />
@@ -310,7 +316,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             {progressData.weightData.length > 0 ? (
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={progressData.weightData}>
+                  <LineChart data={progressData.weightData.map(d => ({
+                    ...d,
+                    weight: convertWeight(d.weight, weightUnit)
+                  }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="displayDate"
@@ -328,9 +337,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
                       }}
+                      formatter={(value) => [`${Number(value).toFixed(1)} ${weightUnit}`, 'Weight']}
                     />
                     <ReferenceLine
-                      y={settings.goalWeight}
+                      y={convertWeight(settings.goalWeight, weightUnit)}
                       stroke="#10b981"
                       strokeDasharray="5 5"
                       label={{ value: 'Goal', fill: '#10b981', fontSize: 12 }}
@@ -426,7 +436,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   <Line
                     type="monotone"
                     dataKey="skeletalMuscle"
-                    name="Skeletal Muscle (kg)"
+                    name={`Skeletal Muscle (${weightUnit})`}
                     stroke="#10b981"
                     strokeWidth={2}
                     dot={{ r: 4 }}
@@ -453,7 +463,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   <YAxis
                     tick={{ fontSize: 12 }}
                     stroke="#9ca3af"
-                    label={{ value: 'kg', angle: -90, position: 'insideLeft', fontSize: 12 }}
+                    label={{ value: weightUnit, angle: -90, position: 'insideLeft', fontSize: 12 }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -461,7 +471,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                     }}
-                    formatter={(value) => [`${value} kg`, '']}
+                    formatter={(value) => [`${value} ${weightUnit}`, '']}
                   />
                   <Legend />
                   <Line
@@ -694,7 +704,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   <span className="weighin-date">
                     {format(parseISO(weighIn.date), 'MMM d, yyyy')}
                   </span>
-                  <span className="weighin-weight">{weighIn.weight} kg</span>
+                  <span className="weighin-weight">{formatWeightValue(weighIn.weight, weightUnit)} {weightUnit}</span>
                   <button
                     className="delete-btn"
                     onClick={() => onDeleteWeighIn(weighIn.date)}

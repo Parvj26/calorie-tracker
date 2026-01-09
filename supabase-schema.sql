@@ -7,6 +7,12 @@
 -- ============================================
 -- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS target_date DATE;
 
+-- ============================================
+-- MIGRATION: Add weight_unit to user_settings
+-- Run this if you have an existing database
+-- ============================================
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS weight_unit TEXT DEFAULT 'kg';
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -182,6 +188,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   goal_weight NUMERIC,
   start_date DATE,
   target_date DATE,  -- When user wants to reach goal weight
+  weight_unit TEXT DEFAULT 'kg',  -- Display preference: 'kg' or 'lbs'
   ai_provider TEXT DEFAULT 'groq',
   openai_api_key TEXT,
   groq_api_key TEXT,

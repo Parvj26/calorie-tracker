@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, RotateCcw, User, Target, Footprints } from 'lucide-react';
+import { Save, RotateCcw, User, Target, Footprints, Scale } from 'lucide-react';
 import type { UserSettings, Gender, ActivityLevel, DailyLog } from '../types';
+import { formatWeightValue } from '../utils/weightConversion';
 import { ACTIVITY_LABELS, calculateGoalBasedTarget, ACTIVITY_MULTIPLIERS } from '../utils/bmrCalculation';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -307,6 +308,35 @@ export const Settings: React.FC<SettingsProps> = ({
         </button>
       </div>
 
+      {/* Weight Unit Preference */}
+      <div className="card settings-card preferences-card">
+        <h3><Scale size={20} /> Preferences</h3>
+        <div className="form-group">
+          <label>Weight Unit</label>
+          <div className="unit-toggle">
+            <button
+              className={`unit-btn ${(formData.weightUnit || 'kg') === 'kg' ? 'active' : ''}`}
+              onClick={() => {
+                setFormData({ ...formData, weightUnit: 'kg' });
+                onUpdateSettings({ weightUnit: 'kg' });
+              }}
+            >
+              kg
+            </button>
+            <button
+              className={`unit-btn ${formData.weightUnit === 'lbs' ? 'active' : ''}`}
+              onClick={() => {
+                setFormData({ ...formData, weightUnit: 'lbs' });
+                onUpdateSettings({ weightUnit: 'lbs' });
+              }}
+            >
+              lbs
+            </button>
+          </div>
+          <span className="form-help">All weights will display in this unit</span>
+        </div>
+      </div>
+
       <div className="card settings-card nutrition-goals-card">
         <h3><Target size={20} /> Daily Nutrition Goals</h3>
         {!hasCompleteProfile && (
@@ -351,28 +381,33 @@ export const Settings: React.FC<SettingsProps> = ({
         <h3><Target size={20} /> Weight Goal</h3>
         <div className="form-row">
           <div className="form-group">
-            <label>Current Weight (kg)</label>
+            <label>Current Weight ({formData.weightUnit || 'kg'})</label>
             <input
               type="number"
               step="0.1"
-              value={currentWeight || formData.startWeight}
+              value={formatWeightValue(currentWeight || formData.startWeight, formData.weightUnit || 'kg')}
               disabled
               className="disabled-input"
             />
             <span className="form-help">From latest weigh-in</span>
           </div>
           <div className="form-group">
-            <label>Goal Weight (kg)</label>
+            <label>Goal Weight ({formData.weightUnit || 'kg'})</label>
             <input
               type="number"
               step="0.1"
-              value={formData.goalWeight}
-              onChange={(e) =>
+              value={formatWeightValue(formData.goalWeight, formData.weightUnit || 'kg')}
+              onChange={(e) => {
+                const inputValue = parseFloat(e.target.value) || 0;
+                // Convert back to kg for storage if using lbs
+                const valueInKg = formData.weightUnit === 'lbs'
+                  ? inputValue / 2.20462
+                  : inputValue;
                 setFormData({
                   ...formData,
-                  goalWeight: parseFloat(e.target.value) || 0,
-                })
-              }
+                  goalWeight: valueInKg,
+                });
+              }}
             />
           </div>
         </div>
@@ -414,7 +449,7 @@ export const Settings: React.FC<SettingsProps> = ({
               <div className="goal-stat">
                 <span className="stat-label">Weekly loss</span>
                 <span className={`stat-value ${goalPreview.isAggressive ? 'warning' : ''}`}>
-                  {goalPreview.weeklyWeightLoss} kg/week
+                  {formatWeightValue(goalPreview.weeklyWeightLoss, formData.weightUnit || 'kg')} {formData.weightUnit || 'kg'}/week
                 </span>
               </div>
               <div className="goal-stat">
@@ -435,7 +470,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
             {goalPreview.isAggressive && (
               <p className="goal-warning">
-                Losing more than 1kg/week is aggressive. Consider extending your timeline for sustainable results.
+                Losing more than {(formData.weightUnit || 'kg') === 'lbs' ? '2.2 lbs' : '1 kg'}/week is aggressive. Consider extending your timeline for sustainable results.
               </p>
             )}
             {goalPreview.isTooLow && (

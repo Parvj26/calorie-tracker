@@ -126,6 +126,7 @@ export interface WeighIn {
 }
 
 export type AIProvider = 'openai' | 'groq';
+export type WeightUnit = 'kg' | 'lbs';
 
 export interface UserSettings {
   dailyCalorieTargetMin: number;
@@ -134,6 +135,7 @@ export interface UserSettings {
   goalWeight: number;
   startDate: string;
   targetDate?: string; // When to reach goal weight (YYYY-MM-DD)
+  weightUnit?: WeightUnit; // Display preference for weights (default: kg)
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;
