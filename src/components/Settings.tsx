@@ -30,6 +30,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const activityRec = useActivityRecommendation(dailyLogs, profile?.activityLevel);
   const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [goalSaved, setGoalSaved] = useState(false);
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
@@ -116,6 +117,16 @@ export const Settings: React.FC<SettingsProps> = ({
     onUpdateSettings(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveGoal = () => {
+    onUpdateSettings({
+      goalWeight: formData.goalWeight,
+      startDate: formData.startDate,
+      targetDate: formData.targetDate,
+    });
+    setGoalSaved(true);
+    setTimeout(() => setGoalSaved(false), 2000);
   };
 
   const handleReset = () => {
@@ -403,6 +414,11 @@ export const Settings: React.FC<SettingsProps> = ({
             Set a target date to see your personalized calorie goal based on your BMR ({bmr} cal).
           </p>
         )}
+
+        <button className="save-btn" onClick={handleSaveGoal} style={{ marginTop: '1rem' }}>
+          <Save size={16} />
+          {goalSaved ? 'Saved!' : 'Save Goal'}
+        </button>
       </div>
 
       <div className="card settings-card">
