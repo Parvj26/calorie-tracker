@@ -671,12 +671,17 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     const adjustedTarget = targetCalories + exerciseCalories;
     const caloriesRemaining = adjustedTarget - totals.calories;
 
-    // Calculate deficit (how much under TDEE we are)
-    // TDEE = BMR + Active Energy (or BMR * activity multiplier if no active data)
+    // Calculate TDEE (Total Daily Energy Expenditure)
+    // TDEE = BMR + Active Energy
     const tdee = baseCalories > 0 ? baseCalories + exerciseCalories : 0;
     const hasTDEE = baseCalories > 0;
-    const deficit = hasTDEE ? (tdee - totals.calories) : (settingsTargetCalories - totals.calories);
-    const trueDeficit = hasTDEE ? deficit : 0;
+
+    // Deficit shows how much under your base goal (before exercise bonus)
+    // This is consistent with the goal shown in the hero
+    const deficit = targetCalories - totals.calories;
+
+    // True deficit is how much under TDEE (actual weight loss)
+    const trueDeficit = hasTDEE ? (tdee - totals.calories) : deficit;
 
     // Legacy fields for backward compatibility
     const netCalories = totals.calories - activeEnergy;
