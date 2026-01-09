@@ -96,24 +96,6 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="landing-stats">
-        <div className="stat">
-          <span className="stat-number">10K+</span>
-          <span className="stat-label">Foods in database</span>
-        </div>
-        <div className="stat-divider"></div>
-        <div className="stat">
-          <span className="stat-number">99%</span>
-          <span className="stat-label">AI accuracy</span>
-        </div>
-        <div className="stat-divider"></div>
-        <div className="stat">
-          <span className="stat-number">Free</span>
-          <span className="stat-label">Forever</span>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="landing-cta">
         <button className="cta-button" onClick={onGetStarted}>
