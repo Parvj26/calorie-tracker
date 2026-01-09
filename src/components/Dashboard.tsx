@@ -137,7 +137,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
-  const targetCalories = totals.hasTDEE ? totals.tdee : totals.targetCalories;
+  // Always use goal-based target (BMR - deficit), not TDEE
+  // totals.targetCalories is calculated as BMR - deficit in useCalorieTracker
+  const targetCalories = totals.targetCalories;
   const calorieProgress = Math.min(100, (totals.calories / targetCalories) * 100);
   const isOverTarget = totals.caloriesRemaining < 0;
 
@@ -325,7 +327,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="hero-divider">/</div>
           <div className="hero-target">
             <span className="detail-value">{targetCalories}</span>
-            <span className="detail-label">{totals.hasTDEE ? 'TDEE' : 'target'}</span>
+            <span className="detail-label">goal</span>
           </div>
         </div>
         <span className="tap-hint">Tap for breakdown</span>
