@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Save, RotateCcw, User, Target, Footprints, Scale } from 'lucide-react';
 import type { UserSettings, Gender, ActivityLevel, DailyLog } from '../types';
-import { formatWeightValue } from '../utils/weightConversion';
+import { formatWeightValue, convertToKg } from '../utils/weightConversion';
 import { ACTIVITY_LABELS, calculateGoalBasedTarget, ACTIVITY_MULTIPLIERS } from '../utils/bmrCalculation';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -32,6 +32,8 @@ export const Settings: React.FC<SettingsProps> = ({
   const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [goalSaved, setGoalSaved] = useState(false);
+  // Local state for goal weight input (stores display value in user's unit)
+  const [goalWeightInput, setGoalWeightInput] = useState('');
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
@@ -58,7 +60,16 @@ export const Settings: React.FC<SettingsProps> = ({
 
   useEffect(() => {
     setFormData(settings);
+    // Initialize goal weight input in user's preferred unit
+    const unit = settings.weightUnit || 'kg';
+    setGoalWeightInput(formatWeightValue(settings.goalWeight, unit));
   }, [settings]);
+
+  // Update goal weight display when unit changes
+  useEffect(() => {
+    const unit = formData.weightUnit || 'kg';
+    setGoalWeightInput(formatWeightValue(settings.goalWeight, unit));
+  }, [formData.weightUnit, settings.goalWeight]);
 
   useEffect(() => {
     if (profile) {
@@ -101,14 +112,19 @@ export const Settings: React.FC<SettingsProps> = ({
   // Calculate goal-based target preview
   const goalPreview = useMemo(() => {
     if (!bmr || bmr <= 0) return null;
+    // Convert goal weight input to kg for calculation
+    const inputValue = parseFloat(goalWeightInput) || 0;
+    const goalWeightKg = (formData.weightUnit || 'kg') === 'lbs'
+      ? convertToKg(inputValue, 'lbs')
+      : inputValue;
     return calculateGoalBasedTarget(
       bmr,
       currentWeight || settings.startWeight,
-      formData.goalWeight,
+      goalWeightKg,
       formData.targetDate,
       profile?.gender
     );
-  }, [bmr, currentWeight, settings.startWeight, formData.goalWeight, formData.targetDate, profile?.gender]);
+  }, [bmr, currentWeight, settings.startWeight, goalWeightInput, formData.targetDate, formData.weightUnit, profile?.gender]);
 
   // Calculate estimated maintenance calories (informational only)
   const estimatedMaintenance = useMemo(() => {
@@ -143,8 +159,14 @@ export const Settings: React.FC<SettingsProps> = ({
   };
 
   const handleSaveGoal = () => {
+    // Convert goal weight from display unit to kg for storage
+    const inputValue = parseFloat(goalWeightInput) || 0;
+    const goalWeightKg = (formData.weightUnit || 'kg') === 'lbs'
+      ? convertToKg(inputValue, 'lbs')
+      : inputValue;
+
     onUpdateSettings({
-      goalWeight: formData.goalWeight,
+      goalWeight: Math.round(goalWeightKg * 10) / 10,
       startDate: formData.startDate,
       targetDate: formData.targetDate,
     });
@@ -396,18 +418,8 @@ export const Settings: React.FC<SettingsProps> = ({
             <input
               type="number"
               step="0.1"
-              value={formatWeightValue(formData.goalWeight, formData.weightUnit || 'kg')}
-              onChange={(e) => {
-                const inputValue = parseFloat(e.target.value) || 0;
-                // Convert back to kg for storage if using lbs
-                const valueInKg = formData.weightUnit === 'lbs'
-                  ? inputValue / 2.20462
-                  : inputValue;
-                setFormData({
-                  ...formData,
-                  goalWeight: valueInKg,
-                });
-              }}
+              value={goalWeightInput}
+              onChange={(e) => setGoalWeightInput(e.target.value)}
             />
           </div>
         </div>
