@@ -26,6 +26,7 @@ import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { DiscoverTab } from './components/Discover/DiscoverTab';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
+import { LandingPage } from './components/LandingPage';
 import type { TabType } from './types';
 import './App.css';
 
@@ -33,6 +34,7 @@ function AppContent() {
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showAuth, setShowAuth] = useState(false);
 
   const {
     meals,
@@ -166,9 +168,12 @@ function AppContent() {
     );
   }
 
-  // Show auth screen if not logged in
+  // Show landing page or auth screen if not logged in
   if (!user) {
-    return <Auth />;
+    if (showAuth) {
+      return <Auth onBack={() => setShowAuth(false)} />;
+    }
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
   }
 
   const tabs = [

@@ -6795,3 +6795,225 @@ input[type="range"]::-webkit-slider-thumb {
 .spinner {
   animation: spin 1s linear infinite;
 }
+
+/* ================================
+   LANDING PAGE STYLES
+   ================================ */
+
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.landing-hero {
+  text-align: center;
+  padding: 60px 20px 40px;
+}
+
+.landing-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.landing-hero .tagline {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-top: 8px;
+}
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.feature {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 20px 16px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  margin: 0 auto 12px;
+}
+
+.feature-text h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.feature-text p {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.landing-cta {
+  text-align: center;
+  padding: 40px 20px;
+  margin-top: auto;
+}
+
+.cta-button {
+  background: white;
+  color: #4f46e5;
+  border: none;
+  padding: 16px 48px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 54px;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+}
+
+.cta-button:active {
+  transform: scale(0.98);
+}
+
+.cta-subtext {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 12px;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* Mobile: Stack features vertically on small screens */
+@media (max-width: 400px) {
+  .landing-hero h1 {
+    font-size: 2rem;
+  }
+
+  .landing-features {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .feature-icon {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .feature-text {
+    flex: 1;
+  }
+}
+
+/* ================================
+   MOBILE BOTTOM NAVIGATION
+   ================================ */
+
+@media (max-width: 768px) {
+  /* Move nav to bottom */
+  .app-nav {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: none;
+    border-top: 1px solid var(--gray-200);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+    background: white;
+  }
+
+  /* Adjust z-index stacking */
+  .app-header {
+    z-index: 102;
+  }
+
+  .app-nav {
+    z-index: 101;
+  }
+
+  .floating-scan-btn {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+  }
+
+  /* Add padding to main content for bottom nav */
+  .app-main {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Adjust content areas */
+  .meal-logger,
+  .settings,
+  .inbody-upload,
+  .health-scanner,
+  .progress-tracker,
+  .discover-tab,
+  .weekly-summary {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Active indicator on bottom nav */
+  .nav-btn.active {
+    border-bottom: none;
+    border-top: 2px solid var(--primary);
+  }
+}
+
+/* Auth back button */
+.auth-back-btn {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.auth-back-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader2, ArrowLeft } from 'lucide-react';
 
-export const Auth: React.FC = () => {
+interface AuthProps {
+  onBack?: () => void;
+}
+
+export const Auth: React.FC<AuthProps> = ({ onBack }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +42,12 @@ export const Auth: React.FC = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        {onBack && (
+          <button className="auth-back-btn" onClick={onBack} type="button">
+            <ArrowLeft size={20} />
+            Back
+          </button>
+        )}
         <div className="auth-header">
           <h1>CalorieTracker</h1>
           <p>Your personalized nutrition companion</p>
