@@ -680,23 +680,30 @@ Body fat: ${inBodyProgress.latest.bodyFatPercent}%${inBodyProgress.bodyFatChange
 Muscle mass: ${inBodyProgress.latest.muscleMass}kg${inBodyProgress.muscleChange !== null ? ` (${inBodyProgress.muscleChange >= 0 ? '+' : ''}${inBodyProgress.muscleChange.toFixed(1)}kg change)` : ''}` : ''}
 
 === YOUR TASK ===
-Provide personalized, motivating insights that make the user feel understood and supported. Be SPECIFIC about their actual meals and patterns. Celebrate their wins genuinely.
+Give SHORT, punchy insights. Each must be ONE sentence, MAX 15 words. Be specific and personal.
 
 Return ONLY JSON (no markdown):
 {
-  "patternInsight": "One key observation about their eating pattern based on their specific data. Reference actual meals or behaviors.",
-  "actionItem": "One specific, actionable suggestion they can implement TODAY. Be concrete - mention specific foods or times.",
-  "progressSummary": "Encouraging summary of their journey progress. Include specific numbers. Make them feel proud.",
-  "wins": ["1-2 genuine wins to celebrate - be specific about what they did well"],
-  "remaining": "Brief, helpful summary of what's left for the day"
+  "patternInsight": "max 15 words about their eating pattern",
+  "actionItem": "max 15 words - one specific thing to do TODAY",
+  "progressSummary": "max 15 words - encouraging progress with numbers",
+  "wins": ["max 12 words each - 1-2 wins to celebrate"],
+  "remaining": "max 10 words - what's left for today"
 }
 
-IMPORTANT:
-- Be warm and personal, like a friend who cares
-- Reference their ACTUAL meals by name when relevant
-- Celebrate progress genuinely - they're working hard!
-- Make the action item something they can do TODAY
-- If they're struggling, be supportive not judgmental`;
+EXAMPLES OF GOOD (SHORT) RESPONSES:
+- "42g protein from that burrito - solid choice!"
+- "Add Greek yogurt this afternoon for an easy +15g protein."
+- "Down 3.2kg this month - you're 32% to your goal!"
+- "You've logged 6 days straight - consistency wins."
+- "380 cal left - perfect for a light dinner."
+
+CRITICAL RULES:
+- MAXIMUM 15 words per field (wins: 12 words each)
+- Be punchy, not preachy
+- Reference their actual meals by name
+- Include specific numbers when possible
+- Sound like a supportive friend, not a lecture`;
 
   return callWithFallback(primaryKey, backupKey, async (apiKey) => {
     const content = await callGroqText(prompt, apiKey);
