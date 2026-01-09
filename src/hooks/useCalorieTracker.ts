@@ -6,7 +6,7 @@ import { useSupabaseSync } from './useSupabaseSync';
 import { useAuth } from '../contexts/AuthContext';
 import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry, QuantityUnit, UserProfile } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
-import { getBMRWithPriority, calculateDailyTarget, type BMRSource } from '../utils/bmrCalculation';
+import { getBMRWithPriority, calculateGoalBasedTarget, type BMRSource, type GoalBasedTarget } from '../utils/bmrCalculation';
 import { calculateAge } from '../utils/nutritionGoals';
 
 // Helper functions for meal entries with quantity
@@ -644,22 +644,28 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     const healthMetrics = log.healthMetrics;
     const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
 
-    // Calculate target calories (MFP-style)
+    // Calculate goal-based target (BMR - deficit)
+    // Activity level is NOT used in calculation - only BMR matters
     let baseCalories = bmr;
-    let targetCalories = settingsTargetCalories; // Default to settings
+    let targetCalories = settingsTargetCalories; // Fallback to settings
     let hasBMR = bmr > 0;
 
-    // If we have BMR and activity level, calculate proper target
-    if (bmr > 0 && userProfile?.activityLevel) {
-      const dailyTarget = calculateDailyTarget(bmr, userProfile.activityLevel);
-      baseCalories = dailyTarget.baseCalories;
-      targetCalories = dailyTarget.targetCalories;
-    } else if (bmr > 0) {
-      // Have BMR but no activity level - use BMR as base, settings as target
-      baseCalories = bmr;
+    // If we have BMR, use goal-based calculation
+    // Goal = BMR - (daily deficit based on target weight + target date)
+    let goalTarget: GoalBasedTarget | null = null;
+    if (bmr > 0) {
+      goalTarget = calculateGoalBasedTarget(
+        bmr,
+        currentWeight,
+        settings.goalWeight,
+        settings.targetDate,
+        userProfile?.gender
+      );
+      targetCalories = goalTarget.targetCalories;
+      baseCalories = bmr; // BMR is the base, not BMR * activity
     }
 
-    // MFP-style: Exercise adds back calories
+    // Exercise adds back calories (bonus)
     // Remaining = Target + Exercise - Food
     const exerciseCalories = activeEnergy;
     const adjustedTarget = targetCalories + exerciseCalories;
@@ -698,6 +704,12 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       exerciseCalories,
       adjustedTarget,
       caloriesRemaining,
+      // Goal-based fields
+      dailyDeficit: goalTarget?.dailyDeficit || 0,
+      weeklyWeightLoss: goalTarget?.weeklyWeightLoss || 0,
+      weeksToGoal: goalTarget?.weeksToGoal || 0,
+      isGoalAggressive: goalTarget?.isAggressive || false,
+      isGoalTooLow: goalTarget?.isTooLow || false,
       // TDEE fields
       restingEnergy,
       activeEnergy,

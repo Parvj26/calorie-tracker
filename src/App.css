@@ -3390,6 +3390,160 @@ body {
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* Activity Recommendation Card */
+.activity-recommendation-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--success);
+  margin-bottom: 8px;
+}
+
+.rec-message {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.rec-suggestion {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  margin-bottom: 12px;
+  color: var(--gray-800);
+}
+
+.rec-update-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.875rem;
+}
+
+/* Maintenance Info */
+.maintenance-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.maintenance-label {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.maintenance-value {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.maintenance-formula {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+}
+
+/* Goal Summary (Settings Page) */
+.goal-summary {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.goal-summary .goal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media screen and (min-width: 500px) {
+  .goal-summary .goal-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.goal-stat {
+  text-align: center;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+}
+
+.goal-stat .stat-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.goal-stat .stat-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+.goal-stat .stat-value.warning {
+  color: var(--warning);
+}
+
+.goal-stat .stat-value.danger {
+  color: var(--danger);
+}
+
+.goal-stat .stat-value.success {
+  color: var(--success);
+}
+
+/* Goal Warning/Danger Messages */
+.goal-warning {
+  font-size: 0.875rem;
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.goal-danger {
+  font-size: 0.875rem;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+/* Disabled input styling */
+.disabled-input {
+  background: var(--gray-100) !important;
+  color: var(--gray-500) !important;
+  cursor: not-allowed;
+}
+
+/* Profile Save Button */
+.profile-save-btn {
+  margin-top: 16px;
+}
+
 /* Recipe Import Section */
 .recipe-import-section {
   background: var(--gray-50);

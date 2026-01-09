@@ -199,3 +199,73 @@ export function canCalculateBMR(params: {
     missingFields,
   };
 }
+
+/**
+ * Goal-based calorie calculation
+ * Calorie Goal = BMR - Daily Deficit
+ * Activity level is NOT used in calculation - only BMR matters
+ */
+export interface GoalBasedTarget {
+  targetCalories: number;    // BMR - deficit
+  dailyDeficit: number;      // Calories to cut per day
+  weeklyWeightLoss: number;  // kg/week
+  weeksToGoal: number;
+  isAggressive: boolean;     // > 1kg/week
+  isTooLow: boolean;         // Below safe minimum
+}
+
+/**
+ * Calculate goal-based calorie target
+ * Goal = BMR - (required daily deficit to reach target weight by target date)
+ *
+ * @param bmr - Basal Metabolic Rate
+ * @param currentWeight - Current weight in kg
+ * @param goalWeight - Target weight in kg
+ * @param targetDate - When to reach goal (YYYY-MM-DD)
+ * @param gender - For minimum calorie calculation
+ */
+export function calculateGoalBasedTarget(
+  bmr: number,
+  currentWeight: number,
+  goalWeight: number | undefined,
+  targetDate: string | undefined,
+  gender: Gender | undefined
+): GoalBasedTarget {
+  // If no valid goal set, just use BMR as target
+  if (!bmr || bmr <= 0 || !goalWeight || !currentWeight || goalWeight >= currentWeight || !targetDate) {
+    return {
+      targetCalories: bmr || 0,
+      dailyDeficit: 0,
+      weeklyWeightLoss: 0,
+      weeksToGoal: 0,
+      isAggressive: false,
+      isTooLow: false,
+    };
+  }
+
+  const today = new Date();
+  const target = new Date(targetDate);
+  const daysToGoal = Math.max(1, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  const weeksToGoal = daysToGoal / 7;
+
+  const weightToLose = currentWeight - goalWeight;
+  const weeklyWeightLoss = weightToLose / weeksToGoal;
+
+  // 1 kg fat = ~7700 calories
+  const dailyDeficit = Math.round((weightToLose * 7700) / daysToGoal);
+  const targetCalories = Math.round(bmr - dailyDeficit);
+
+  // Safety checks
+  const minCalories = gender === 'female' ? 1200 : 1500;
+  const isAggressive = weeklyWeightLoss > 1;
+  const isTooLow = targetCalories < minCalories;
+
+  return {
+    targetCalories: Math.max(minCalories, targetCalories), // Enforce minimum
+    dailyDeficit,
+    weeklyWeightLoss: Math.round(weeklyWeightLoss * 10) / 10,
+    weeksToGoal: Math.round(weeksToGoal),
+    isAggressive,
+    isTooLow,
+  };
+}

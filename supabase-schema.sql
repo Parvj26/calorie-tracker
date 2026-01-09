@@ -1,6 +1,12 @@
 -- CalorieTracker Database Schema
 -- Run this in your Supabase SQL Editor to set up the database
 
+-- ============================================
+-- MIGRATION: Add target_date to user_settings
+-- Run this if you have an existing database
+-- ============================================
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS target_date DATE;
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -175,6 +181,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   start_weight NUMERIC,
   goal_weight NUMERIC,
   start_date DATE,
+  target_date DATE,  -- When user wants to reach goal weight
   ai_provider TEXT DEFAULT 'groq',
   openai_api_key TEXT,
   groq_api_key TEXT,

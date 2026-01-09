@@ -133,6 +133,7 @@ export interface UserSettings {
   startWeight: number;
   goalWeight: number;
   startDate: string;
+  targetDate?: string; // When to reach goal weight (YYYY-MM-DD)
   aiProvider: AIProvider;
   openAiApiKey?: string;
   groqApiKey?: string;

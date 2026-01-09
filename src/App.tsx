@@ -359,6 +359,8 @@ function AppContent() {
             settings={settings}
             onUpdateSettings={updateSettings}
             currentWeight={goalProgress.currentWeight}
+            bmr={totals.bmr}
+            dailyLogs={dailyLogs}
           />
         )}
       </main>

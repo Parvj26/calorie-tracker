@@ -1,24 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, RotateCcw, User, Target } from 'lucide-react';
-import type { UserSettings, Gender, ActivityLevel } from '../types';
-import { ACTIVITY_LABELS } from '../utils/bmrCalculation';
+import { Save, RotateCcw, User, Target, Footprints } from 'lucide-react';
+import type { UserSettings, Gender, ActivityLevel, DailyLog } from '../types';
+import { ACTIVITY_LABELS, calculateGoalBasedTarget, ACTIVITY_MULTIPLIERS } from '../utils/bmrCalculation';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useActivityRecommendation } from '../hooks/useActivityRecommendation';
+import { getRecommendationReason } from '../utils/activityRecommendation';
 import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
 
 interface SettingsProps {
   settings: UserSettings;
   onUpdateSettings: (settings: Partial<UserSettings>) => void;
   currentWeight?: number; // From weighIns or inBodyScans
+  bmr?: number; // For goal calculation preview
+  dailyLogs?: DailyLog[]; // For activity recommendation
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   settings,
   onUpdateSettings,
   currentWeight,
+  bmr,
+  dailyLogs = [],
 }) => {
   const { profile, updateProfile } = useUserProfile();
   const [formData, setFormData] = useState(settings);
+
+  // Activity level recommendation based on actual behavior
+  const activityRec = useActivityRecommendation(dailyLogs, profile?.activityLevel);
   const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -69,6 +78,24 @@ export const Settings: React.FC<SettingsProps> = ({
   }, [profile, settings, currentWeight]);
 
   const hasCompleteProfile = profile?.dateOfBirth && profile?.gender && (profile.gender === 'male' || profile.gender === 'female');
+
+  // Calculate goal-based target preview
+  const goalPreview = useMemo(() => {
+    if (!bmr || bmr <= 0) return null;
+    return calculateGoalBasedTarget(
+      bmr,
+      currentWeight || settings.startWeight,
+      formData.goalWeight,
+      formData.targetDate,
+      profile?.gender
+    );
+  }, [bmr, currentWeight, settings.startWeight, formData.goalWeight, formData.targetDate, profile?.gender]);
+
+  // Calculate estimated maintenance calories (informational only)
+  const estimatedMaintenance = useMemo(() => {
+    if (!bmr || bmr <= 0 || !profile?.activityLevel) return null;
+    return Math.round(bmr * ACTIVITY_MULTIPLIERS[profile.activityLevel]);
+  }, [bmr, profile?.activityLevel]);
 
   const handleSaveProfile = async () => {
     const success = await updateProfile({
@@ -188,9 +215,43 @@ export const Settings: React.FC<SettingsProps> = ({
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <span className="form-help">For daily calorie target</span>
+            <span className="form-help">For estimated maintenance calories (informational)</span>
           </div>
         </div>
+
+        {/* Activity Level Recommendation */}
+        {activityRec.shouldRecommend && (
+          <div className="activity-recommendation-card">
+            <div className="rec-header">
+              <Footprints size={16} />
+              <span>Activity Level Suggestion</span>
+            </div>
+            <p className="rec-message">
+              {getRecommendationReason(activityRec)}
+            </p>
+            <div className="rec-suggestion">
+              <strong>{ACTIVITY_LABELS[activityRec.recommendedLevel]}</strong>
+            </div>
+            <button
+              className="btn btn-primary rec-update-btn"
+              onClick={() => {
+                setProfileForm({ ...profileForm, activityLevel: activityRec.recommendedLevel });
+              }}
+            >
+              Update Activity Level
+            </button>
+          </div>
+        )}
+
+        {/* Show estimated maintenance if activity level is set */}
+        {estimatedMaintenance && bmr && (
+          <div className="maintenance-info">
+            <span className="maintenance-label">Estimated maintenance:</span>
+            <span className="maintenance-value">{estimatedMaintenance} cal/day</span>
+            <span className="maintenance-formula">(BMR {bmr} × {profile?.activityLevel ? ACTIVITY_MULTIPLIERS[profile.activityLevel] : '?'})</span>
+          </div>
+        )}
+
         <button className="save-btn profile-save-btn" onClick={handleSaveProfile}>
           <Save size={16} />
           {profileSaved ? 'Saved!' : 'Save Profile'}
@@ -270,22 +331,19 @@ export const Settings: React.FC<SettingsProps> = ({
         </p>
       </div>
 
-      <div className="card settings-card">
-        <h3>Weight Goals</h3>
+      <div className="card settings-card goal-card">
+        <h3><Target size={20} /> Weight Goal</h3>
         <div className="form-row">
           <div className="form-group">
-            <label>Start Weight (kg)</label>
+            <label>Current Weight (kg)</label>
             <input
               type="number"
               step="0.1"
-              value={formData.startWeight}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  startWeight: parseFloat(e.target.value) || 0,
-                })
-              }
+              value={currentWeight || formData.startWeight}
+              disabled
+              className="disabled-input"
             />
+            <span className="form-help">From latest weigh-in</span>
           </div>
           <div className="form-group">
             <label>Goal Weight (kg)</label>
@@ -302,19 +360,82 @@ export const Settings: React.FC<SettingsProps> = ({
             />
           </div>
         </div>
-        <div className="form-group">
-          <label>Start Date</label>
-          <input
-            type="date"
-            value={formData.startDate}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                startDate: e.target.value,
-              })
-            }
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label>Start Date</label>
+            <input
+              type="date"
+              value={formData.startDate}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  startDate: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label>Target Date</label>
+            <input
+              type="date"
+              value={formData.targetDate || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  targetDate: e.target.value,
+                })
+              }
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <span className="form-help">When to reach goal weight</span>
+          </div>
         </div>
+
+        {/* Goal Preview */}
+        {goalPreview && goalPreview.dailyDeficit > 0 && (
+          <div className="goal-summary">
+            <div className="goal-stats">
+              <div className="goal-stat">
+                <span className="stat-label">Weekly loss</span>
+                <span className={`stat-value ${goalPreview.isAggressive ? 'warning' : ''}`}>
+                  {goalPreview.weeklyWeightLoss} kg/week
+                </span>
+              </div>
+              <div className="goal-stat">
+                <span className="stat-label">Daily deficit</span>
+                <span className="stat-value">{goalPreview.dailyDeficit} cal</span>
+              </div>
+              <div className="goal-stat">
+                <span className="stat-label">Calorie target</span>
+                <span className={`stat-value ${goalPreview.isTooLow ? 'danger' : 'success'}`}>
+                  {goalPreview.targetCalories} cal
+                </span>
+              </div>
+              <div className="goal-stat">
+                <span className="stat-label">Time to goal</span>
+                <span className="stat-value">{goalPreview.weeksToGoal} weeks</span>
+              </div>
+            </div>
+
+            {goalPreview.isAggressive && (
+              <p className="goal-warning">
+                Losing more than 1kg/week is aggressive. Consider extending your timeline for sustainable results.
+              </p>
+            )}
+            {goalPreview.isTooLow && (
+              <p className="goal-danger">
+                Target is below safe minimum. Calorie goal has been adjusted to a safe level.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Show message if no target date set */}
+        {bmr && bmr > 0 && !formData.targetDate && (
+          <p className="form-help" style={{ marginTop: '1rem' }}>
+            Set a target date to see your personalized calorie goal based on your BMR ({bmr} cal).
+          </p>
+        )}
       </div>
 
       <div className="card settings-card">
