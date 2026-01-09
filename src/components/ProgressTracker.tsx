@@ -13,8 +13,32 @@ import {
   AreaChart,
   Legend,
 } from 'recharts';
-import { Target, TrendingDown, Plus, Trash2, Footprints, Flame, Trophy, TrendingUp, Sparkles, RefreshCw, Loader2, Calendar } from 'lucide-react';
+import {
+  Target,
+  TrendingDown,
+  Plus,
+  Trash2,
+  Footprints,
+  Flame,
+  Trophy,
+  TrendingUp,
+  Sparkles,
+  RefreshCw,
+  Loader2,
+  Calendar,
+  Brain,
+  Scale,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import type { WeighIn, UserSettings, MonthlyInsights } from '../types';
+import type { BodyIntelligence } from '../utils/bodyIntelligence';
+import {
+  getResponseScoreInterpretation,
+  getQualityInterpretation,
+  getMetabolicInterpretation,
+} from '../utils/bodyIntelligence';
 import { formatWeightValue, convertWeight, convertToKg } from '../utils/weightConversion';
 
 interface ProgressTrackerProps {
@@ -32,6 +56,7 @@ interface ProgressTrackerProps {
       currentStreak: number;
       daysTracked: number;
     };
+    bodyIntelligence: BodyIntelligence;
   };
   goalProgress: {
     startWeight: number;
@@ -69,19 +94,33 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     date: format(new Date(), 'yyyy-MM-dd'),
     weight: '',
   });
-  const [activeChart, setActiveChart] = useState<'weight' | 'calories' | 'body' | 'steps' | 'fatmuscle' | 'bmr' | 'visceral'>('weight');
+  const [activeChart, setActiveChart] = useState<'weight' | 'energy' | 'activity'>('weight');
+  const [showWeighIns, setShowWeighIns] = useState(false);
+
+  const bodyIntelligence = progressData.bodyIntelligence;
+  const responseInterp = getResponseScoreInterpretation(
+    bodyIntelligence.responseScore,
+    bodyIntelligence.responseStatus
+  );
+  const qualityInterp = getQualityInterpretation(
+    bodyIntelligence.fatLossEfficiency,
+    bodyIntelligence.qualityStatus
+  );
+  const metabolicInterp = getMetabolicInterpretation(
+    bodyIntelligence.metabolicStatus,
+    bodyIntelligence.bmrChange
+  );
 
   const handleAddWeighIn = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWeighIn.weight) return;
 
-    // Convert to kg for storage if using lbs
     const weightValue = parseFloat(newWeighIn.weight);
     const weightInKg = weightUnit === 'lbs' ? convertToKg(weightValue, 'lbs') : weightValue;
 
     onAddWeighIn({
       date: newWeighIn.date,
-      weight: Math.round(weightInKg * 10) / 10, // Round to 1 decimal
+      weight: Math.round(weightInKg * 10) / 10,
     });
 
     setNewWeighIn({
@@ -90,30 +129,225 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     });
   };
 
+  // Calculate this month's weight change for hero stats
+  const monthWeightChange = bodyIntelligence.actualWeightLoss;
+
   return (
     <div className="progress-tracker">
       <div className="progress-header">
-        <h2>Progress Tracking</h2>
+        <h2>Progress</h2>
       </div>
+
+      {/* Hero Stats Bar */}
+      <div className="hero-stats-bar">
+        <div className="hero-stat">
+          <span className="hero-stat-value" style={{ color: monthWeightChange > 0 ? '#10b981' : '#6b7280' }}>
+            {monthWeightChange > 0 ? '-' : ''}{formatWeightValue(Math.abs(monthWeightChange), weightUnit)}
+          </span>
+          <span className="hero-stat-label">This Month</span>
+        </div>
+        <div className="hero-stat-divider" />
+        <div className="hero-stat">
+          <span
+            className="hero-stat-value"
+            style={{ color: responseInterp.color }}
+          >
+            {bodyIntelligence.responseStatus !== 'insufficient-data'
+              ? `${bodyIntelligence.responseScore}%`
+              : '—'}
+          </span>
+          <span className="hero-stat-label">Response</span>
+        </div>
+        <div className="hero-stat-divider" />
+        <div className="hero-stat">
+          <span
+            className="hero-stat-value"
+            style={{ color: qualityInterp.color }}
+          >
+            {bodyIntelligence.hasInBodyData && bodyIntelligence.fatLossEfficiency > 0
+              ? `${bodyIntelligence.fatLossEfficiency}%`
+              : '—'}
+          </span>
+          <span className="hero-stat-label">Fat Loss</span>
+        </div>
+      </div>
+
+      {/* Body Intelligence Card */}
+      <div className="card body-intelligence-card">
+        <div className="card-header">
+          <Brain size={20} />
+          <h3>Body Intelligence</h3>
+        </div>
+        <div className="intelligence-status" style={{ borderLeftColor: responseInterp.color }}>
+          <span className="status-emoji">{responseInterp.emoji}</span>
+          <div className="status-content">
+            <span className="status-title" style={{ color: responseInterp.color }}>
+              {responseInterp.status}
+            </span>
+            <p className="status-message">{responseInterp.message}</p>
+          </div>
+        </div>
+
+        {bodyIntelligence.responseStatus !== 'insufficient-data' && (
+          <div className="intelligence-details">
+            <div className="detail-row">
+              <span className="detail-label">Expected loss:</span>
+              <span className="detail-value">
+                -{formatWeightValue(bodyIntelligence.expectedWeightLoss, weightUnit)} {weightUnit}
+              </span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Actual loss:</span>
+              <span className="detail-value highlight">
+                -{formatWeightValue(bodyIntelligence.actualWeightLoss, weightUnit)} {weightUnit}
+              </span>
+            </div>
+            <div className="response-bar">
+              <div
+                className="response-fill"
+                style={{
+                  width: `${Math.min(100, Math.max(0, bodyIntelligence.responseScore))}%`,
+                  backgroundColor: responseInterp.color,
+                }}
+              />
+              <span className="response-label">{bodyIntelligence.responseScore}%</span>
+            </div>
+            <p className="intelligence-footnote">
+              Based on {bodyIntelligence.accumulatedDeficit.toLocaleString()} cal deficit
+              over {bodyIntelligence.daysWithData} days
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Weight Quality Card (only show with InBody data) */}
+      {bodyIntelligence.hasInBodyData && bodyIntelligence.totalWeightLost > 0 && (
+        <div className="card weight-quality-card">
+          <div className="card-header">
+            <Scale size={20} />
+            <h3>Weight Quality</h3>
+          </div>
+          <div className="quality-status" style={{ borderLeftColor: qualityInterp.color }}>
+            <span className="status-emoji">{qualityInterp.emoji}</span>
+            <div className="status-content">
+              <span className="status-title" style={{ color: qualityInterp.color }}>
+                {qualityInterp.status}
+              </span>
+              <p className="status-message">{qualityInterp.message}</p>
+            </div>
+          </div>
+
+          <div className="quality-breakdown">
+            <div className="breakdown-item">
+              <div className="breakdown-header">
+                <span>Fat</span>
+                <span>-{formatWeightValue(bodyIntelligence.fatLost, weightUnit)} {weightUnit}</span>
+              </div>
+              <div className="breakdown-bar">
+                <div
+                  className="breakdown-fill fat"
+                  style={{
+                    width: `${Math.min(100, (bodyIntelligence.fatLost / bodyIntelligence.totalWeightLost) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="breakdown-item">
+              <div className="breakdown-header">
+                <span>Muscle</span>
+                <span>
+                  {bodyIntelligence.muscleLost > 0 ? '-' : '+'}
+                  {formatWeightValue(Math.abs(bodyIntelligence.muscleLost), weightUnit)} {weightUnit}
+                </span>
+              </div>
+              <div className="breakdown-bar">
+                <div
+                  className="breakdown-fill muscle"
+                  style={{
+                    width: `${Math.min(100, Math.abs(bodyIntelligence.muscleLost / bodyIntelligence.totalWeightLost) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            {bodyIntelligence.waterChange !== 0 && (
+              <div className="breakdown-item">
+                <div className="breakdown-header">
+                  <span>Water</span>
+                  <span>
+                    {bodyIntelligence.waterChange > 0 ? '-' : '+'}
+                    {formatWeightValue(Math.abs(bodyIntelligence.waterChange), weightUnit)} {weightUnit}
+                  </span>
+                </div>
+                <div className="breakdown-bar">
+                  <div
+                    className="breakdown-fill water"
+                    style={{
+                      width: `${Math.min(100, Math.abs(bodyIntelligence.waterChange / bodyIntelligence.totalWeightLost) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Metabolic Health Card (only show with BMR data) */}
+      {bodyIntelligence.hasBMRData && (
+        <div className="card metabolic-health-card">
+          <div className="card-header">
+            <Activity size={20} />
+            <h3>Metabolic Health</h3>
+          </div>
+          <div className="metabolic-status" style={{ borderLeftColor: metabolicInterp.color }}>
+            <span className="status-emoji">{metabolicInterp.emoji}</span>
+            <div className="status-content">
+              <span className="status-title" style={{ color: metabolicInterp.color }}>
+                {metabolicInterp.status}
+              </span>
+              <p className="status-message">{metabolicInterp.message}</p>
+            </div>
+          </div>
+
+          <div className="metabolic-details">
+            <div className="detail-row">
+              <span className="detail-label">Current BMR:</span>
+              <span className="detail-value">{bodyIntelligence.currentBMR} cal/day</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">BMR Change:</span>
+              <span
+                className="detail-value"
+                style={{ color: bodyIntelligence.bmrChange < 0 ? '#f59e0b' : '#10b981' }}
+              >
+                {bodyIntelligence.bmrChange > 0 ? '+' : ''}{bodyIntelligence.bmrChange} cal/day
+              </span>
+            </div>
+            <p className="metabolic-footnote">
+              Expected: {bodyIntelligence.expectedBmrChange} cal drop per {formatWeightValue(bodyIntelligence.totalWeightLost, weightUnit)} {weightUnit} lost
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Goal Progress Card */}
       <div className="card goal-card">
         <div className="goal-header">
           <Target size={24} />
-          <h3>Weight Goal Progress</h3>
+          <h3>Weight Goal</h3>
         </div>
         <div className="goal-stats">
           <div className="stat">
             <span className="stat-value">{formatWeightValue(goalProgress.startWeight, weightUnit)}</span>
-            <span className="stat-label">Start ({weightUnit})</span>
+            <span className="stat-label">Start</span>
           </div>
           <div className="stat current">
             <span className="stat-value">{formatWeightValue(goalProgress.currentWeight, weightUnit)}</span>
-            <span className="stat-label">Current ({weightUnit})</span>
+            <span className="stat-label">Current</span>
           </div>
           <div className="stat">
             <span className="stat-value">{formatWeightValue(goalProgress.goalWeight, weightUnit)}</span>
-            <span className="stat-label">Goal ({weightUnit})</span>
+            <span className="stat-label">Goal</span>
           </div>
         </div>
         <div className="goal-progress-bar">
@@ -122,7 +356,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             style={{ width: `${goalProgress.progressPercent}%` }}
           />
           <span className="goal-progress-text">
-            {goalProgress.progressPercent}% to goal
+            {goalProgress.progressPercent}% complete
           </span>
         </div>
         <div className="goal-details">
@@ -130,7 +364,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             <TrendingDown size={16} />
             {formatWeightValue(goalProgress.weightLost, weightUnit)} {weightUnit} lost
           </span>
-          <span className="remaining">{formatWeightValue(goalProgress.weightRemaining, weightUnit)} {weightUnit} remaining</span>
+          <span className="remaining">{formatWeightValue(goalProgress.weightRemaining, weightUnit)} {weightUnit} to go</span>
         </div>
       </div>
 
@@ -173,12 +407,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </div>
         ) : monthlyInsights ? (
           <div className="monthly-insights-content">
-            {/* Summary */}
             <div className="monthly-insight-section summary-section">
               <p className="monthly-summary-text">{monthlyInsights.summary}</p>
             </div>
 
-            {/* Goal Prediction */}
             {monthlyInsights.goalPrediction && (
               <div className="monthly-insight-section prediction-section">
                 <div className="section-header">
@@ -189,7 +421,6 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               </div>
             )}
 
-            {/* Trends */}
             {monthlyInsights.trends.length > 0 && (
               <div className="monthly-insight-section">
                 <div className="section-header">
@@ -204,7 +435,6 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               </div>
             )}
 
-            {/* Comparison */}
             {monthlyInsights.comparison && (
               <div className="monthly-insight-section comparison-section">
                 <div className="section-header">
@@ -254,68 +484,37 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         </form>
       </div>
 
-      {/* Chart Tabs */}
+      {/* Consolidated Chart Tabs (3 instead of 7) */}
       <div className="chart-tabs">
         <button
           className={activeChart === 'weight' ? 'active' : ''}
           onClick={() => setActiveChart('weight')}
         >
-          Weight
+          Weight & Body
         </button>
         <button
-          className={activeChart === 'calories' ? 'active' : ''}
-          onClick={() => setActiveChart('calories')}
+          className={activeChart === 'energy' ? 'active' : ''}
+          onClick={() => setActiveChart('energy')}
         >
-          Calories
+          Energy
         </button>
         <button
-          className={activeChart === 'steps' ? 'active' : ''}
-          onClick={() => setActiveChart('steps')}
+          className={activeChart === 'activity' ? 'active' : ''}
+          onClick={() => setActiveChart('activity')}
         >
-          Steps
+          Activity
         </button>
-        {progressData.bodyCompData.length > 0 && (
-          <button
-            className={activeChart === 'body' ? 'active' : ''}
-            onClick={() => setActiveChart('body')}
-          >
-            Body Comp
-          </button>
-        )}
-        {progressData.bodyCompData.filter((d: any) => d.fatMass).length > 0 && (
-          <button
-            className={activeChart === 'fatmuscle' ? 'active' : ''}
-            onClick={() => setActiveChart('fatmuscle')}
-          >
-            Fat vs Muscle
-          </button>
-        )}
-        {progressData.bodyCompData.filter((d: any) => d.bmr).length > 0 && (
-          <button
-            className={activeChart === 'bmr' ? 'active' : ''}
-            onClick={() => setActiveChart('bmr')}
-          >
-            BMR
-          </button>
-        )}
-        {progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
-          <button
-            className={activeChart === 'visceral' ? 'active' : ''}
-            onClick={() => setActiveChart('visceral')}
-          >
-            Visceral Fat
-          </button>
-        )}
       </div>
 
       {/* Charts */}
       <div className="card chart-card">
+        {/* Weight & Body Tab */}
         {activeChart === 'weight' && (
           <>
             <h3>Weight Over Time</h3>
             {progressData.weightData.length > 0 ? (
               <div className="chart-container">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={progressData.weightData.map(d => ({
                     ...d,
                     weight: convertWeight(d.weight, weightUnit)
@@ -323,12 +522,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="displayDate"
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       stroke="#9ca3af"
                     />
                     <YAxis
                       domain={['dataMin - 2', 'dataMax + 2']}
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       stroke="#9ca3af"
                     />
                     <Tooltip
@@ -343,15 +542,15 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                       y={convertWeight(settings.goalWeight, weightUnit)}
                       stroke="#10b981"
                       strokeDasharray="5 5"
-                      label={{ value: 'Goal', fill: '#10b981', fontSize: 12 }}
+                      label={{ value: 'Goal', fill: '#10b981', fontSize: 11 }}
                     />
                     <Line
                       type="monotone"
                       dataKey="weight"
                       stroke="#6366f1"
                       strokeWidth={2}
-                      dot={{ fill: '#6366f1', r: 4 }}
-                      activeDot={{ r: 6 }}
+                      dot={{ fill: '#6366f1', r: 3 }}
+                      activeDot={{ r: 5 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -359,22 +558,116 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             ) : (
               <p className="no-data">No weight data yet. Add your first weigh-in above!</p>
             )}
+
+            {/* Body Composition (if InBody data exists) */}
+            {progressData.bodyCompData.length > 0 && (
+              <>
+                <h3 style={{ marginTop: '1.5rem' }}>Body Composition</h3>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={progressData.bodyCompData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="displayDate"
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                      />
+                      <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="bodyFat"
+                        name="Body Fat %"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="skeletalMuscle"
+                        name={`Skeletal Muscle (${weightUnit})`}
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
+
+            {/* Fat vs Muscle Chart (if data exists) */}
+            {progressData.bodyCompData.filter((d: any) => d.fatMass).length > 1 && (
+              <>
+                <h3 style={{ marginTop: '1.5rem' }}>Fat vs Muscle Mass</h3>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={progressData.bodyCompData.filter((d: any) => d.fatMass)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="displayDate"
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                        label={{ value: weightUnit, angle: -90, position: 'insideLeft', fontSize: 11 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value) => [`${value} ${weightUnit}`, '']}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="fatMass"
+                        name="Fat Mass"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#ef4444' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="muscleMass"
+                        name="Muscle Mass"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#10b981' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </>
         )}
 
-        {activeChart === 'calories' && (
+        {/* Energy Tab */}
+        {activeChart === 'energy' && (
           <>
             <h3>Daily Calories (Last 30 Days)</h3>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={progressData.calorieData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="displayDate"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 11 }}
                     stroke="#9ca3af"
                   />
-                  <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
                   <Tooltip
                     contentStyle={{
                       background: '#fff',
@@ -402,242 +695,98 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {/* BMR Trend (if data exists) */}
+            {progressData.bodyCompData.filter((d: any) => d.bmr).length > 1 && (
+              <>
+                <h3 style={{ marginTop: '1.5rem' }}>BMR Trend</h3>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={progressData.bodyCompData.filter((d: any) => d.bmr)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="displayDate"
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                        label={{ value: 'kcal/day', angle: -90, position: 'insideLeft', fontSize: 11 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value) => [`${value} kcal/day`, 'BMR']}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="bmr"
+                        name="BMR"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#f59e0b' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </>
         )}
 
-        {activeChart === 'body' && progressData.bodyCompData.length > 0 && (
-          <>
-            <h3>Body Composition</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={progressData.bodyCompData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="displayDate"
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                  />
-                  <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="bodyFat"
-                    name="Body Fat %"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="skeletalMuscle"
-                    name={`Skeletal Muscle (${weightUnit})`}
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
-
-        {/* Fat vs Muscle Chart */}
-        {activeChart === 'fatmuscle' && progressData.bodyCompData.filter((d: any) => d.fatMass).length > 0 && (
-          <>
-            <h3>Fat Mass vs Muscle Mass</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={progressData.bodyCompData.filter((d: any) => d.fatMass)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="displayDate"
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                    label={{ value: weightUnit, angle: -90, position: 'insideLeft', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value) => [`${value} ${weightUnit}`, '']}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="fatMass"
-                    name="Fat Mass"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: '#ef4444' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="muscleMass"
-                    name="Muscle Mass"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: '#10b981' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
-
-        {/* BMR Trend Chart */}
-        {activeChart === 'bmr' && progressData.bodyCompData.filter((d: any) => d.bmr).length > 0 && (
-          <>
-            <h3>Basal Metabolic Rate (BMR) Trend</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={progressData.bodyCompData.filter((d: any) => d.bmr)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="displayDate"
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                    label={{ value: 'kcal/day', angle: -90, position: 'insideLeft', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value) => [`${value} kcal/day`, 'BMR']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="bmr"
-                    name="BMR"
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: '#f59e0b' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
-
-        {/* Visceral Fat Chart */}
-        {activeChart === 'visceral' && progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
-          <>
-            <h3>Visceral Fat Grade</h3>
-            <p className="chart-subtitle">
-              <span className="healthy-zone">Grade 1-9: Healthy</span>
-              <span className="elevated-zone">Grade 10-14: Elevated</span>
-              <span className="danger-zone">Grade 15+: High Risk</span>
-            </p>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={progressData.bodyCompData.filter((d: any) => d.visceralFatGrade)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="displayDate"
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                  />
-                  <YAxis
-                    domain={[0, 20]}
-                    tick={{ fontSize: 12 }}
-                    stroke="#9ca3af"
-                    label={{ value: 'Grade', angle: -90, position: 'insideLeft', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value) => {
-                      const numValue = Number(value);
-                      return [
-                        `Grade ${value}`,
-                        numValue < 10 ? 'Healthy' : numValue < 15 ? 'Elevated' : 'High Risk'
-                      ];
-                    }}
-                  />
-                  <ReferenceLine y={10} stroke="#f59e0b" strokeDasharray="5 5" />
-                  <ReferenceLine y={15} stroke="#ef4444" strokeDasharray="5 5" />
-                  <Line
-                    type="monotone"
-                    dataKey="visceralFatGrade"
-                    name="Visceral Fat"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: '#8b5cf6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
-
-        {activeChart === 'steps' && (
+        {/* Activity Tab */}
+        {activeChart === 'activity' && (
           <>
             <h3>Daily Steps (Last 30 Days)</h3>
             {progressData.stepsData.length > 0 ? (
               <>
-                {/* Motivational Stats */}
+                {/* Steps Stats Grid */}
                 <div className="steps-stats-grid">
                   <div className="steps-stat-card">
-                    <Flame size={20} className="stat-icon flame" />
+                    <Flame size={18} className="stat-icon flame" />
                     <div className="stat-content">
                       <span className="stat-value">{progressData.stepsStats.currentStreak}</span>
-                      <span className="stat-label">Day Streak (10k+)</span>
+                      <span className="stat-label">Day Streak</span>
                     </div>
                   </div>
                   <div className="steps-stat-card">
-                    <TrendingUp size={20} className="stat-icon avg" />
+                    <TrendingUp size={18} className="stat-icon avg" />
                     <div className="stat-content">
                       <span className="stat-value">{progressData.stepsStats.avgSteps.toLocaleString()}</span>
-                      <span className="stat-label">Daily Average</span>
+                      <span className="stat-label">Avg Steps</span>
                     </div>
                   </div>
                   <div className="steps-stat-card">
-                    <Trophy size={20} className="stat-icon trophy" />
+                    <Trophy size={18} className="stat-icon trophy" />
                     <div className="stat-content">
                       <span className="stat-value">{progressData.stepsStats.maxSteps.toLocaleString()}</span>
-                      <span className="stat-label">Personal Best</span>
+                      <span className="stat-label">Best Day</span>
                     </div>
                   </div>
                   <div className="steps-stat-card">
-                    <Footprints size={20} className="stat-icon total" />
+                    <Footprints size={18} className="stat-icon total" />
                     <div className="stat-content">
                       <span className="stat-value">{progressData.stepsStats.totalSteps.toLocaleString()}</span>
-                      <span className="stat-label">Total Steps</span>
+                      <span className="stat-label">Total</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Steps Chart */}
                 <div className="chart-container">
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <AreaChart data={progressData.stepsData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="displayDate"
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 11 }}
                         stroke="#9ca3af"
                       />
-                      <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                      <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
                       <Tooltip
                         contentStyle={{
                           background: '#fff',
@@ -650,7 +799,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                         y={10000}
                         stroke="#10b981"
                         strokeDasharray="5 5"
-                        label={{ value: '10k Goal', fill: '#10b981', fontSize: 12 }}
+                        label={{ value: '10k', fill: '#10b981', fontSize: 11 }}
                       />
                       <Area
                         type="monotone"
@@ -663,22 +812,58 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   </ResponsiveContainer>
                 </div>
 
-                {/* Motivational Message */}
-                <div className="steps-motivation">
-                  {progressData.stepsStats.avgSteps >= 10000 ? (
-                    <p className="motivation-text success">
-                      Amazing! You're averaging {progressData.stepsStats.avgSteps.toLocaleString()} steps daily. Keep crushing it!
+                {/* Visceral Fat (if data exists) */}
+                {progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
+                  <>
+                    <h3 style={{ marginTop: '1.5rem' }}>Visceral Fat Grade</h3>
+                    <p className="chart-subtitle">
+                      <span className="healthy-zone">1-9: Healthy</span>
+                      <span className="elevated-zone">10-14: Elevated</span>
+                      <span className="danger-zone">15+: High Risk</span>
                     </p>
-                  ) : progressData.stepsStats.avgSteps >= 7500 ? (
-                    <p className="motivation-text good">
-                      Great progress! You're {(10000 - progressData.stepsStats.avgSteps).toLocaleString()} steps away from 10k average.
-                    </p>
-                  ) : (
-                    <p className="motivation-text encourage">
-                      Every step counts! Aim for 10,000 steps daily to boost your health.
-                    </p>
-                  )}
-                </div>
+                    <div className="chart-container">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={progressData.bodyCompData.filter((d: any) => d.visceralFatGrade)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis
+                            dataKey="displayDate"
+                            tick={{ fontSize: 11 }}
+                            stroke="#9ca3af"
+                          />
+                          <YAxis
+                            domain={[0, 20]}
+                            tick={{ fontSize: 11 }}
+                            stroke="#9ca3af"
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#fff',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                            }}
+                            formatter={(value) => {
+                              const numValue = Number(value);
+                              return [
+                                `Grade ${value}`,
+                                numValue < 10 ? 'Healthy' : numValue < 15 ? 'Elevated' : 'High Risk'
+                              ];
+                            }}
+                          />
+                          <ReferenceLine y={10} stroke="#f59e0b" strokeDasharray="5 5" />
+                          <ReferenceLine y={15} stroke="#ef4444" strokeDasharray="5 5" />
+                          <Line
+                            type="monotone"
+                            dataKey="visceralFatGrade"
+                            name="Visceral Fat"
+                            stroke="#8b5cf6"
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: '#8b5cf6' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="no-data">
@@ -691,29 +876,38 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         )}
       </div>
 
-      {/* Recent Weigh-ins */}
+      {/* Collapsible Recent Weigh-ins */}
       {weighIns.length > 0 && (
         <div className="card weighins-list">
-          <h3>Recent Weigh-ins</h3>
-          <div className="weighins-grid">
-            {[...weighIns]
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .slice(0, 10)
-              .map((weighIn) => (
-                <div key={weighIn.date} className="weighin-item">
-                  <span className="weighin-date">
-                    {format(parseISO(weighIn.date), 'MMM d, yyyy')}
-                  </span>
-                  <span className="weighin-weight">{formatWeightValue(weighIn.weight, weightUnit)} {weightUnit}</span>
-                  <button
-                    className="delete-btn"
-                    onClick={() => onDeleteWeighIn(weighIn.date)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-          </div>
+          <button
+            className="weighins-toggle"
+            onClick={() => setShowWeighIns(!showWeighIns)}
+          >
+            <h3>Recent Weigh-ins</h3>
+            {showWeighIns ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+
+          {showWeighIns && (
+            <div className="weighins-grid">
+              {[...weighIns]
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .slice(0, 10)
+                .map((weighIn) => (
+                  <div key={weighIn.date} className="weighin-item">
+                    <span className="weighin-date">
+                      {format(parseISO(weighIn.date), 'MMM d, yyyy')}
+                    </span>
+                    <span className="weighin-weight">{formatWeightValue(weighIn.weight, weightUnit)} {weightUnit}</span>
+                    <button
+                      className="delete-btn"
+                      onClick={() => onDeleteWeighIn(weighIn.date)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
     </div>

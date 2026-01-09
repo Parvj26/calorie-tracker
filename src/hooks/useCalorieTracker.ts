@@ -8,6 +8,7 @@ import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, 
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
 import { getBMRWithPriority, calculateGoalBasedTarget, type BMRSource, type GoalBasedTarget } from '../utils/bmrCalculation';
 import { calculateAge } from '../utils/nutritionGoals';
+import { calculateBodyIntelligence } from '../utils/bodyIntelligence';
 
 // Helper functions for meal entries with quantity
 const getMealId = (entry: string | MealLogEntry): string => {
@@ -872,6 +873,40 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       }
     }
 
+    // Calculate BMR for body intelligence
+    const latestScan = inBodyScans
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const latestWeighIn = weighIns[weighIns.length - 1];
+    const currentWeight = latestWeighIn?.weight || latestScan?.weight || settings.startWeight;
+
+    const leanBodyMassKg = latestScan?.muscleMass ||
+      (latestScan?.weight && latestScan?.fatMass
+        ? latestScan.weight - latestScan.fatMass
+        : undefined);
+
+    const ageYears = userProfile?.dateOfBirth
+      ? calculateAge(userProfile.dateOfBirth)
+      : undefined;
+
+    const bmrResult = getBMRWithPriority({
+      inBodyBMR: latestScan?.bmr,
+      leanBodyMassKg,
+      weightKg: currentWeight,
+      heightCm: userProfile?.heightCm,
+      ageYears,
+      gender: userProfile?.gender,
+    });
+
+    // Calculate body intelligence
+    const bodyIntelligence = calculateBodyIntelligence(
+      dailyLogs,
+      weighIns,
+      inBodyScans,
+      meals,
+      bmrResult.bmr,
+      30 // Last 30 days
+    );
+
     return {
       calorieData,
       weightData,
@@ -884,8 +919,9 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         currentStreak,
         daysTracked: daysWithSteps.length,
       },
+      bodyIntelligence,
     };
-  }, [dailyLogs, weighIns, inBodyScans, settings, calculateTotals, getLogForDate]);
+  }, [dailyLogs, weighIns, inBodyScans, meals, settings, userProfile, calculateTotals, getLogForDate]);
 
   // Get progress towards goal
   const getGoalProgress = useCallback(() => {
