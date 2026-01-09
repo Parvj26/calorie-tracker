@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, Loader, Activity, Footprints, Check, AlertCircle, Flame, Clock, Zap, Edit3 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { extractHealthData, type HealthDataExtracted } from '../utils/openai';
 import { groqExtractHealthData } from '../utils/groq';
 import type { AIProvider, HealthMetrics } from '../types';
@@ -150,7 +150,7 @@ export const HealthScanner: React.FC<HealthScannerProps> = ({
                 <div className="import-success">
                   <Check size={48} className="success-icon" />
                   <h3>Saved!</h3>
-                  <p>Health metrics updated for {format(new Date(selectedDate), 'MMM d, yyyy')}</p>
+                  <p>Health metrics updated for {format(parseISO(selectedDate), 'MMM d, yyyy')}</p>
                   <button className="done-btn" onClick={onClose}>Done</button>
                 </div>
               ) : (

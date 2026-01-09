@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
   LineChart,
   Line,
@@ -692,7 +692,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               .map((weighIn) => (
                 <div key={weighIn.date} className="weighin-item">
                   <span className="weighin-date">
-                    {format(new Date(weighIn.date), 'MMM d, yyyy')}
+                    {format(parseISO(weighIn.date), 'MMM d, yyyy')}
                   </span>
                   <span className="weighin-weight">{weighIn.weight} kg</span>
                   <button
