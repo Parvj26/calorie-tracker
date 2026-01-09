@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { encryptValue, decryptValue } from '../utils/encryption';
 import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings } from '../types';
 
 interface SyncState {
@@ -84,20 +85,28 @@ export function useSupabaseSync() {
         userId: s.user_id,
       }));
 
-      const settings: UserSettings | null = settingsRes.data
-        ? {
-            dailyCalorieTargetMin: settingsRes.data.daily_calorie_target_min,
-            dailyCalorieTargetMax: settingsRes.data.daily_calorie_target_max,
-            startWeight: settingsRes.data.start_weight,
-            goalWeight: settingsRes.data.goal_weight,
-            startDate: settingsRes.data.start_date,
-            aiProvider: settingsRes.data.ai_provider || 'groq',
-            openAiApiKey: settingsRes.data.openai_api_key,
-            groqApiKey: settingsRes.data.groq_api_key,
-            groqApiKeyBackup: settingsRes.data.groq_api_key_backup,
-            savedMasterMealIds: settingsRes.data.saved_master_meal_ids || [],
-          }
-        : null;
+      // Decrypt API keys if they exist
+      let settings: UserSettings | null = null;
+      if (settingsRes.data) {
+        const [decryptedOpenAiKey, decryptedGroqKey, decryptedGroqBackupKey] = await Promise.all([
+          settingsRes.data.openai_api_key ? decryptValue(settingsRes.data.openai_api_key, user.id) : Promise.resolve(undefined),
+          settingsRes.data.groq_api_key ? decryptValue(settingsRes.data.groq_api_key, user.id) : Promise.resolve(undefined),
+          settingsRes.data.groq_api_key_backup ? decryptValue(settingsRes.data.groq_api_key_backup, user.id) : Promise.resolve(undefined),
+        ]);
+
+        settings = {
+          dailyCalorieTargetMin: settingsRes.data.daily_calorie_target_min,
+          dailyCalorieTargetMax: settingsRes.data.daily_calorie_target_max,
+          startWeight: settingsRes.data.start_weight,
+          goalWeight: settingsRes.data.goal_weight,
+          startDate: settingsRes.data.start_date,
+          aiProvider: settingsRes.data.ai_provider || 'groq',
+          openAiApiKey: decryptedOpenAiKey,
+          groqApiKey: decryptedGroqKey,
+          groqApiKeyBackup: decryptedGroqBackupKey,
+          savedMasterMealIds: settingsRes.data.saved_master_meal_ids || [],
+        };
+      }
 
       setSyncState({
         isSyncing: false,
@@ -247,9 +256,16 @@ export function useSupabaseSync() {
     await supabase.from('inbody_scans').delete().eq('id', scanId).eq('user_id', user.id);
   }, [user]);
 
-  // Save settings to Supabase
+  // Save settings to Supabase (with encrypted API keys)
   const saveSettings = useCallback(async (settings: UserSettings) => {
     if (!user) return;
+
+    // Encrypt API keys before storing
+    const [encryptedOpenAiKey, encryptedGroqKey, encryptedGroqBackupKey] = await Promise.all([
+      settings.openAiApiKey ? encryptValue(settings.openAiApiKey, user.id) : Promise.resolve(undefined),
+      settings.groqApiKey ? encryptValue(settings.groqApiKey, user.id) : Promise.resolve(undefined),
+      settings.groqApiKeyBackup ? encryptValue(settings.groqApiKeyBackup, user.id) : Promise.resolve(undefined),
+    ]);
 
     await supabase.from('user_settings').upsert({
       user_id: user.id,
@@ -259,9 +275,9 @@ export function useSupabaseSync() {
       goal_weight: settings.goalWeight,
       start_date: settings.startDate,
       ai_provider: settings.aiProvider,
-      openai_api_key: settings.openAiApiKey,
-      groq_api_key: settings.groqApiKey,
-      groq_api_key_backup: settings.groqApiKeyBackup,
+      openai_api_key: encryptedOpenAiKey,
+      groq_api_key: encryptedGroqKey,
+      groq_api_key_backup: encryptedGroqBackupKey,
       saved_master_meal_ids: settings.savedMasterMealIds || [],
       updated_at: new Date().toISOString(),
     }, {
