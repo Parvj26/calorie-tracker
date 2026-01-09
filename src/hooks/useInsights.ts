@@ -9,6 +9,8 @@ import type {
   DailyInsights,
   WeeklyInsights,
   MonthlyInsights,
+  Meal,
+  MasterMeal,
 } from '../types';
 import {
   generateDailyInsights,
@@ -90,6 +92,8 @@ interface UseInsightsParams {
   profile: UserProfile | null;
   selectedDate: string;
   todayTotals: DailyTotals;
+  meals: Meal[];
+  masterMeals: MasterMeal[];
 }
 
 interface InsightState<T> {
@@ -106,6 +110,8 @@ export function useInsights({
   profile,
   selectedDate,
   todayTotals,
+  meals,
+  masterMeals,
 }: UseInsightsParams) {
   const [dailyState, setDailyState] = useState<InsightState<DailyInsights>>({
     insights: null,
@@ -160,11 +166,23 @@ export function useInsights({
 
     try {
       const todayLog = dailyLogs.find(log => log.date === selectedDate);
-      const insights = await generateDailyInsights(
+
+      // Build enhanced data for comprehensive insights
+      const enhancedData = {
         todayLog,
         todayTotals,
+        todayMeals: [], // Will be computed in generateDailyInsights
+        allDailyLogs: dailyLogs,
+        weighIns,
+        inBodyScans,
+        meals,
+        masterMeals,
         settings,
         profile,
+      };
+
+      const insights = await generateDailyInsights(
+        enhancedData,
         apiKey,
         backupApiKey
       );
@@ -178,7 +196,7 @@ export function useInsights({
         error: error instanceof Error ? error.message : 'Failed to generate insights',
       });
     }
-  }, [apiKey, backupApiKey, selectedDate, dailyLogs, todayTotals, settings, profile]);
+  }, [apiKey, backupApiKey, selectedDate, dailyLogs, todayTotals, settings, profile, weighIns, inBodyScans, meals, masterMeals]);
 
   // Generate weekly insights
   const generateWeekly = useCallback(async (forceRefresh = false) => {

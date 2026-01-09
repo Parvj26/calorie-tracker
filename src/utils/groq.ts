@@ -1,7 +1,7 @@
 // Groq API integration for vision tasks
 // Uses Llama 3.2 Vision model (free tier available)
 
-import type { Recipe, DailyLog, UserSettings, UserProfile, WeighIn, InBodyScan, DailyInsights, WeeklyInsights, MonthlyInsights } from '../types';
+import type { Recipe, DailyLog, UserSettings, UserProfile, WeighIn, InBodyScan, DailyInsights, WeeklyInsights, MonthlyInsights, Meal, MasterMeal } from '../types';
 
 export interface GroqFoodAnalysis {
   name: string;
@@ -411,38 +411,308 @@ interface DailyTotals {
   sugar: number;
 }
 
+// Extended data for comprehensive insights
+export interface EnhancedInsightData {
+  todayLog: DailyLog | undefined;
+  todayTotals: DailyTotals;
+  todayMeals: Array<{ name: string; calories: number; protein: number }>;
+  allDailyLogs: DailyLog[];
+  weighIns: WeighIn[];
+  inBodyScans: InBodyScan[];
+  meals: Meal[];
+  masterMeals: MasterMeal[];
+  settings: UserSettings;
+  profile: UserProfile | null;
+}
+
+// Helper: Compute weekly stats
+function computeWeeklyStats(
+  dailyLogs: DailyLog[],
+  meals: Meal[],
+  masterMeals: MasterMeal[],
+  settings: UserSettings
+) {
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const weekLogs = dailyLogs.filter(log => {
+    const logDate = new Date(log.date);
+    return logDate >= weekAgo && logDate <= today;
+  });
+
+  const targetCals = Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2);
+
+  // Calculate daily totals for each day
+  const dailyCalories: number[] = [];
+  const dailyProtein: number[] = [];
+  let daysOnTarget = 0;
+
+  weekLogs.forEach(log => {
+    let cals = 0;
+    let protein = 0;
+
+    // Sum up meals
+    log.meals.forEach(entry => {
+      const mealId = typeof entry === 'string' ? entry : entry.mealId;
+      const quantity = typeof entry === 'string' ? 1 : entry.quantity;
+      const meal = meals.find(m => m.id === mealId);
+      if (meal) {
+        cals += meal.calories * quantity;
+        protein += meal.protein * quantity;
+      }
+    });
+
+    // Sum up master meals
+    (log.masterMealIds || []).forEach(entry => {
+      const mealId = typeof entry === 'string' ? entry : entry.mealId;
+      const quantity = typeof entry === 'string' ? 1 : entry.quantity;
+      const meal = masterMeals.find(m => m.id === mealId);
+      if (meal) {
+        cals += meal.calories * quantity;
+        protein += meal.protein * quantity;
+      }
+    });
+
+    dailyCalories.push(cals);
+    dailyProtein.push(protein);
+
+    if (cals >= settings.dailyCalorieTargetMin && cals <= settings.dailyCalorieTargetMax) {
+      daysOnTarget++;
+    }
+  });
+
+  const avgCalories = dailyCalories.length > 0
+    ? Math.round(dailyCalories.reduce((a, b) => a + b, 0) / dailyCalories.length)
+    : 0;
+  const avgProtein = dailyProtein.length > 0
+    ? Math.round(dailyProtein.reduce((a, b) => a + b, 0) / dailyProtein.length)
+    : 0;
+
+  return {
+    daysLogged: weekLogs.length,
+    daysOnTarget,
+    avgCalories,
+    avgProtein,
+    targetCals,
+    caloriesTrend: dailyCalories.length >= 2
+      ? dailyCalories[dailyCalories.length - 1] - dailyCalories[0]
+      : 0,
+    proteinTrend: dailyProtein.length >= 2
+      ? dailyProtein[dailyProtein.length - 1] - dailyProtein[0]
+      : 0,
+  };
+}
+
+// Helper: Compute weight progress
+function computeWeightProgress(
+  weighIns: WeighIn[],
+  settings: UserSettings
+) {
+  if (weighIns.length === 0) {
+    return {
+      currentWeight: settings.startWeight,
+      weekChange: 0,
+      monthChange: 0,
+      totalLost: 0,
+      percentToGoal: 0,
+      weeksToGoal: null as number | null,
+    };
+  }
+
+  const sorted = [...weighIns].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const currentWeight = sorted[sorted.length - 1].weight;
+  const today = new Date();
+
+  // Week change
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoWeighIn = sorted.find(w => new Date(w.date) >= weekAgo) || sorted[sorted.length - 1];
+  const weekChange = currentWeight - weekAgoWeighIn.weight;
+
+  // Month change
+  const monthAgo = new Date(today);
+  monthAgo.setDate(monthAgo.getDate() - 30);
+  const monthAgoWeighIn = sorted.find(w => new Date(w.date) >= monthAgo) || sorted[0];
+  const monthChange = currentWeight - monthAgoWeighIn.weight;
+
+  // Total progress
+  const totalToLose = settings.startWeight - settings.goalWeight;
+  const totalLost = settings.startWeight - currentWeight;
+  const percentToGoal = totalToLose !== 0 ? Math.round((totalLost / Math.abs(totalToLose)) * 100) : 0;
+
+  // Weeks to goal estimate
+  let weeksToGoal: number | null = null;
+  if (monthChange !== 0 && totalToLose !== 0) {
+    const weeklyRate = monthChange / 4;
+    const remaining = currentWeight - settings.goalWeight;
+    if ((weeklyRate < 0 && remaining > 0) || (weeklyRate > 0 && remaining < 0)) {
+      weeksToGoal = Math.round(Math.abs(remaining / weeklyRate));
+    }
+  }
+
+  return {
+    currentWeight,
+    weekChange,
+    monthChange,
+    totalLost,
+    percentToGoal,
+    weeksToGoal,
+  };
+}
+
+// Helper: Get latest InBody comparison
+function getInBodyProgress(inBodyScans: InBodyScan[]) {
+  if (inBodyScans.length === 0) return null;
+
+  const sorted = [...inBodyScans].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const latest = sorted[sorted.length - 1];
+  const previous = sorted.length > 1 ? sorted[sorted.length - 2] : null;
+
+  return {
+    latest,
+    bodyFatChange: previous ? latest.bodyFatPercent - previous.bodyFatPercent : null,
+    muscleChange: previous ? latest.muscleMass - previous.muscleMass : null,
+  };
+}
+
+// Helper: Get today's meal names
+function getTodayMealNames(
+  todayLog: DailyLog | undefined,
+  meals: Meal[],
+  masterMeals: MasterMeal[]
+): Array<{ name: string; calories: number; protein: number }> {
+  if (!todayLog) return [];
+
+  const mealList: Array<{ name: string; calories: number; protein: number }> = [];
+
+  todayLog.meals.forEach(entry => {
+    const mealId = typeof entry === 'string' ? entry : entry.mealId;
+    const quantity = typeof entry === 'string' ? 1 : entry.quantity;
+    const meal = meals.find(m => m.id === mealId);
+    if (meal) {
+      mealList.push({
+        name: meal.name + (quantity !== 1 ? ` (x${quantity})` : ''),
+        calories: Math.round(meal.calories * quantity),
+        protein: Math.round(meal.protein * quantity),
+      });
+    }
+  });
+
+  (todayLog.masterMealIds || []).forEach(entry => {
+    const mealId = typeof entry === 'string' ? entry : entry.mealId;
+    const quantity = typeof entry === 'string' ? 1 : entry.quantity;
+    const meal = masterMeals.find(m => m.id === mealId);
+    if (meal) {
+      mealList.push({
+        name: meal.name + (quantity !== 1 ? ` (x${quantity})` : ''),
+        calories: Math.round(meal.calories * quantity),
+        protein: Math.round(meal.protein * quantity),
+      });
+    }
+  });
+
+  return mealList;
+}
+
 export async function generateDailyInsights(
-  _todayLog: DailyLog | undefined,
-  todayTotals: DailyTotals,
-  settings: UserSettings,
-  profile: UserProfile | null,
+  data: EnhancedInsightData,
   primaryKey: string | undefined,
   backupKey?: string
 ): Promise<DailyInsights> {
+  const { todayLog, todayTotals, settings, profile, allDailyLogs, weighIns, inBodyScans, meals, masterMeals } = data;
+
   const targetCals = Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2);
   const remaining = targetCals - todayTotals.calories;
 
-  const prompt = `You are a friendly nutrition coach. Give 2-3 brief, actionable tips based on today's progress.
+  // Compute comprehensive stats
+  const weeklyStats = computeWeeklyStats(allDailyLogs, meals, masterMeals, settings);
+  const weightProgress = computeWeightProgress(weighIns, settings);
+  const inBodyProgress = getInBodyProgress(inBodyScans);
+  const todayMeals = getTodayMealNames(todayLog, meals, masterMeals);
 
-USER: ${profile?.gender || 'unknown'} gender, goal: ${settings.goalWeight < settings.startWeight ? 'lose' : settings.goalWeight > settings.startWeight ? 'gain' : 'maintain'} weight
-TARGET: ${targetCals} cal/day
-TODAY: ${todayTotals.calories} cal, ${todayTotals.protein}g protein, ${todayTotals.carbs}g carbs, ${todayTotals.fat}g fat, ${todayTotals.fiber}g fiber
-REMAINING: ${remaining} cal
+  // Build goal context
+  const goalDirection = settings.goalWeight < settings.startWeight ? 'lose' :
+                        settings.goalWeight > settings.startWeight ? 'gain' : 'maintain';
+
+  // Detect common patterns
+  const patterns: string[] = [];
+  if (weeklyStats.avgProtein < 100) patterns.push('protein tends to be low');
+  if (weeklyStats.daysOnTarget < 3) patterns.push('often over/under calorie target');
+  if (weeklyStats.daysLogged < 5) patterns.push('inconsistent logging');
+
+  const prompt = `You are an encouraging, world-class nutrition coach who KNOWS this user personally. Analyze their data and provide life-changing insights.
+
+=== USER PROFILE ===
+Gender: ${profile?.gender || 'not specified'}
+Goal: ${goalDirection} weight (${settings.startWeight}kg → ${settings.goalWeight}kg)
+Daily target: ${settings.dailyCalorieTargetMin}-${settings.dailyCalorieTargetMax} cal
+
+=== TODAY'S MEALS ===
+${todayMeals.length > 0 ? todayMeals.map(m => `• ${m.name}: ${m.calories} cal, ${m.protein}g protein`).join('\n') : 'No meals logged yet'}
+
+=== TODAY'S TOTALS ===
+Calories: ${todayTotals.calories}/${targetCals} (${remaining > 0 ? remaining + ' remaining' : Math.abs(remaining) + ' over'})
+Protein: ${todayTotals.protein}g | Carbs: ${todayTotals.carbs}g | Fat: ${todayTotals.fat}g | Fiber: ${todayTotals.fiber}g
+
+=== WEEKLY PATTERNS (Last 7 days) ===
+Days logged: ${weeklyStats.daysLogged}/7
+Days on target: ${weeklyStats.daysOnTarget}/7
+Avg calories: ${weeklyStats.avgCalories}/day (target: ${targetCals})
+Avg protein: ${weeklyStats.avgProtein}g/day
+${patterns.length > 0 ? 'Patterns noticed: ' + patterns.join(', ') : ''}
+
+=== WEIGHT PROGRESS ===
+Current: ${weightProgress.currentWeight}kg
+This week: ${weightProgress.weekChange >= 0 ? '+' : ''}${weightProgress.weekChange.toFixed(1)}kg
+This month: ${weightProgress.monthChange >= 0 ? '+' : ''}${weightProgress.monthChange.toFixed(1)}kg
+Total progress: ${weightProgress.totalLost >= 0 ? '' : '+'}${weightProgress.totalLost.toFixed(1)}kg (${weightProgress.percentToGoal}% to goal)
+${weightProgress.weeksToGoal ? `Estimated weeks to goal: ${weightProgress.weeksToGoal}` : ''}
+
+${inBodyProgress ? `=== BODY COMPOSITION ===
+Body fat: ${inBodyProgress.latest.bodyFatPercent}%${inBodyProgress.bodyFatChange !== null ? ` (${inBodyProgress.bodyFatChange >= 0 ? '+' : ''}${inBodyProgress.bodyFatChange.toFixed(1)}% change)` : ''}
+Muscle mass: ${inBodyProgress.latest.muscleMass}kg${inBodyProgress.muscleChange !== null ? ` (${inBodyProgress.muscleChange >= 0 ? '+' : ''}${inBodyProgress.muscleChange.toFixed(1)}kg change)` : ''}` : ''}
+
+=== YOUR TASK ===
+Provide personalized, motivating insights that make the user feel understood and supported. Be SPECIFIC about their actual meals and patterns. Celebrate their wins genuinely.
 
 Return ONLY JSON (no markdown):
-{"tips":["tip1","tip2"],"remaining":"brief summary of what's left"}
+{
+  "patternInsight": "One key observation about their eating pattern based on their specific data. Reference actual meals or behaviors.",
+  "actionItem": "One specific, actionable suggestion they can implement TODAY. Be concrete - mention specific foods or times.",
+  "progressSummary": "Encouraging summary of their journey progress. Include specific numbers. Make them feel proud.",
+  "wins": ["1-2 genuine wins to celebrate - be specific about what they did well"],
+  "remaining": "Brief, helpful summary of what's left for the day"
+}
 
-Tips should be specific and encouraging. Examples:
-- "Protein is low - add chicken or Greek yogurt to dinner"
-- "Great fiber intake! You're ahead of target"
-- "200 cal remaining - a banana and peanut butter would fit perfectly"`;
+IMPORTANT:
+- Be warm and personal, like a friend who cares
+- Reference their ACTUAL meals by name when relevant
+- Celebrate progress genuinely - they're working hard!
+- Make the action item something they can do TODAY
+- If they're struggling, be supportive not judgmental`;
 
   return callWithFallback(primaryKey, backupKey, async (apiKey) => {
     const content = await callGroqText(prompt, apiKey);
-    const parsed = parseJsonResponse<{ tips: string[]; remaining: string }>(content);
+    const parsed = parseJsonResponse<{
+      patternInsight: string;
+      actionItem: string;
+      progressSummary: string;
+      wins: string[];
+      remaining: string;
+    }>(content);
 
     return {
-      tips: parsed.tips || [],
+      patternInsight: parsed.patternInsight || 'Keep tracking to see your patterns!',
+      actionItem: parsed.actionItem || 'Log your next meal to stay on track.',
+      progressSummary: parsed.progressSummary || 'Every day of tracking is progress.',
+      wins: parsed.wins || ['You showed up today - that matters!'],
       remaining: parsed.remaining || `${remaining} calories remaining`,
       generatedAt: new Date().toISOString(),
     };

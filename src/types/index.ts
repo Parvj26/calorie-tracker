@@ -225,9 +225,15 @@ export interface MealSubmission {
 // ============================================
 
 export interface DailyInsights {
-  tips: string[];              // 2-3 quick tips for today
+  // New enhanced structure
+  patternInsight: string;      // Key insight about their eating pattern
+  actionItem: string;          // One specific actionable suggestion
+  progressSummary: string;     // Progress towards goal with motivation
+  wins: string[];              // Positive reinforcement (1-2 wins)
   remaining: string;           // Calories/macros remaining summary
   generatedAt: string;         // ISO timestamp
+  // Legacy fields for backwards compatibility
+  tips?: string[];
 }
 
 export interface WeeklyInsights {

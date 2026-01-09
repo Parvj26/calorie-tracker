@@ -133,6 +133,8 @@ function AppContent() {
       fiber: totals.fiber,
       sugar: totals.sugar,
     },
+    meals,
+    masterMeals,
   });
 
   // Get master meals to display in Dashboard (saved to library OR logged for current day)

@@ -486,17 +486,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button onClick={() => onGenerateDailyInsights(true)}>Try Again</button>
           </div>
         ) : dailyInsights ? (
-          <div className="insights-content">
-            {dailyInsights.tips.map((tip, index) => (
-              <div key={index} className="insight-tip">
-                <span className="tip-bullet">•</span>
-                <span>{tip}</span>
+          <div className="insights-content enhanced">
+            {/* Wins Section - Positive Reinforcement */}
+            {dailyInsights.wins && dailyInsights.wins.length > 0 && (
+              <div className="insight-section wins">
+                <div className="section-icon">🎉</div>
+                <div className="section-content">
+                  {dailyInsights.wins.map((win, index) => (
+                    <p key={index}>{win}</p>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Pattern Insight */}
+            {dailyInsights.patternInsight && (
+              <div className="insight-section pattern">
+                <div className="section-icon">🔍</div>
+                <div className="section-content">
+                  <p className="section-label">Pattern Insight</p>
+                  <p>{dailyInsights.patternInsight}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Action Item */}
+            {dailyInsights.actionItem && (
+              <div className="insight-section action">
+                <div className="section-icon">💡</div>
+                <div className="section-content">
+                  <p className="section-label">Today's Action</p>
+                  <p>{dailyInsights.actionItem}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Progress Summary */}
+            {dailyInsights.progressSummary && (
+              <div className="insight-section progress">
+                <div className="section-icon">🎯</div>
+                <div className="section-content">
+                  <p className="section-label">Your Progress</p>
+                  <p>{dailyInsights.progressSummary}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Remaining calories */}
             {dailyInsights.remaining && (
               <div className="insight-remaining">
                 {dailyInsights.remaining}
               </div>
+            )}
+
+            {/* Legacy tips support */}
+            {dailyInsights.tips && dailyInsights.tips.length > 0 && !dailyInsights.patternInsight && (
+              <>
+                {dailyInsights.tips.map((tip, index) => (
+                  <div key={index} className="insight-tip">
+                    <span className="tip-bullet">•</span>
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         ) : (
