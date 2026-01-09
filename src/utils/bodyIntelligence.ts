@@ -9,6 +9,8 @@ export type ResponseStatus = 'normal' | 'slow' | 'fast' | 'insufficient-data';
 export type QualityStatus = 'excellent' | 'good' | 'concerning' | 'insufficient-data';
 export type MetabolicStatus = 'healthy' | 'adapting' | 'insufficient-data';
 
+export type ConfidenceLevel = 'very-low' | 'low' | 'medium' | 'high';
+
 export interface BodyIntelligence {
   // Response Score
   accumulatedDeficit: number;     // Total deficit over period (cal)
@@ -39,6 +41,11 @@ export interface BodyIntelligence {
   startDate: string;
   endDate: string;
   daysWithData: number;
+
+  // Confidence indicator
+  confidence: ConfidenceLevel;
+  confidenceMessage: string;
+  hasEnoughData: boolean;         // true if 7+ days with data
 }
 
 export interface ResponseInterpretation {
@@ -104,7 +111,20 @@ export function calculateBodyIntelligence(
   const endDate = new Date();
   const startDate = subDays(endDate, periodDays);
 
-  // Default return for insufficient data
+  // Helper to determine confidence level
+  const getConfidence = (days: number): { level: ConfidenceLevel; message: string; hasEnough: boolean } => {
+    if (days >= 14) {
+      return { level: 'high', message: 'High confidence based on 2+ weeks of data', hasEnough: true };
+    } else if (days >= 7) {
+      return { level: 'medium', message: 'Good confidence. More data will improve accuracy.', hasEnough: true };
+    } else if (days >= 3) {
+      return { level: 'low', message: 'Early estimate. Log 7+ days for reliable insights.', hasEnough: false };
+    } else {
+      return { level: 'very-low', message: 'Very early data. Keep tracking for better insights!', hasEnough: false };
+    }
+  };
+
+  // Default return for no data at all
   const defaultResult: BodyIntelligence = {
     accumulatedDeficit: 0,
     expectedWeightLoss: 0,
@@ -128,6 +148,9 @@ export function calculateBodyIntelligence(
     startDate: format(startDate, 'yyyy-MM-dd'),
     endDate: format(endDate, 'yyyy-MM-dd'),
     daysWithData: 0,
+    confidence: 'very-low',
+    confidenceMessage: 'Start logging to see your body intelligence!',
+    hasEnoughData: false,
   };
 
   // Filter logs within period
@@ -135,7 +158,8 @@ export function calculateBodyIntelligence(
     isWithinPeriod(log.date, endDate, periodDays)
   );
 
-  if (periodLogs.length < 7 || bmr <= 0) {
+  // Return default if no BMR or no logs at all
+  if (periodLogs.length === 0 || bmr <= 0) {
     return defaultResult;
   }
 
@@ -162,7 +186,11 @@ export function calculateBodyIntelligence(
     daysWithData++;
   }
 
-  if (daysWithData < 7) {
+  // Get confidence based on data we have
+  const confidenceInfo = getConfidence(daysWithData);
+
+  // If no days with actual food logged, return default
+  if (daysWithData === 0) {
     return defaultResult;
   }
 
@@ -325,6 +353,9 @@ export function calculateBodyIntelligence(
     startDate: format(startDate, 'yyyy-MM-dd'),
     endDate: format(endDate, 'yyyy-MM-dd'),
     daysWithData,
+    confidence: confidenceInfo.level,
+    confidenceMessage: confidenceInfo.message,
+    hasEnoughData: confidenceInfo.hasEnough,
   };
 }
 

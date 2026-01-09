@@ -3019,6 +3019,55 @@ body {
   color: var(--primary);
 }
 
+/* Confidence Badge */
+.confidence-badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 12px;
+}
+
+.confidence-badge.confidence-high {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.confidence-badge.confidence-medium {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.confidence-badge.confidence-low {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.confidence-badge.confidence-very-low {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Confidence Notice */
+.confidence-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.confidence-icon {
+  font-size: 1rem;
+}
+
 /* Intelligence Status Block */
 .intelligence-status,
 .quality-status,

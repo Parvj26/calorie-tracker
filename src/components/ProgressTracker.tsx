@@ -177,7 +177,23 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         <div className="card-header">
           <Brain size={20} />
           <h3>Body Intelligence</h3>
+          {bodyIntelligence.daysWithData > 0 && (
+            <span className={`confidence-badge confidence-${bodyIntelligence.confidence}`}>
+              {bodyIntelligence.confidence === 'high' ? 'High' :
+               bodyIntelligence.confidence === 'medium' ? 'Good' :
+               bodyIntelligence.confidence === 'low' ? 'Early' : 'Very Early'}
+            </span>
+          )}
         </div>
+
+        {/* Confidence Warning for early data */}
+        {bodyIntelligence.daysWithData > 0 && !bodyIntelligence.hasEnoughData && (
+          <div className="confidence-notice">
+            <span className="confidence-icon">📊</span>
+            <span>{bodyIntelligence.confidenceMessage}</span>
+          </div>
+        )}
+
         <div className="intelligence-status" style={{ borderLeftColor: responseInterp.color }}>
           <span className="status-emoji">{responseInterp.emoji}</span>
           <div className="status-content">
@@ -188,33 +204,37 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </div>
         </div>
 
-        {bodyIntelligence.responseStatus !== 'insufficient-data' && (
+        {bodyIntelligence.daysWithData > 0 && bodyIntelligence.accumulatedDeficit !== 0 && (
           <div className="intelligence-details">
             <div className="detail-row">
               <span className="detail-label">Expected loss:</span>
               <span className="detail-value">
-                -{formatWeightValue(bodyIntelligence.expectedWeightLoss, weightUnit)} {weightUnit}
+                {bodyIntelligence.expectedWeightLoss > 0 ? '-' : ''}
+                {formatWeightValue(Math.abs(bodyIntelligence.expectedWeightLoss), weightUnit)} {weightUnit}
               </span>
             </div>
             <div className="detail-row">
               <span className="detail-label">Actual loss:</span>
               <span className="detail-value highlight">
-                -{formatWeightValue(bodyIntelligence.actualWeightLoss, weightUnit)} {weightUnit}
+                {bodyIntelligence.actualWeightLoss > 0 ? '-' : '+'}
+                {formatWeightValue(Math.abs(bodyIntelligence.actualWeightLoss), weightUnit)} {weightUnit}
               </span>
             </div>
-            <div className="response-bar">
-              <div
-                className="response-fill"
-                style={{
-                  width: `${Math.min(100, Math.max(0, bodyIntelligence.responseScore))}%`,
-                  backgroundColor: responseInterp.color,
-                }}
-              />
-              <span className="response-label">{bodyIntelligence.responseScore}%</span>
-            </div>
+            {bodyIntelligence.responseScore > 0 && (
+              <div className="response-bar">
+                <div
+                  className="response-fill"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, bodyIntelligence.responseScore))}%`,
+                    backgroundColor: responseInterp.color,
+                  }}
+                />
+                <span className="response-label">{bodyIntelligence.responseScore}%</span>
+              </div>
+            )}
             <p className="intelligence-footnote">
               Based on {bodyIntelligence.accumulatedDeficit.toLocaleString()} cal deficit
-              over {bodyIntelligence.daysWithData} days
+              over {bodyIntelligence.daysWithData} day{bodyIntelligence.daysWithData !== 1 ? 's' : ''}
             </p>
           </div>
         )}
