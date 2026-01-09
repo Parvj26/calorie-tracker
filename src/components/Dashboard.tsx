@@ -367,31 +367,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Quick Stats Grid */}
       <div className="quick-stats-grid">
-        {/* Deficit from Goal Card */}
+        {/* Energy/Deficit Card */}
         <div className="stat-card energy-card">
           <div className="stat-card-header">
             <TrendingDown size={16} />
-            <span>vs Goal</span>
+            <span>{totals.hasTDEE ? 'Deficit' : 'Net'}</span>
           </div>
           <div className={`stat-card-value ${totals.deficit >= 0 ? 'positive' : 'negative'}`}>
             {totals.deficit >= 0 ? '+' : ''}{Math.round(totals.deficit)}
           </div>
-          <div className="stat-card-label">cal {totals.deficit >= 0 ? 'under' : 'over'}</div>
+          <div className="stat-card-label">cal {totals.deficit >= 0 ? 'deficit' : 'surplus'}</div>
         </div>
-
-        {/* True Deficit from TDEE Card */}
-        {totals.hasBMR && (
-          <div className="stat-card tdee-card">
-            <div className="stat-card-header">
-              <Flame size={16} />
-              <span>vs TDEE</span>
-            </div>
-            <div className={`stat-card-value ${totals.trueDeficit >= 0 ? 'positive' : 'negative'}`}>
-              {totals.trueDeficit >= 0 ? '+' : ''}{Math.round(totals.trueDeficit)}
-            </div>
-            <div className="stat-card-label">true deficit</div>
-          </div>
-        )}
 
         {/* Activity Card */}
         <div className="stat-card activity-card" onClick={() => setShowHealthScanner(true)}>
