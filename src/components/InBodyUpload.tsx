@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
+import { Upload, Loader2, Check, AlertCircle, Trash2, X, ChevronDown, ChevronUp, Edit3, AlertTriangle } from 'lucide-react';
 import type { InBodyScan, AIProvider } from '../types';
 import { extractInBodyData } from '../utils/openai';
 import { groqExtractInBodyData } from '../utils/groq';
@@ -50,7 +50,14 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
+  const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
+  const [existingScanDate, setExistingScanDate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if a scan with the given date already exists
+  const checkExistingScan = (date: string): InBodyScan | undefined => {
+    return scans.find((s) => s.date === date);
+  };
 
   // Start manual entry with empty form
   const handleStartManualEntry = () => {
@@ -158,6 +165,21 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
       return;
     }
 
+    // Check if a scan with this date already exists
+    const existingScan = checkExistingScan(extractedData.scanDate);
+    if (existingScan) {
+      setExistingScanDate(extractedData.scanDate);
+      setShowOverwriteWarning(true);
+      return;
+    }
+
+    // No existing scan, proceed to save
+    saveScan();
+  };
+
+  const saveScan = () => {
+    if (!extractedData) return;
+
     onAddScan({
       date: extractedData.scanDate,
       weight: extractedData.weight,
@@ -178,6 +200,18 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
     setExtractedData(null);
     setShowAdvanced(false);
     setIsManualEntry(false);
+    setShowOverwriteWarning(false);
+    setExistingScanDate(null);
+  };
+
+  const handleOverwriteConfirm = () => {
+    saveScan();
+  };
+
+  const handleOverwriteCancel = () => {
+    setShowOverwriteWarning(false);
+    setExistingScanDate(null);
+    // Keep the form open so user can change the date
   };
 
   const getVisceralFatStatus = (grade: number) => {
@@ -536,6 +570,32 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite Warning Modal */}
+      {showOverwriteWarning && existingScanDate && (
+        <div className="modal-overlay">
+          <div className="modal overwrite-warning-modal">
+            <div className="modal-header warning">
+              <AlertTriangle size={24} />
+              <h3>Scan Already Exists</h3>
+            </div>
+            <div className="modal-body">
+              <p>
+                A scan for <strong>{format(parseISO(existingScanDate), 'MMMM d, yyyy')}</strong> already exists.
+              </p>
+              <p>Do you want to replace it with this new scan?</p>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={handleOverwriteCancel}>
+                Change Date
+              </button>
+              <button className="btn-danger" onClick={handleOverwriteConfirm}>
+                Replace Scan
+              </button>
+            </div>
           </div>
         </div>
       )}
