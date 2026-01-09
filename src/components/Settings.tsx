@@ -36,9 +36,24 @@ export const Settings: React.FC<SettingsProps> = ({
     lastName: '',
     dateOfBirth: '',
     gender: '' as Gender | '',
-    heightCm: '' as string,
+    heightFeet: '' as string,
+    heightInches: '' as string,
     activityLevel: '' as ActivityLevel | '',
   });
+
+  // Convert cm to feet and inches
+  const cmToFeetInches = (cm: number): { feet: number; inches: number } => {
+    const totalInches = cm / 2.54;
+    const feet = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches % 12);
+    return { feet, inches: inches === 12 ? 0 : inches };
+  };
+
+  // Convert feet and inches to cm
+  const feetInchesToCm = (feet: number, inches: number): number => {
+    const totalInches = (feet * 12) + inches;
+    return Math.round(totalInches * 2.54);
+  };
 
   useEffect(() => {
     setFormData(settings);
@@ -46,12 +61,14 @@ export const Settings: React.FC<SettingsProps> = ({
 
   useEffect(() => {
     if (profile) {
+      const height = profile.heightCm ? cmToFeetInches(profile.heightCm) : { feet: 0, inches: 0 };
       setProfileForm({
         firstName: profile.firstName || '',
         lastName: profile.lastName || '',
         dateOfBirth: profile.dateOfBirth || '',
         gender: profile.gender || '',
-        heightCm: profile.heightCm?.toString() || '',
+        heightFeet: height.feet ? height.feet.toString() : '',
+        heightInches: height.inches ? height.inches.toString() : '',
         activityLevel: profile.activityLevel || '',
       });
     }
@@ -99,12 +116,17 @@ export const Settings: React.FC<SettingsProps> = ({
   }, [bmr, profile?.activityLevel]);
 
   const handleSaveProfile = async () => {
+    // Convert feet/inches to cm for storage
+    const feet = parseInt(profileForm.heightFeet) || 0;
+    const inches = parseInt(profileForm.heightInches) || 0;
+    const heightCm = (feet > 0 || inches > 0) ? feetInchesToCm(feet, inches) : undefined;
+
     const success = await updateProfile({
       firstName: profileForm.firstName || undefined,
       lastName: profileForm.lastName || undefined,
       dateOfBirth: profileForm.dateOfBirth || undefined,
       gender: profileForm.gender || undefined,
-      heightCm: profileForm.heightCm ? parseInt(profileForm.heightCm) : undefined,
+      heightCm,
       activityLevel: profileForm.activityLevel || undefined,
     });
     if (success) {
@@ -200,17 +222,33 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label>Height (cm)</label>
-            <input
-              type="number"
-              value={profileForm.heightCm}
-              onChange={(e) =>
-                setProfileForm({ ...profileForm, heightCm: e.target.value })
-              }
-              placeholder="e.g., 175"
-              min="100"
-              max="250"
-            />
+            <label>Height</label>
+            <div className="height-inputs">
+              <input
+                type="number"
+                value={profileForm.heightFeet}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, heightFeet: e.target.value })
+                }
+                placeholder="5"
+                min="3"
+                max="8"
+                style={{ width: '70px' }}
+              />
+              <span>ft</span>
+              <input
+                type="number"
+                value={profileForm.heightInches}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, heightInches: e.target.value })
+                }
+                placeholder="10"
+                min="0"
+                max="11"
+                style={{ width: '70px' }}
+              />
+              <span>in</span>
+            </div>
             <span className="form-help">Used for BMR calculation</span>
           </div>
           <div className="form-group">
