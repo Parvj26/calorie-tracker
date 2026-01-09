@@ -428,60 +428,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* MFP-Style Calorie Equation */}
-      {totals.hasBMR && totals.bmr && totals.bmr > 0 && (
-        <div className="calorie-equation-card">
-          <div className="equation-row">
-            <div className="equation-item goal">
-              <span className="equation-value">{totals.targetCalories}</span>
-              <span className="equation-label">Goal</span>
-            </div>
-            <span className="equation-operator">−</span>
-            <div className="equation-item food">
-              <span className="equation-value">{totals.calories}</span>
-              <span className="equation-label">Food</span>
-            </div>
-            <span className="equation-operator">+</span>
-            <div className="equation-item exercise">
-              <span className="equation-value">{totals.exerciseCalories || totals.activeEnergy}</span>
-              <span className="equation-label">Exercise</span>
-            </div>
-            <span className="equation-operator">=</span>
-            <div className={`equation-item result ${totals.caloriesRemaining < 0 ? 'negative' : ''}`}>
-              <span className="equation-value">{Math.round(totals.caloriesRemaining)}</span>
-              <span className="equation-label">Remaining</span>
-            </div>
-          </div>
-          <div className="bmr-info-row">
-            <div className="bmr-badge">
-              <Flame size={14} />
-              <span className="bmr-value">BMR: {totals.bmr}</span>
-              <span className="bmr-source">
-                {totals.bmrSource === 'inbody' && 'InBody'}
-                {totals.bmrSource === 'katch_mcardle' && 'Katch-McArdle'}
-                {totals.bmrSource === 'mifflin_st_jeor' && 'Formula'}
-              </span>
-            </div>
-            {(totals.steps > 0 || totals.exerciseMinutes > 0) && (
-              <div className="activity-badges">
-                {totals.steps > 0 && (
-                  <span className="activity-badge">
-                    <Footprints size={12} />
-                    {totals.steps.toLocaleString()}
-                  </span>
-                )}
-                {totals.exerciseMinutes > 0 && (
-                  <span className="activity-badge">
-                    <Clock size={12} />
-                    {totals.exerciseMinutes}min
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Legacy TDEE display for users without BMR */}
       {!totals.hasBMR && totals.hasTDEE && (
         <div className="tdee-summary">
