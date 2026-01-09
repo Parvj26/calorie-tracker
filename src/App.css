@@ -840,6 +840,11 @@ body {
 .stat-card-value.positive { color: var(--success); }
 .stat-card-value.negative { color: var(--danger); }
 
+/* TDEE Deficit Card styling */
+.stat-card.tdee-deficit-card .stat-card-header {
+  color: var(--primary);
+}
+
 .stat-card-label {
   font-size: 0.7rem;
   color: var(--gray-500);
