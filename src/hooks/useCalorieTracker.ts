@@ -665,11 +665,14 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       baseCalories = bmr; // BMR is the base, not BMR * activity
     }
 
-    // Exercise adds back calories (bonus)
-    // Remaining = Target + Exercise - Food
+    // Exercise calories tracked separately (not added to remaining)
     const exerciseCalories = activeEnergy;
+
+    // Remaining = Goal - Food (simple, no exercise bonus)
+    const caloriesRemaining = targetCalories - totals.calories;
+
+    // Adjusted target kept for reference (Goal + Exercise)
     const adjustedTarget = targetCalories + exerciseCalories;
-    const caloriesRemaining = adjustedTarget - totals.calories;
 
     // Calculate TDEE (Total Daily Energy Expenditure)
     // TDEE = BMR + Active Energy
