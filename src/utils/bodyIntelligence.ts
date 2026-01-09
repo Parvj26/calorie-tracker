@@ -269,14 +269,22 @@ export function calculateBodyIntelligence(
     }
 
     // Calculate fat loss efficiency
-    if (totalWeightLost > 0.1 && fatLost > 0) {
-      fatLossEfficiency = Math.round((fatLost / totalWeightLost) * 100);
+    if (totalWeightLost > 0.1) {
+      if (fatLost > 0) {
+        // Normal case: lost weight and lost fat
+        fatLossEfficiency = Math.round((fatLost / totalWeightLost) * 100);
 
-      if (fatLossEfficiency >= 80) {
-        qualityStatus = 'excellent';
-      } else if (fatLossEfficiency >= 60) {
-        qualityStatus = 'good';
+        if (fatLossEfficiency >= 80) {
+          qualityStatus = 'excellent';
+        } else if (fatLossEfficiency >= 60) {
+          qualityStatus = 'good';
+        } else {
+          qualityStatus = 'concerning';
+        }
       } else {
+        // Lost weight but gained fat (or no change) - concerning!
+        // Weight loss came entirely from muscle/water
+        fatLossEfficiency = 0;
         qualityStatus = 'concerning';
       }
     } else if (totalWeightLost <= 0) {
@@ -316,7 +324,7 @@ export function calculateBodyIntelligence(
       // If BMR dropped more than expected, might be adapting
       const unexpectedDrop = Math.abs(bmrChange) - Math.abs(expectedBmrChange);
 
-      if (totalWeightLost > 0.5) {
+      if (totalWeightLost > 0.2) {
         if (unexpectedDrop < 30) {
           // BMR drop is within expected range
           metabolicStatus = 'healthy';
@@ -329,7 +337,6 @@ export function calculateBodyIntelligence(
       }
     }
   }
-
   return {
     accumulatedDeficit: Math.round(accumulatedDeficit),
     expectedWeightLoss: Math.round(expectedWeightLoss * 10) / 10,
@@ -425,7 +432,9 @@ export function getQualityInterpretation(
     case 'concerning':
       return {
         status: 'Needs Attention',
-        message: `Only ${efficiency}% from fat. You may be losing muscle. Slow down and add protein.`,
+        message: efficiency > 0
+          ? `Only ${efficiency}% from fat. You may be losing muscle. Slow down and add protein.`
+          : 'You lost weight but gained fat. Weight loss is from muscle/water. Add strength training and protein.',
         color: '#ef4444', // red
         emoji: '⚠️',
       };

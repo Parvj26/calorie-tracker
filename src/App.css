@@ -3227,6 +3227,68 @@ body {
   background: #3b82f6;
 }
 
+/* Collapsible Card Styles */
+.collapsible-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-800);
+  gap: 12px;
+}
+
+.collapsible-header:hover {
+  background: var(--gray-50);
+}
+
+.collapsible-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapsible-header-left h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.collapsible-header-left svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.collapsible-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapsible-header-right svg {
+  color: var(--gray-400);
+  flex-shrink: 0;
+}
+
+.collapsible-insight {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.collapsible-content {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--gray-100);
+}
+
 /* Weigh-ins Toggle */
 .weighins-toggle {
   display: flex;

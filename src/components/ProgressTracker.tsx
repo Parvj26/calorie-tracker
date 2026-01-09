@@ -96,8 +96,18 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   });
   const [activeChart, setActiveChart] = useState<'weight' | 'energy' | 'activity'>('weight');
   const [showWeighIns, setShowWeighIns] = useState(false);
+  const [expandedCards, setExpandedCards] = useState({
+    bodyIntelligence: false,
+    weightQuality: false,
+    metabolicHealth: false,
+  });
+
+  const toggleCard = (card: keyof typeof expandedCards) => {
+    setExpandedCards(prev => ({ ...prev, [card]: !prev[card] }));
+  };
 
   const bodyIntelligence = progressData.bodyIntelligence;
+
   const responseInterp = getResponseScoreInterpretation(
     bodyIntelligence.responseScore,
     bodyIntelligence.responseStatus
@@ -141,212 +151,253 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
       {/* Hero Stats Bar */}
       <div className="hero-stats-bar">
         <div className="hero-stat">
-          <span className="hero-stat-value" style={{ color: monthWeightChange > 0 ? '#10b981' : '#6b7280' }}>
-            {monthWeightChange > 0 ? '-' : ''}{formatWeightValue(Math.abs(monthWeightChange), weightUnit)}
+          <span className="hero-stat-value" style={{ color: monthWeightChange > 0 ? '#10b981' : monthWeightChange < 0 ? '#ef4444' : '#6b7280' }}>
+            {monthWeightChange > 0 ? '-' : monthWeightChange < 0 ? '+' : ''}{formatWeightValue(Math.abs(monthWeightChange), weightUnit)} {weightUnit}
           </span>
-          <span className="hero-stat-label">This Month</span>
+          <span className="hero-stat-label">Weight This Month</span>
         </div>
         <div className="hero-stat-divider" />
         <div className="hero-stat">
           <span
             className="hero-stat-value"
-            style={{ color: responseInterp.color }}
+            style={{ color: bodyIntelligence.fatLost > 0 ? '#10b981' : bodyIntelligence.fatLost < 0 ? '#ef4444' : '#6b7280' }}
           >
-            {bodyIntelligence.responseStatus !== 'insufficient-data'
-              ? `${bodyIntelligence.responseScore}%`
+            {bodyIntelligence.hasInBodyData
+              ? `${bodyIntelligence.fatLost > 0 ? '-' : '+'}${formatWeightValue(Math.abs(bodyIntelligence.fatLost), weightUnit)} ${weightUnit}`
               : '—'}
           </span>
-          <span className="hero-stat-label">Response</span>
-        </div>
-        <div className="hero-stat-divider" />
-        <div className="hero-stat">
-          <span
-            className="hero-stat-value"
-            style={{ color: qualityInterp.color }}
-          >
-            {bodyIntelligence.hasInBodyData && bodyIntelligence.fatLossEfficiency > 0
-              ? `${bodyIntelligence.fatLossEfficiency}%`
-              : '—'}
-          </span>
-          <span className="hero-stat-label">Fat Loss</span>
+          <span className="hero-stat-label">Fat This Month</span>
         </div>
       </div>
 
       {/* Body Intelligence Card */}
-      <div className="card body-intelligence-card">
-        <div className="card-header">
-          <Brain size={20} />
-          <h3>Body Intelligence</h3>
-          {bodyIntelligence.daysWithData > 0 && (
-            <span className={`confidence-badge confidence-${bodyIntelligence.confidence}`}>
-              {bodyIntelligence.confidence === 'high' ? 'High' :
-               bodyIntelligence.confidence === 'medium' ? 'Good' :
-               bodyIntelligence.confidence === 'low' ? 'Early' : 'Very Early'}
-            </span>
-          )}
-        </div>
-
-        {/* Confidence Warning for early data */}
-        {bodyIntelligence.daysWithData > 0 && !bodyIntelligence.hasEnoughData && (
-          <div className="confidence-notice">
-            <span className="confidence-icon">📊</span>
-            <span>{bodyIntelligence.confidenceMessage}</span>
-          </div>
-        )}
-
-        <div className="intelligence-status" style={{ borderLeftColor: responseInterp.color }}>
-          <span className="status-emoji">{responseInterp.emoji}</span>
-          <div className="status-content">
-            <span className="status-title" style={{ color: responseInterp.color }}>
-              {responseInterp.status}
-            </span>
-            <p className="status-message">{responseInterp.message}</p>
-          </div>
-        </div>
-
-        {bodyIntelligence.daysWithData > 0 && bodyIntelligence.accumulatedDeficit !== 0 && (
-          <div className="intelligence-details">
-            <div className="detail-row">
-              <span className="detail-label">Expected loss:</span>
-              <span className="detail-value">
-                {bodyIntelligence.expectedWeightLoss > 0 ? '-' : ''}
-                {formatWeightValue(Math.abs(bodyIntelligence.expectedWeightLoss), weightUnit)} {weightUnit}
+      <div className="card body-intelligence-card collapsible-card">
+        <button
+          className="collapsible-header"
+          onClick={() => toggleCard('bodyIntelligence')}
+        >
+          <div className="collapsible-header-left">
+            <Brain size={20} />
+            <h3>Body Intelligence</h3>
+            {bodyIntelligence.daysWithData > 0 && (
+              <span className={`confidence-badge confidence-${bodyIntelligence.confidence}`}>
+                {bodyIntelligence.confidence === 'high' ? 'High' :
+                 bodyIntelligence.confidence === 'medium' ? 'Good' :
+                 bodyIntelligence.confidence === 'low' ? 'Early' : 'Very Early'}
               </span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Actual loss:</span>
-              <span className="detail-value highlight">
-                {bodyIntelligence.actualWeightLoss > 0 ? '-' : '+'}
-                {formatWeightValue(Math.abs(bodyIntelligence.actualWeightLoss), weightUnit)} {weightUnit}
-              </span>
-            </div>
-            {bodyIntelligence.responseScore > 0 && (
-              <div className="response-bar">
-                <div
-                  className="response-fill"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, bodyIntelligence.responseScore))}%`,
-                    backgroundColor: responseInterp.color,
-                  }}
-                />
-                <span className="response-label">{bodyIntelligence.responseScore}%</span>
+            )}
+          </div>
+          <div className="collapsible-header-right">
+            <span className="collapsible-insight" style={{ color: responseInterp.color }}>
+              {responseInterp.emoji} {responseInterp.status}
+              {bodyIntelligence.responseScore > 0 && ` · ${bodyIntelligence.responseScore}%`}
+            </span>
+            {expandedCards.bodyIntelligence ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </button>
+
+        {expandedCards.bodyIntelligence && (
+          <div className="collapsible-content">
+            {/* Confidence Warning for early data */}
+            {bodyIntelligence.daysWithData > 0 && !bodyIntelligence.hasEnoughData && (
+              <div className="confidence-notice">
+                <span className="confidence-icon">📊</span>
+                <span>{bodyIntelligence.confidenceMessage}</span>
               </div>
             )}
-            <p className="intelligence-footnote">
-              Based on {bodyIntelligence.accumulatedDeficit.toLocaleString()} cal deficit
-              over {bodyIntelligence.daysWithData} day{bodyIntelligence.daysWithData !== 1 ? 's' : ''}
-            </p>
+
+            <div className="intelligence-status" style={{ borderLeftColor: responseInterp.color }}>
+              <span className="status-emoji">{responseInterp.emoji}</span>
+              <div className="status-content">
+                <span className="status-title" style={{ color: responseInterp.color }}>
+                  {responseInterp.status}
+                </span>
+                <p className="status-message">{responseInterp.message}</p>
+              </div>
+            </div>
+
+            {bodyIntelligence.daysWithData > 0 && bodyIntelligence.accumulatedDeficit !== 0 && (
+              <div className="intelligence-details">
+                <div className="detail-row">
+                  <span className="detail-label">Expected loss:</span>
+                  <span className="detail-value">
+                    {bodyIntelligence.expectedWeightLoss > 0 ? '-' : ''}
+                    {formatWeightValue(Math.abs(bodyIntelligence.expectedWeightLoss), weightUnit)} {weightUnit}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Actual loss:</span>
+                  <span className="detail-value highlight">
+                    {bodyIntelligence.actualWeightLoss > 0 ? '-' : '+'}
+                    {formatWeightValue(Math.abs(bodyIntelligence.actualWeightLoss), weightUnit)} {weightUnit}
+                  </span>
+                </div>
+                {bodyIntelligence.responseScore > 0 && (
+                  <div className="response-bar">
+                    <div
+                      className="response-fill"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, bodyIntelligence.responseScore))}%`,
+                        backgroundColor: responseInterp.color,
+                      }}
+                    />
+                    <span className="response-label">{bodyIntelligence.responseScore}%</span>
+                  </div>
+                )}
+                <p className="intelligence-footnote">
+                  Based on {bodyIntelligence.accumulatedDeficit.toLocaleString()} cal deficit
+                  over {bodyIntelligence.daysWithData} day{bodyIntelligence.daysWithData !== 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Weight Quality Card (only show with InBody data) */}
       {bodyIntelligence.hasInBodyData && bodyIntelligence.totalWeightLost > 0 && (
-        <div className="card weight-quality-card">
-          <div className="card-header">
-            <Scale size={20} />
-            <h3>Weight Quality</h3>
-          </div>
-          <div className="quality-status" style={{ borderLeftColor: qualityInterp.color }}>
-            <span className="status-emoji">{qualityInterp.emoji}</span>
-            <div className="status-content">
-              <span className="status-title" style={{ color: qualityInterp.color }}>
-                {qualityInterp.status}
+        <div className="card weight-quality-card collapsible-card">
+          <button
+            className="collapsible-header"
+            onClick={() => toggleCard('weightQuality')}
+          >
+            <div className="collapsible-header-left">
+              <Scale size={20} />
+              <h3>Weight Quality</h3>
+            </div>
+            <div className="collapsible-header-right">
+              <span className="collapsible-insight" style={{ color: qualityInterp.color }}>
+                {qualityInterp.emoji} {qualityInterp.status}
+                {bodyIntelligence.fatLossEfficiency > 0 && ` · ${bodyIntelligence.fatLossEfficiency}%`}
               </span>
-              <p className="status-message">{qualityInterp.message}</p>
+              {expandedCards.weightQuality ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
-          </div>
+          </button>
 
-          <div className="quality-breakdown">
-            <div className="breakdown-item">
-              <div className="breakdown-header">
-                <span>Fat</span>
-                <span>-{formatWeightValue(bodyIntelligence.fatLost, weightUnit)} {weightUnit}</span>
-              </div>
-              <div className="breakdown-bar">
-                <div
-                  className="breakdown-fill fat"
-                  style={{
-                    width: `${Math.min(100, (bodyIntelligence.fatLost / bodyIntelligence.totalWeightLost) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-            <div className="breakdown-item">
-              <div className="breakdown-header">
-                <span>Muscle</span>
-                <span>
-                  {bodyIntelligence.muscleLost > 0 ? '-' : '+'}
-                  {formatWeightValue(Math.abs(bodyIntelligence.muscleLost), weightUnit)} {weightUnit}
-                </span>
-              </div>
-              <div className="breakdown-bar">
-                <div
-                  className="breakdown-fill muscle"
-                  style={{
-                    width: `${Math.min(100, Math.abs(bodyIntelligence.muscleLost / bodyIntelligence.totalWeightLost) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-            {bodyIntelligence.waterChange !== 0 && (
-              <div className="breakdown-item">
-                <div className="breakdown-header">
-                  <span>Water</span>
-                  <span>
-                    {bodyIntelligence.waterChange > 0 ? '-' : '+'}
-                    {formatWeightValue(Math.abs(bodyIntelligence.waterChange), weightUnit)} {weightUnit}
+          {expandedCards.weightQuality && (
+            <div className="collapsible-content">
+              <div className="quality-status" style={{ borderLeftColor: qualityInterp.color }}>
+                <span className="status-emoji">{qualityInterp.emoji}</span>
+                <div className="status-content">
+                  <span className="status-title" style={{ color: qualityInterp.color }}>
+                    {qualityInterp.status}
                   </span>
-                </div>
-                <div className="breakdown-bar">
-                  <div
-                    className="breakdown-fill water"
-                    style={{
-                      width: `${Math.min(100, Math.abs(bodyIntelligence.waterChange / bodyIntelligence.totalWeightLost) * 100)}%`,
-                    }}
-                  />
+                  <p className="status-message">{qualityInterp.message}</p>
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="quality-breakdown">
+                <div className="breakdown-item">
+                  <div className="breakdown-header">
+                    <span>Fat</span>
+                    <span>
+                      {bodyIntelligence.fatLost > 0 ? '-' : '+'}
+                      {formatWeightValue(Math.abs(bodyIntelligence.fatLost), weightUnit)} {weightUnit}
+                    </span>
+                  </div>
+                  <div className="breakdown-bar">
+                    <div
+                      className="breakdown-fill fat"
+                      style={{
+                        width: `${Math.min(100, (bodyIntelligence.fatLost / bodyIntelligence.totalWeightLost) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="breakdown-item">
+                  <div className="breakdown-header">
+                    <span>Muscle</span>
+                    <span>
+                      {bodyIntelligence.muscleLost > 0 ? '-' : '+'}
+                      {formatWeightValue(Math.abs(bodyIntelligence.muscleLost), weightUnit)} {weightUnit}
+                    </span>
+                  </div>
+                  <div className="breakdown-bar">
+                    <div
+                      className="breakdown-fill muscle"
+                      style={{
+                        width: `${Math.min(100, Math.abs(bodyIntelligence.muscleLost / bodyIntelligence.totalWeightLost) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                {bodyIntelligence.waterChange !== 0 && (
+                  <div className="breakdown-item">
+                    <div className="breakdown-header">
+                      <span>Water</span>
+                      <span>
+                        {bodyIntelligence.waterChange > 0 ? '-' : '+'}
+                        {formatWeightValue(Math.abs(bodyIntelligence.waterChange), weightUnit)} {weightUnit}
+                      </span>
+                    </div>
+                    <div className="breakdown-bar">
+                      <div
+                        className="breakdown-fill water"
+                        style={{
+                          width: `${Math.min(100, Math.abs(bodyIntelligence.waterChange / bodyIntelligence.totalWeightLost) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Metabolic Health Card (only show with BMR data) */}
       {bodyIntelligence.hasBMRData && (
-        <div className="card metabolic-health-card">
-          <div className="card-header">
-            <Activity size={20} />
-            <h3>Metabolic Health</h3>
-          </div>
-          <div className="metabolic-status" style={{ borderLeftColor: metabolicInterp.color }}>
-            <span className="status-emoji">{metabolicInterp.emoji}</span>
-            <div className="status-content">
-              <span className="status-title" style={{ color: metabolicInterp.color }}>
-                {metabolicInterp.status}
-              </span>
-              <p className="status-message">{metabolicInterp.message}</p>
+        <div className="card metabolic-health-card collapsible-card">
+          <button
+            className="collapsible-header"
+            onClick={() => toggleCard('metabolicHealth')}
+          >
+            <div className="collapsible-header-left">
+              <Activity size={20} />
+              <h3>Metabolic Health</h3>
             </div>
-          </div>
+            <div className="collapsible-header-right">
+              <span className="collapsible-insight" style={{ color: metabolicInterp.color }}>
+                {metabolicInterp.emoji} {metabolicInterp.status}
+                {bodyIntelligence.currentBMR > 0 && ` · ${bodyIntelligence.currentBMR} cal`}
+              </span>
+              {expandedCards.metabolicHealth ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+          </button>
 
-          <div className="metabolic-details">
-            <div className="detail-row">
-              <span className="detail-label">Current BMR:</span>
-              <span className="detail-value">{bodyIntelligence.currentBMR} cal/day</span>
+          {expandedCards.metabolicHealth && (
+            <div className="collapsible-content">
+              <div className="metabolic-status" style={{ borderLeftColor: metabolicInterp.color }}>
+                <span className="status-emoji">{metabolicInterp.emoji}</span>
+                <div className="status-content">
+                  <span className="status-title" style={{ color: metabolicInterp.color }}>
+                    {metabolicInterp.status}
+                  </span>
+                  <p className="status-message">{metabolicInterp.message}</p>
+                </div>
+              </div>
+
+              <div className="metabolic-details">
+                <div className="detail-row">
+                  <span className="detail-label">Current BMR:</span>
+                  <span className="detail-value">{bodyIntelligence.currentBMR} cal/day</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">BMR Change:</span>
+                  <span
+                    className="detail-value"
+                    style={{ color: bodyIntelligence.bmrChange < 0 ? '#f59e0b' : '#10b981' }}
+                  >
+                    {bodyIntelligence.bmrChange > 0 ? '+' : ''}{bodyIntelligence.bmrChange} cal/day
+                  </span>
+                </div>
+                <p className="metabolic-footnote">
+                  Expected: {bodyIntelligence.expectedBmrChange} cal drop per {formatWeightValue(bodyIntelligence.totalWeightLost, weightUnit)} {weightUnit} lost
+                </p>
+              </div>
             </div>
-            <div className="detail-row">
-              <span className="detail-label">BMR Change:</span>
-              <span
-                className="detail-value"
-                style={{ color: bodyIntelligence.bmrChange < 0 ? '#f59e0b' : '#10b981' }}
-              >
-                {bodyIntelligence.bmrChange > 0 ? '+' : ''}{bodyIntelligence.bmrChange} cal/day
-              </span>
-            </div>
-            <p className="metabolic-footnote">
-              Expected: {bodyIntelligence.expectedBmrChange} cal drop per {formatWeightValue(bodyIntelligence.totalWeightLost, weightUnit)} {weightUnit} lost
-            </p>
-          </div>
+          )}
         </div>
       )}
 
