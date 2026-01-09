@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X, Sparkles, RefreshCw, Loader2, Flame } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { createPortal } from 'react-dom';
 import { FoodScanner } from './FoodScanner';
