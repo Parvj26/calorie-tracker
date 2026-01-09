@@ -940,6 +940,149 @@ body {
   color: var(--gray-600);
 }
 
+/* MFP-Style Calorie Equation Card */
+.calorie-equation-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.equation-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.equation-item {
+  text-align: center;
+  min-width: 50px;
+}
+
+.equation-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.2;
+}
+
+.equation-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.equation-item.goal .equation-value {
+  color: var(--primary);
+}
+
+.equation-item.food .equation-value {
+  color: var(--gray-700);
+}
+
+.equation-item.exercise .equation-value {
+  color: var(--success);
+}
+
+.equation-item.result .equation-value {
+  color: var(--success);
+  font-size: 1.4rem;
+}
+
+.equation-item.result.negative .equation-value {
+  color: var(--danger);
+}
+
+.equation-operator {
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--gray-400);
+  margin: 0 2px;
+}
+
+.bmr-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.bmr-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+
+.bmr-badge svg {
+  color: #d97706;
+}
+
+.bmr-value {
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.bmr-source {
+  color: var(--gray-500);
+  font-size: 0.7rem;
+}
+
+.activity-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.activity-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.activity-badge svg {
+  color: var(--gray-500);
+}
+
+/* Responsive adjustments for equation card */
+@media (max-width: 360px) {
+  .equation-row {
+    gap: 4px;
+  }
+
+  .equation-value {
+    font-size: 1rem;
+  }
+
+  .equation-item.result .equation-value {
+    font-size: 1.2rem;
+  }
+
+  .equation-operator {
+    font-size: 1rem;
+  }
+
+  .bmr-info-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 /* Floating Scan Button */
 .floating-scan-btn {
   position: fixed;

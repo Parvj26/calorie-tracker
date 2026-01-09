@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X, Sparkles, RefreshCw, Loader2, Flame } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { createPortal } from 'react-dom';
 import { FoodScanner } from './FoodScanner';
@@ -46,9 +46,17 @@ interface DashboardProps {
     activeEnergy: number;
     tdee: number;
     hasTDEE: boolean;
+    hasBMR?: boolean;
     trueDeficit: number;
     steps: number;
     exerciseMinutes: number;
+    // New BMR-based fields
+    bmr?: number;
+    bmrSource?: 'inbody' | 'katch_mcardle' | 'mifflin_st_jeor' | 'none';
+    baseCalories?: number;
+    exerciseCalories?: number;
+    adjustedTarget?: number;
+    tdeeSource?: string | null;
   };
   goalProgress: GoalProgress;
   meals: Meal[];
@@ -418,8 +426,62 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* TDEE Breakdown - Only show when available */}
-      {totals.hasTDEE && (
+      {/* MFP-Style Calorie Equation */}
+      {totals.hasBMR && totals.bmr && totals.bmr > 0 && (
+        <div className="calorie-equation-card">
+          <div className="equation-row">
+            <div className="equation-item goal">
+              <span className="equation-value">{totals.targetCalories}</span>
+              <span className="equation-label">Goal</span>
+            </div>
+            <span className="equation-operator">−</span>
+            <div className="equation-item food">
+              <span className="equation-value">{totals.calories}</span>
+              <span className="equation-label">Food</span>
+            </div>
+            <span className="equation-operator">+</span>
+            <div className="equation-item exercise">
+              <span className="equation-value">{totals.exerciseCalories || totals.activeEnergy}</span>
+              <span className="equation-label">Exercise</span>
+            </div>
+            <span className="equation-operator">=</span>
+            <div className={`equation-item result ${totals.caloriesRemaining < 0 ? 'negative' : ''}`}>
+              <span className="equation-value">{Math.round(totals.caloriesRemaining)}</span>
+              <span className="equation-label">Remaining</span>
+            </div>
+          </div>
+          <div className="bmr-info-row">
+            <div className="bmr-badge">
+              <Flame size={14} />
+              <span className="bmr-value">BMR: {totals.bmr}</span>
+              <span className="bmr-source">
+                {totals.bmrSource === 'inbody' && 'InBody'}
+                {totals.bmrSource === 'katch_mcardle' && 'Katch-McArdle'}
+                {totals.bmrSource === 'mifflin_st_jeor' && 'Formula'}
+              </span>
+            </div>
+            {(totals.steps > 0 || totals.exerciseMinutes > 0) && (
+              <div className="activity-badges">
+                {totals.steps > 0 && (
+                  <span className="activity-badge">
+                    <Footprints size={12} />
+                    {totals.steps.toLocaleString()}
+                  </span>
+                )}
+                {totals.exerciseMinutes > 0 && (
+                  <span className="activity-badge">
+                    <Clock size={12} />
+                    {totals.exerciseMinutes}min
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Legacy TDEE display for users without BMR */}
+      {!totals.hasBMR && totals.hasTDEE && (
         <div className="tdee-summary">
           <div className="tdee-item">
             <span className="tdee-icon">🔥</span>
