@@ -23,6 +23,15 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         <h1>CalorieTracker</h1>
         <p className="tagline">Your personal nutrition companion that makes healthy eating effortless</p>
 
+        {/* CTA Button */}
+        <div className="hero-cta">
+          <button className="cta-button" onClick={onGetStarted}>
+            Get Started
+            <ChevronRight size={20} />
+          </button>
+          <p className="cta-subtext">Free forever. No credit card needed.</p>
+        </div>
+
         {/* Phone Mockup */}
         <div className="phone-mockup">
           <div className="phone-screen">
@@ -94,15 +103,6 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <p>Custom targets that adapt to you</p>
           </div>
         </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="landing-cta">
-        <button className="cta-button" onClick={onGetStarted}>
-          Get Started
-          <ChevronRight size={20} />
-        </button>
-        <p className="cta-subtext">Free forever. No credit card needed.</p>
       </section>
 
       {/* Footer */}
