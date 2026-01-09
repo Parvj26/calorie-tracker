@@ -6445,6 +6445,18 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 16px;
 }
 
+.profile-card .form-group {
+  min-width: 0; /* Prevent overflow */
+}
+
+.profile-card input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 @media (max-width: 480px) {
   .profile-card .form-row {
     grid-template-columns: 1fr;
