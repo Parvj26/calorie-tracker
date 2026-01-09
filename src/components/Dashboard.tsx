@@ -333,6 +333,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <span className="tap-hint">Tap for breakdown</span>
       </div>
 
+      {/* TDEE-based Remaining Card */}
+      {totals.hasBMR && totals.tdee > 0 && (
+        <div className="tdee-remaining-card">
+          <div className="tdee-remaining-content">
+            <span className={`tdee-remaining-number ${totals.trueDeficit < 0 ? 'over' : ''}`}>
+              {Math.abs(Math.round(totals.trueDeficit))}
+            </span>
+            <span className="tdee-remaining-label">
+              {totals.trueDeficit >= 0 ? 'under maintenance' : 'over maintenance'}
+            </span>
+          </div>
+          <div className="tdee-remaining-details">
+            <span>{totals.calories} eaten</span>
+            <span className="tdee-divider">/</span>
+            <span>{totals.tdee} TDEE</span>
+          </div>
+        </div>
+      )}
+
       {/* Compact Macros Row - Clickable */}
       <div className="macros-compact">
         <div className="macro-pill protein clickable" onClick={() => setSelectedMacro('protein')}>
