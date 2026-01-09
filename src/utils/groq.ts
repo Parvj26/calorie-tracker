@@ -86,6 +86,7 @@ async function callWithFallback<T>(
   }
 
   let lastError: Error | null = null;
+  let allKeysRateLimited = true;
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
@@ -95,12 +96,20 @@ async function callWithFallback<T>(
       lastError = error as Error;
       // Only try next key on rate limit errors
       if (!isRateLimitError(error)) {
+        allKeysRateLimited = false;
         throw error;
       }
       if (i < keys.length - 1) {
         console.log('Rate limit hit on primary key, trying backup key...');
       }
     }
+  }
+
+  // Provide clearer error message when all keys are exhausted
+  if (allKeysRateLimited && keys.length > 1) {
+    throw new Error('Both API keys exhausted. Try again later or add another key in Settings.');
+  } else if (allKeysRateLimited) {
+    throw new Error('API key rate limit exceeded. Add a backup key in Settings or try again later.');
   }
 
   throw lastError || new Error('All API keys exhausted');
