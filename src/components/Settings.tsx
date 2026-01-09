@@ -258,39 +258,6 @@ export const Settings: React.FC<SettingsProps> = ({
         </button>
       </div>
 
-      <div className="card settings-card">
-        <h3>Calorie Targets</h3>
-        <div className="form-group">
-          <label>Daily Calorie Range</label>
-          <div className="range-inputs">
-            <input
-              type="number"
-              value={formData.dailyCalorieTargetMin}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  dailyCalorieTargetMin: parseInt(e.target.value) || 0,
-                })
-              }
-              placeholder="Min"
-            />
-            <span>to</span>
-            <input
-              type="number"
-              value={formData.dailyCalorieTargetMax}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  dailyCalorieTargetMax: parseInt(e.target.value) || 0,
-                })
-              }
-              placeholder="Max"
-            />
-            <span>calories</span>
-          </div>
-        </div>
-      </div>
-
       <div className="card settings-card nutrition-goals-card">
         <h3><Target size={20} /> Daily Nutrition Goals</h3>
         {!hasCompleteProfile && (
@@ -556,6 +523,45 @@ export const Settings: React.FC<SettingsProps> = ({
           {saved ? 'Saved!' : 'Save Settings'}
         </button>
       </div>
+
+      {/* Manual Calorie Targets - Only show when BMR is not available */}
+      {(!bmr || bmr <= 0) && (
+        <div className="card settings-card">
+          <h3>Manual Calorie Targets</h3>
+          <p className="form-help" style={{ color: '#f59e0b', marginBottom: '1rem' }}>
+            These targets are used when BMR data is not available. Complete your profile or upload an InBody scan for automatic BMR-based goals.
+          </p>
+          <div className="form-group">
+            <label>Daily Calorie Range</label>
+            <div className="range-inputs">
+              <input
+                type="number"
+                value={formData.dailyCalorieTargetMin}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    dailyCalorieTargetMin: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Min"
+              />
+              <span>to</span>
+              <input
+                type="number"
+                value={formData.dailyCalorieTargetMax}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    dailyCalorieTargetMax: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Max"
+              />
+              <span>calories</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card data-card">
         <h3>Data Management</h3>
