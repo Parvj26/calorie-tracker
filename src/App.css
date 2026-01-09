@@ -105,6 +105,36 @@ body {
   color: #fca5a5;
 }
 
+/* Header Icon Buttons (Settings, Logout) */
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.header-icon-btn.active {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.header-icon-btn.logout:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* Legacy support */
 .logout-btn {
   display: flex;
   align-items: center;

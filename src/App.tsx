@@ -178,7 +178,6 @@ function AppContent() {
     { id: 'progress' as TabType, label: 'Progress', icon: TrendingUp },
     { id: 'inbody' as TabType, label: 'InBody', icon: ScanLine },
     { id: 'summary' as TabType, label: 'Summary', icon: Calendar },
-    { id: 'settings' as TabType, label: 'Settings', icon: SettingsIcon },
   ];
 
   return (
@@ -196,7 +195,14 @@ function AppContent() {
                 : profile.email?.[0]?.toUpperCase() || '?'}
             </div>
           )}
-          <button className="logout-btn" onClick={signOut} title="Sign out">
+          <button
+            className={`header-icon-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+            title="Settings"
+          >
+            <SettingsIcon size={18} />
+          </button>
+          <button className="header-icon-btn logout" onClick={signOut} title="Sign out">
             <LogOut size={18} />
           </button>
         </div>
