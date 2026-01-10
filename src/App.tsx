@@ -82,6 +82,7 @@ function AppContent() {
     getMasterMealQuantity,
     getMasterMealUnit,
     getServingMultiplier,
+    isDataLoaded,
   } = useCalorieTracker(profile);
 
   // Master meals for discover tab
@@ -174,11 +175,14 @@ function AppContent() {
     return (
       <ResetPassword
         onComplete={async () => {
-          // Clear the URL path and sign out
-          window.history.replaceState({}, '', '/');
-          clearPasswordRecovery();
-          await signOut();
+          // Set showAuth first so we go to login (not landing page) after clearing
           setShowAuth(true);
+          // Clear the URL path
+          window.history.replaceState({}, '', '/');
+          // Sign out first (user becomes null)
+          await signOut();
+          // Then clear recovery mode (triggers re-render with user=null, showAuth=true)
+          clearPasswordRecovery();
         }}
       />
     );
@@ -190,6 +194,16 @@ function AppContent() {
       return <Auth onBack={() => setShowAuth(false)} />;
     }
     return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+  }
+
+  // Show loading while data is being fetched from Supabase
+  if (!isDataLoaded) {
+    return (
+      <div className="app loading-screen">
+        <Loader2 size={48} className="spinner" />
+        <p>Loading your data...</p>
+      </div>
+    );
   }
 
   const tabs = [

@@ -987,6 +987,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     settings,
     today,
     syncState,
+    isDataLoaded: isLoaded,
 
     // Daily log operations
     getTodayLog,
