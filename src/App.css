@@ -5101,6 +5101,29 @@ body {
   text-decoration: underline;
 }
 
+.auth-forgot-link {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.auth-forgot-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.success-icon {
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
 /* ===========================================
    ENHANCED INBODY METRICS STYLES
    =========================================== */

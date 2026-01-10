@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   LayoutDashboard,
@@ -24,6 +24,7 @@ import { InBodyUpload } from './components/InBodyUpload';
 import { WeeklySummary } from './components/WeeklySummary';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
+import { ResetPassword } from './components/ResetPassword';
 import { DiscoverTab } from './components/Discover/DiscoverTab';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
 import { LandingPage } from './components/LandingPage';
@@ -35,6 +36,18 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showAuth, setShowAuth] = useState(false);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+
+  // Check if we're on the reset password page
+  useEffect(() => {
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+
+    // Supabase redirects to /reset-password with tokens in the hash
+    if (path === '/reset-password' && hash.includes('access_token')) {
+      setIsResetPasswordMode(true);
+    }
+  }, []);
 
   // User profile and admin status (loaded first for BMR calculations)
   const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
@@ -165,6 +178,21 @@ function AppContent() {
         <Loader2 size={48} className="spinner" />
         <p>Loading...</p>
       </div>
+    );
+  }
+
+  // Show reset password screen if in reset password mode
+  if (isResetPasswordMode) {
+    return (
+      <ResetPassword
+        onComplete={async () => {
+          // Clear the URL path and sign out
+          window.history.replaceState({}, '', '/');
+          await signOut();
+          setIsResetPasswordMode(false);
+          setShowAuth(true);
+        }}
+      />
     );
   }
 

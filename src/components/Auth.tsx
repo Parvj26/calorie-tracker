@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, LogIn, UserPlus, Loader2, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader2, ArrowLeft, KeyRound } from 'lucide-react';
 
 interface AuthProps {
   onBack?: () => void;
 }
 
+type AuthView = 'login' | 'signup' | 'forgot';
+
 export const Auth: React.FC<AuthProps> = ({ onBack }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPasswordForEmail } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,21 +24,34 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
     setError(null);
     setMessage(null);
 
-    if (isLogin) {
+    if (view === 'login') {
       const { error } = await signIn(email, password);
       if (error) {
         setError(error.message);
       }
-    } else {
+    } else if (view === 'signup') {
       const { error } = await signUp(email, password);
       if (error) {
         setError(error.message);
       } else {
         setMessage('Check your email for a confirmation link!');
       }
+    } else if (view === 'forgot') {
+      const { error } = await resetPasswordForEmail(email);
+      if (error) {
+        setError(error.message);
+      } else {
+        setMessage('Check your email for a password reset link!');
+      }
     }
 
     setLoading(false);
+  };
+
+  const switchView = (newView: AuthView) => {
+    setView(newView);
+    setError(null);
+    setMessage(null);
   };
 
   return (
@@ -50,25 +65,31 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
         )}
         <div className="auth-header">
           <h1>CalorieTracker</h1>
-          <p>Your personalized nutrition companion</p>
+          <p>
+            {view === 'forgot'
+              ? 'Reset your password'
+              : 'Your personalized nutrition companion'}
+          </p>
         </div>
 
-        <div className="auth-tabs">
-          <button
-            className={isLogin ? 'active' : ''}
-            onClick={() => setIsLogin(true)}
-          >
-            <LogIn size={18} />
-            Sign In
-          </button>
-          <button
-            className={!isLogin ? 'active' : ''}
-            onClick={() => setIsLogin(false)}
-          >
-            <UserPlus size={18} />
-            Sign Up
-          </button>
-        </div>
+        {view !== 'forgot' && (
+          <div className="auth-tabs">
+            <button
+              className={view === 'login' ? 'active' : ''}
+              onClick={() => switchView('login')}
+            >
+              <LogIn size={18} />
+              Sign In
+            </button>
+            <button
+              className={view === 'signup' ? 'active' : ''}
+              onClick={() => switchView('signup')}
+            >
+              <UserPlus size={18} />
+              Sign Up
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
@@ -82,17 +103,19 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
             />
           </div>
 
-          <div className="input-group">
-            <Lock size={18} className="input-icon" />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </div>
+          {view !== 'forgot' && (
+            <div className="input-group">
+              <Lock size={18} className="input-icon" />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+          )}
 
           {error && <div className="auth-error">{error}</div>}
           {message && <div className="auth-message">{message}</div>}
@@ -101,26 +124,52 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
             {loading ? (
               <>
                 <Loader2 size={18} className="spinner" />
-                {isLogin ? 'Signing in...' : 'Creating account...'}
+                {view === 'login' ? 'Signing in...' : view === 'signup' ? 'Creating account...' : 'Sending...'}
               </>
             ) : (
               <>
-                {isLogin ? <LogIn size={18} /> : <UserPlus size={18} />}
-                {isLogin ? 'Sign In' : 'Create Account'}
+                {view === 'login' ? <LogIn size={18} /> : view === 'signup' ? <UserPlus size={18} /> : <KeyRound size={18} />}
+                {view === 'login' ? 'Sign In' : view === 'signup' ? 'Create Account' : 'Send Reset Link'}
               </>
             )}
           </button>
+
+          {view === 'login' && (
+            <button
+              type="button"
+              className="auth-forgot-link"
+              onClick={() => switchView('forgot')}
+            >
+              Forgot password?
+            </button>
+          )}
         </form>
 
         <p className="auth-footer">
-          {isLogin ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            className="auth-switch"
-            onClick={() => setIsLogin(!isLogin)}
-          >
-            {isLogin ? 'Sign up' : 'Sign in'}
-          </button>
+          {view === 'login' && (
+            <>
+              Don't have an account?{' '}
+              <button type="button" className="auth-switch" onClick={() => switchView('signup')}>
+                Sign up
+              </button>
+            </>
+          )}
+          {view === 'signup' && (
+            <>
+              Already have an account?{' '}
+              <button type="button" className="auth-switch" onClick={() => switchView('login')}>
+                Sign in
+              </button>
+            </>
+          )}
+          {view === 'forgot' && (
+            <>
+              Remember your password?{' '}
+              <button type="button" className="auth-switch" onClick={() => switchView('login')}>
+                Sign in
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
