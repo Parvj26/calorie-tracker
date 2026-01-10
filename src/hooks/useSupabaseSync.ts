@@ -95,6 +95,7 @@ export function useSupabaseSync() {
         ]);
 
         settings = {
+          dailyCalorieTarget: settingsRes.data.daily_calorie_target || undefined,
           dailyCalorieTargetMin: settingsRes.data.daily_calorie_target_min,
           dailyCalorieTargetMax: settingsRes.data.daily_calorie_target_max,
           startWeight: settingsRes.data.start_weight,
@@ -271,6 +272,7 @@ export function useSupabaseSync() {
 
     await supabase.from('user_settings').upsert({
       user_id: user.id,
+      daily_calorie_target: settings.dailyCalorieTarget || null,
       daily_calorie_target_min: settings.dailyCalorieTargetMin,
       daily_calorie_target_max: settings.dailyCalorieTargetMax,
       start_weight: settings.startWeight,
