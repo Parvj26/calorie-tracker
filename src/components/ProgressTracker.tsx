@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   LineChart,
@@ -105,6 +105,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   const toggleCard = (card: keyof typeof expandedCards) => {
     setExpandedCards(prev => ({ ...prev, [card]: !prev[card] }));
   };
+
+  // Memoize sorted weigh-ins to avoid recalculating on every render
+  const sortedWeighIns = useMemo(
+    () => [...weighIns].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10),
+    [weighIns]
+  );
 
   const bodyIntelligence = progressData.bodyIntelligence;
 
@@ -960,10 +966,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
 
           {showWeighIns && (
             <div className="weighins-grid">
-              {[...weighIns]
-                .sort((a, b) => b.date.localeCompare(a.date))
-                .slice(0, 10)
-                .map((weighIn) => (
+              {sortedWeighIns.map((weighIn) => (
                   <div key={weighIn.date} className="weighin-item">
                     <span className="weighin-date">
                       {format(parseISO(weighIn.date), 'MMM d, yyyy')}

@@ -1,11 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { format } from 'date-fns';
 import {
   LayoutDashboard,
   Utensils,
   TrendingUp,
   ScanLine,
-  Calendar,
   Settings as SettingsIcon,
   LogOut,
   Loader2,
@@ -17,19 +16,28 @@ import { useUserProfile } from './hooks/useUserProfile';
 import { useMasterMeals } from './hooks/useMasterMeals';
 import { useMealSubmissions } from './hooks/useMealSubmissions';
 import { useInsights } from './hooks/useInsights';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Dashboard } from './components/Dashboard';
-import { LogMeals } from './components/LogMeals';
-import { ProgressTracker } from './components/ProgressTracker';
-import { InBodyUpload } from './components/InBodyUpload';
-import { WeeklySummary } from './components/WeeklySummary';
-import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
-import { DiscoverTab } from './components/Discover/DiscoverTab';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
 import { LandingPage } from './components/LandingPage';
 import type { TabType } from './types';
 import './App.css';
+
+// Lazy load heavy components for better initial bundle size
+const LogMeals = lazy(() => import('./components/LogMeals').then(m => ({ default: m.LogMeals })));
+const ProgressTracker = lazy(() => import('./components/ProgressTracker').then(m => ({ default: m.ProgressTracker })));
+const InBodyUpload = lazy(() => import('./components/InBodyUpload').then(m => ({ default: m.InBodyUpload })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const DiscoverTab = lazy(() => import('./components/Discover/DiscoverTab').then(m => ({ default: m.DiscoverTab })));
+
+// Loading fallback for lazy components
+const TabLoader = () => (
+  <div className="tab-loading">
+    <Loader2 size={32} className="spinner" />
+  </div>
+);
 
 function AppContent() {
   const { user, loading, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
@@ -67,7 +75,6 @@ function AppContent() {
     addWeighIn,
     deleteWeighIn,
     updateSettings,
-    getWeeklySummary,
     getProgressData,
     getGoalProgress,
     addMasterMealToLog,
@@ -117,7 +124,6 @@ function AppContent() {
   // All hooks must be called before any conditional returns
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
   const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
-  const weeklySummary = useMemo(() => getWeeklySummary(), [getWeeklySummary]);
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
 
@@ -212,7 +218,6 @@ function AppContent() {
     { id: 'discover' as TabType, label: 'Discover', icon: Globe },
     { id: 'progress' as TabType, label: 'Progress', icon: TrendingUp },
     { id: 'inbody' as TabType, label: 'InBody', icon: ScanLine },
-    { id: 'summary' as TabType, label: 'Summary', icon: Calendar },
   ];
 
   return (
@@ -243,20 +248,24 @@ function AppContent() {
         </div>
       </header>
 
-      <nav className="app-nav">
+      <nav className="app-nav" role="tablist" aria-label="Main navigation">
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`${tab.id}-panel`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
             className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            <tab.icon size={20} />
+            <tab.icon size={20} aria-hidden="true" />
             <span>{tab.label}</span>
           </button>
         ))}
       </nav>
 
-      <main className="app-main">
+      <main className="app-main" role="tabpanel" id={`${activeTab}-panel`}>
         {activeTab === 'dashboard' && (
           <Dashboard
             selectedDate={selectedDate}
@@ -280,6 +289,7 @@ function AppContent() {
         )}
 
         {activeTab === 'log' && (
+          <Suspense fallback={<TabLoader />}>
           <LogMeals
             meals={meals}
             deletedMeals={deletedMeals}
@@ -315,9 +325,11 @@ function AppContent() {
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
           />
+          </Suspense>
         )}
 
         {activeTab === 'discover' && (
+          <Suspense fallback={<TabLoader />}>
           <DiscoverTab
             meals={meals}
             masterMeals={masterMeals}
@@ -337,9 +349,11 @@ function AppContent() {
             onDeleteMasterMeal={deleteMasterMeal}
             checkDuplicateName={checkDuplicateName}
           />
+          </Suspense>
         )}
 
         {activeTab === 'progress' && (
+          <Suspense fallback={<TabLoader />}>
           <ProgressTracker
             weighIns={weighIns}
             settings={settings}
@@ -353,9 +367,11 @@ function AppContent() {
             onGenerateMonthlyInsights={insights.monthly.generate}
             hasApiKey={insights.hasApiKey}
           />
+          </Suspense>
         )}
 
         {activeTab === 'inbody' && (
+          <Suspense fallback={<TabLoader />}>
           <InBodyUpload
             scans={inBodyScans}
             aiProvider={settings.aiProvider || 'groq'}
@@ -365,21 +381,11 @@ function AppContent() {
             onAddScan={addInBodyScan}
             onDeleteScan={deleteInBodyScan}
           />
-        )}
-
-        {activeTab === 'summary' && (
-          <WeeklySummary
-            summary={weeklySummary}
-            goalProgress={goalProgress}
-            weeklyInsights={insights.weekly.insights}
-            weeklyInsightsLoading={insights.weekly.loading}
-            weeklyInsightsError={insights.weekly.error}
-            onGenerateWeeklyInsights={insights.weekly.generate}
-            hasApiKey={insights.hasApiKey}
-          />
+          </Suspense>
         )}
 
         {activeTab === 'settings' && (
+          <Suspense fallback={<TabLoader />}>
           <Settings
             settings={settings}
             onUpdateSettings={updateSettings}
@@ -387,6 +393,7 @@ function AppContent() {
             bmr={totals.bmr}
             dailyLogs={dailyLogs}
           />
+          </Suspense>
         )}
       </main>
 
@@ -404,9 +411,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

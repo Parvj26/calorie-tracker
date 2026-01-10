@@ -120,7 +120,7 @@ export default function RecipeModal({ meal, onClose, onLogMeal }: RecipeModalPro
               <h3>Instructions</h3>
               <ol className="instructions-list">
                 {instructions.map((step, index) => (
-                  <li key={index}>{step}</li>
+                  <li key={`step-${index}-${step.slice(0, 20)}`}>{step}</li>
                 ))}
               </ol>
             </div>

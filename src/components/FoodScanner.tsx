@@ -407,7 +407,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                 {detectedFoods.map((food, index) => {
                   const adjusted = getAdjustedValues(food);
                   return (
-                    <div key={index} className="food-card">
+                    <div key={`${food.foodName}-${index}`} className="food-card">
                       <div className="food-header">
                         <input
                           type="text"

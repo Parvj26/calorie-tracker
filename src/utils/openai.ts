@@ -1,3 +1,30 @@
+const REQUEST_TIMEOUT_MS = 30000; // 30 second timeout
+
+// Helper to fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 interface InBodyExtractedData {
   weight: number | null;
   bodyFatPercent: number | null;
@@ -37,7 +64,7 @@ export async function extractHealthData(
   imageBase64: string,
   apiKey: string
 ): Promise<HealthDataExtracted> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -126,7 +153,7 @@ export async function extractInBodyData(
   imageBase64: string,
   apiKey: string
 ): Promise<InBodyExtractedData> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

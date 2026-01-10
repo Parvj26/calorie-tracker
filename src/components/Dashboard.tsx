@@ -224,8 +224,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           ) : (
             <div className="breakdown-list">
-              {breakdown.map((item, index) => (
-                <div key={index} className="breakdown-item">
+              {breakdown.map((item) => (
+                <div key={`${item.name}-${item.value}-${item.quantity}`} className="breakdown-item">
                   <div className="breakdown-item-info">
                     <span className="breakdown-item-name">
                       {item.name}
