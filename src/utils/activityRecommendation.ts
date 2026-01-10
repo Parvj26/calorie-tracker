@@ -19,12 +19,23 @@ export interface ActivityAnalysis {
 }
 
 /**
- * Activity level thresholds based on research:
- * - Sedentary: < 5,000 steps/day, no exercise
- * - Light: 5,000-7,500 steps/day, 1-2 exercise days/week
- * - Moderate: 7,500-10,000 steps/day, 3-4 exercise days/week
- * - Active: 10,000-12,500 steps/day, 5-6 exercise days/week
- * - Very Active: > 12,500 steps/day, 7 exercise days/week
+ * Activity level thresholds (CONSERVATIVE - takes lower of steps vs exercise):
+ *
+ * Steps-based:
+ * - Sedentary: < 5,000 steps/day
+ * - Light: 5,000-7,499 steps/day
+ * - Moderate: 7,500-9,999 steps/day
+ * - High: 10,000-12,499 steps/day
+ * - Very High: ≥ 12,500 steps/day
+ *
+ * Exercise-based (workouts/week):
+ * - Sedentary: 0 days
+ * - Light: 1-2 days
+ * - Moderate: 3-4 days
+ * - High: 5-6 days
+ * - Very High: 7 days
+ *
+ * Final recommendation = LOWER of the two (conservative for weight loss)
  */
 
 /**
@@ -77,18 +88,37 @@ export function analyzeActivityLevel(
   // Extrapolate to weekly exercise days
   const weeklyExerciseDays = Math.round((daysWithExercise / sortedLogs.length) * 7);
 
-  // Determine recommended level based on both steps and exercise
-  let recommendedLevel: ActivityLevel = 'sedentary';
+  // Activity level order for comparison (lower index = lower activity)
+  const levelOrder: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 
-  if (avgSteps >= 12500 || weeklyExerciseDays >= 6) {
-    recommendedLevel = 'very_active';
-  } else if (avgSteps >= 10000 || weeklyExerciseDays >= 5) {
-    recommendedLevel = 'active';
-  } else if (avgSteps >= 7500 || weeklyExerciseDays >= 3) {
-    recommendedLevel = 'moderate';
-  } else if (avgSteps >= 5000 || weeklyExerciseDays >= 1) {
-    recommendedLevel = 'light';
+  // Determine level based on steps
+  let stepsLevel: ActivityLevel = 'sedentary';
+  if (avgSteps >= 12500) {
+    stepsLevel = 'very_active';
+  } else if (avgSteps >= 10000) {
+    stepsLevel = 'active';
+  } else if (avgSteps >= 7500) {
+    stepsLevel = 'moderate';
+  } else if (avgSteps >= 5000) {
+    stepsLevel = 'light';
   }
+
+  // Determine level based on exercise days
+  let exerciseLevel: ActivityLevel = 'sedentary';
+  if (weeklyExerciseDays >= 7) {
+    exerciseLevel = 'very_active';
+  } else if (weeklyExerciseDays >= 5) {
+    exerciseLevel = 'active';
+  } else if (weeklyExerciseDays >= 3) {
+    exerciseLevel = 'moderate';
+  } else if (weeklyExerciseDays >= 1) {
+    exerciseLevel = 'light';
+  }
+
+  // CONSERVATIVE: Take the LOWER of the two levels
+  const stepsIndex = levelOrder.indexOf(stepsLevel);
+  const exerciseIndex = levelOrder.indexOf(exerciseLevel);
+  const recommendedLevel = levelOrder[Math.min(stepsIndex, exerciseIndex)];
 
   // Determine confidence based on sample size
   const confidence: 'low' | 'medium' | 'high' =
