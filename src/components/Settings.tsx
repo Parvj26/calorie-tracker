@@ -130,8 +130,10 @@ export const Settings: React.FC<SettingsProps> = ({
   };
 
   const handleSaveGoal = () => {
+    // Use the actual displayed value (including fallback)
+    const targetValue = formData.dailyCalorieTarget || Math.round((formData.dailyCalorieTargetMin + formData.dailyCalorieTargetMax) / 2);
     onUpdateSettings({
-      dailyCalorieTarget: formData.dailyCalorieTarget,
+      dailyCalorieTarget: targetValue,
     });
     setGoalSaved(true);
     setTimeout(() => setGoalSaved(false), 2000);
