@@ -752,16 +752,15 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                       borderRadius: '8px',
                     }}
                   />
-                  <ReferenceLine
-                    y={settings.dailyCalorieTargetMin}
-                    stroke="#10b981"
-                    strokeDasharray="3 3"
-                  />
-                  <ReferenceLine
-                    y={settings.dailyCalorieTargetMax}
-                    stroke="#f59e0b"
-                    strokeDasharray="3 3"
-                  />
+                  {/* Show calorie target as reference line */}
+                  {(settings.dailyCalorieTarget || settings.dailyCalorieTargetMin) && (
+                    <ReferenceLine
+                      y={settings.dailyCalorieTarget || Math.round((settings.dailyCalorieTargetMin + settings.dailyCalorieTargetMax) / 2)}
+                      stroke="#10b981"
+                      strokeDasharray="3 3"
+                      label={{ value: 'Target', fill: '#10b981', fontSize: 11 }}
+                    />
+                  )}
                   <Area
                     type="monotone"
                     dataKey="calories"
