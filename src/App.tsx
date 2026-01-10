@@ -18,6 +18,10 @@ import { useMealSubmissions } from './hooks/useMealSubmissions';
 import { useInsights } from './hooks/useInsights';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Dashboard } from './components/Dashboard';
+import { LogMeals } from './components/LogMeals';
+import { InBodyUpload } from './components/InBodyUpload';
+import { Settings } from './components/Settings';
+import { DiscoverTab } from './components/Discover/DiscoverTab';
 import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
@@ -25,12 +29,8 @@ import { LandingPage } from './components/LandingPage';
 import type { TabType } from './types';
 import './App.css';
 
-// Lazy load heavy components for better initial bundle size
-const LogMeals = lazy(() => import('./components/LogMeals').then(m => ({ default: m.LogMeals })));
+// Only lazy load the heaviest component (ProgressTracker has recharts ~370KB)
 const ProgressTracker = lazy(() => import('./components/ProgressTracker').then(m => ({ default: m.ProgressTracker })));
-const InBodyUpload = lazy(() => import('./components/InBodyUpload').then(m => ({ default: m.InBodyUpload })));
-const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
-const DiscoverTab = lazy(() => import('./components/Discover/DiscoverTab').then(m => ({ default: m.DiscoverTab })));
 
 // Loading fallback for lazy components
 const TabLoader = () => (
@@ -289,7 +289,6 @@ function AppContent() {
         )}
 
         {activeTab === 'log' && (
-          <Suspense fallback={<TabLoader />}>
           <LogMeals
             meals={meals}
             deletedMeals={deletedMeals}
@@ -325,11 +324,9 @@ function AppContent() {
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
           />
-          </Suspense>
         )}
 
         {activeTab === 'discover' && (
-          <Suspense fallback={<TabLoader />}>
           <DiscoverTab
             meals={meals}
             masterMeals={masterMeals}
@@ -349,7 +346,6 @@ function AppContent() {
             onDeleteMasterMeal={deleteMasterMeal}
             checkDuplicateName={checkDuplicateName}
           />
-          </Suspense>
         )}
 
         {activeTab === 'progress' && (
@@ -371,7 +367,6 @@ function AppContent() {
         )}
 
         {activeTab === 'inbody' && (
-          <Suspense fallback={<TabLoader />}>
           <InBodyUpload
             scans={inBodyScans}
             aiProvider={settings.aiProvider || 'groq'}
@@ -381,11 +376,9 @@ function AppContent() {
             onAddScan={addInBodyScan}
             onDeleteScan={deleteInBodyScan}
           />
-          </Suspense>
         )}
 
         {activeTab === 'settings' && (
-          <Suspense fallback={<TabLoader />}>
           <Settings
             settings={settings}
             onUpdateSettings={updateSettings}
@@ -393,7 +386,6 @@ function AppContent() {
             bmr={totals.bmr}
             dailyLogs={dailyLogs}
           />
-          </Suspense>
         )}
       </main>
 
