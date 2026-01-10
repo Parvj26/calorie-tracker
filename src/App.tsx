@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import {
   LayoutDashboard,
@@ -32,22 +32,10 @@ import type { TabType } from './types';
 import './App.css';
 
 function AppContent() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showAuth, setShowAuth] = useState(false);
-  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
-
-  // Check if we're on the reset password page
-  useEffect(() => {
-    const path = window.location.pathname;
-    const hash = window.location.hash;
-
-    // Supabase redirects to /reset-password with tokens in the hash
-    if (path === '/reset-password' && hash.includes('access_token')) {
-      setIsResetPasswordMode(true);
-    }
-  }, []);
 
   // User profile and admin status (loaded first for BMR calculations)
   const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
@@ -181,15 +169,15 @@ function AppContent() {
     );
   }
 
-  // Show reset password screen if in reset password mode
-  if (isResetPasswordMode) {
+  // Show reset password screen if in password recovery mode
+  if (isPasswordRecovery) {
     return (
       <ResetPassword
         onComplete={async () => {
           // Clear the URL path and sign out
           window.history.replaceState({}, '', '/');
+          clearPasswordRecovery();
           await signOut();
-          setIsResetPasswordMode(false);
           setShowAuth(true);
         }}
       />
