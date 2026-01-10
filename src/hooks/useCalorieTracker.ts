@@ -9,6 +9,8 @@ import { defaultMeals, defaultSettings } from '../data/defaultMeals';
 import { getBMRWithPriority, type BMRSource } from '../utils/bmrCalculation';
 import { calculateAge } from '../utils/nutritionGoals';
 import { calculateBodyIntelligence } from '../utils/bodyIntelligence';
+// Apple Health TDEE utilities available for future use:
+// import { calculateAppleHealthTdee, calculateObservedTdee, type ObservedTdeeResult } from '../utils/appleHealthTdee';
 
 // Helper functions for meal entries with quantity
 const getMealId = (entry: string | MealLogEntry): string => {
@@ -644,52 +646,66 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     // Use health metrics if available
     const healthMetrics = log.healthMetrics;
     const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
+    const restingEnergy = healthMetrics?.restingEnergy || 0;
 
-    // Use user's direct calorie target (simple approach)
-    const baseCalories = bmr;
+    // TEF multiplier (default 1.10 for 10% thermic effect of food)
+    const tefMultiplier = settings.tefMultiplier || 1.10;
+
+    // Calculate TDEE using Apple Health formula:
+    // TDEE = (Resting Energy + Active Energy) × TEF Multiplier
+    const hasAppleHealthData = restingEnergy > 0;
+    const rawTdee = restingEnergy + activeEnergy;
+    const tdee = hasAppleHealthData ? Math.round(rawTdee * tefMultiplier) : 0;
+    const hasTDEE = hasAppleHealthData;
+
+    // Use user's direct calorie target for goal tracking
     const targetCalories = settings.dailyCalorieTarget || settingsTargetCalories;
     const hasBMR = bmr > 0;
 
-    // Exercise calories tracked separately (not added to remaining)
+    // Exercise calories (for display)
     const exerciseCalories = activeEnergy;
 
-    // Remaining = Goal - Food (simple, no exercise bonus)
+    // Remaining = Goal - Food (based on user's target)
     const caloriesRemaining = targetCalories - totals.calories;
 
     // Adjusted target kept for reference (Goal + Exercise)
     const adjustedTarget = targetCalories + exerciseCalories;
 
-    // Calculate TDEE (Total Daily Energy Expenditure)
-    // TDEE = BMR + Active Energy
-    const tdee = baseCalories > 0 ? baseCalories + exerciseCalories : 0;
-    const hasTDEE = baseCalories > 0;
-
-    // Deficit shows how much under your base goal (before exercise bonus)
-    // This is consistent with the goal shown in the hero
+    // Deficit vs user's target
     const deficit = targetCalories - totals.calories;
 
-    // True deficit is how much under TDEE (actual weight loss)
+    // True deficit = TDEE - Calories Eaten (actual fat loss)
+    // This is the real energy balance based on Apple Health
     const trueDeficit = hasTDEE ? (tdee - totals.calories) : deficit;
+
+    // BMR is kept for sanity-checking Apple's Resting Energy
+    const baseCalories = bmr;
 
     // Legacy fields for backward compatibility
     const netCalories = totals.calories - activeEnergy;
-    const restingEnergy = bmr;
 
     // Source description for UI
-    const tdeeSource = bmrSource === 'inbody'
-      ? 'InBody BMR'
-      : bmrSource === 'katch_mcardle'
-        ? 'Katch-McArdle (body composition)'
-        : bmrSource === 'mifflin_st_jeor'
-          ? 'Mifflin-St Jeor formula'
-          : null;
+    const tdeeSource = hasAppleHealthData
+      ? `Apple Health × ${tefMultiplier} TEF`
+      : bmrSource === 'inbody'
+        ? 'InBody BMR'
+        : bmrSource === 'katch_mcardle'
+          ? 'Katch-McArdle (body composition)'
+          : bmrSource === 'mifflin_st_jeor'
+            ? 'Mifflin-St Jeor formula'
+            : null;
+
+    // Projected weekly fat loss based on true deficit
+    const projectedWeeklyLossKg = hasTDEE
+      ? Math.round((trueDeficit * 7 / 7700) * 100) / 100
+      : 0;
 
     return {
       ...totals,
       // Legacy fields
       workoutCalories: activeEnergy,
       netCalories,
-      // BMR-based fields
+      // BMR-based fields (for reference/sanity checking)
       bmr,
       bmrSource,
       baseCalories,
@@ -697,14 +713,18 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       exerciseCalories,
       adjustedTarget,
       caloriesRemaining,
-      // TDEE fields
+      // Apple Health TDEE fields (primary source)
       restingEnergy,
       activeEnergy,
+      rawTdee,
       tdee,
+      tefMultiplier,
       hasTDEE,
       hasBMR,
+      hasAppleHealthData,
       deficit,
       trueDeficit,
+      projectedWeeklyLossKg,
       tdeeSource,
       // Health metrics
       steps: healthMetrics?.steps || 0,

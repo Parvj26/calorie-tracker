@@ -132,6 +132,7 @@ export interface UserSettings {
   dailyCalorieTarget?: number; // User's daily calorie goal
   dailyCalorieTargetMin: number; // Legacy - kept for backward compatibility
   dailyCalorieTargetMax: number; // Legacy - kept for backward compatibility
+  tefMultiplier?: number; // TEF multiplier for Apple Health TDEE (default: 1.10)
   startWeight: number;
   goalWeight: number;
   startDate: string;
