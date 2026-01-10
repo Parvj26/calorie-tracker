@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { Camera, Dumbbell, TrendingDown, Smartphone, ChevronLeft, ChevronRight, Calendar, Zap, Footprints, Clock, Target, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { createPortal } from 'react-dom';
 import { FoodScanner } from './FoodScanner';
 import { HealthScanner } from './HealthScanner';
-import type { DailyLog, Meal, MasterMeal, UserSettings, HealthMetrics, QuantityUnit, DailyInsights } from '../types';
+import type { DailyLog, Meal, MasterMeal, UserSettings, HealthMetrics, QuantityUnit } from '../types';
 import { formatWeightValue } from '../utils/weightConversion';
 
 type MacroType = 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar';
@@ -73,12 +73,6 @@ interface DashboardProps {
   onDateChange: (date: string) => void;
   onLogScannedMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
   onSaveAndLogMeal: (meal: Omit<Meal, 'id' | 'isCustom'>, date: string) => void;
-  // AI Insights
-  dailyInsights: DailyInsights | null;
-  dailyInsightsLoading: boolean;
-  dailyInsightsError: string | null;
-  onGenerateDailyInsights: (forceRefresh?: boolean) => void;
-  hasApiKey: boolean;
 }
 
 const macroLabels: Record<MacroType, string> = {
@@ -117,11 +111,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDateChange,
   onLogScannedMeal,
   onSaveAndLogMeal,
-  dailyInsights,
-  dailyInsightsLoading,
-  dailyInsightsError,
-  onGenerateDailyInsights,
-  hasApiKey,
 }) => {
   const [workoutInput, setWorkoutInput] = useState(totals.activeEnergy.toString());
   const [showScanner, setShowScanner] = useState(false);
@@ -495,109 +484,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       )}
-
-      {/* AI Daily Insights */}
-      <div className="ai-insights-card daily-insights">
-        <div className="ai-insights-header">
-          <div className="ai-insights-title">
-            <Sparkles size={18} />
-            <span>AI Tips</span>
-          </div>
-          {hasApiKey && (
-            <button
-              className="insights-refresh-btn"
-              onClick={() => onGenerateDailyInsights(true)}
-              disabled={dailyInsightsLoading}
-              title="Refresh insights"
-            >
-              {dailyInsightsLoading ? (
-                <Loader2 size={16} className="spinner" />
-              ) : (
-                <RefreshCw size={16} />
-              )}
-            </button>
-          )}
-        </div>
-
-        {!hasApiKey ? (
-          <div className="insights-no-key">
-            <p>Configure your API key in Settings to get personalized AI insights.</p>
-          </div>
-        ) : dailyInsightsLoading ? (
-          <div className="insights-loading">
-            <Loader2 size={24} className="spinner" />
-            <span>Analyzing your day...</span>
-          </div>
-        ) : dailyInsightsError ? (
-          <div className="insights-error">
-            <p>{dailyInsightsError}</p>
-            <button onClick={() => onGenerateDailyInsights(true)}>Try Again</button>
-          </div>
-        ) : dailyInsights ? (
-          <div className="insights-content enhanced compact">
-            {/* Wins - Positive Reinforcement */}
-            {dailyInsights.wins && dailyInsights.wins.length > 0 && (
-              <div className="insight-row wins">
-                <span className="row-icon">🎉</span>
-                <span>{dailyInsights.wins[0]}</span>
-              </div>
-            )}
-
-            {/* Pattern Insight */}
-            {dailyInsights.patternInsight && (
-              <div className="insight-row pattern">
-                <span className="row-icon">🔍</span>
-                <span>{dailyInsights.patternInsight}</span>
-              </div>
-            )}
-
-            {/* Action Item */}
-            {dailyInsights.actionItem && (
-              <div className="insight-row action">
-                <span className="row-icon">💡</span>
-                <span>{dailyInsights.actionItem}</span>
-              </div>
-            )}
-
-            {/* Progress Summary */}
-            {dailyInsights.progressSummary && (
-              <div className="insight-row progress">
-                <span className="row-icon">🎯</span>
-                <span>{dailyInsights.progressSummary}</span>
-              </div>
-            )}
-
-            {/* Remaining calories */}
-            {dailyInsights.remaining && (
-              <div className="insight-remaining compact">
-                {dailyInsights.remaining}
-              </div>
-            )}
-
-            {/* Legacy tips support */}
-            {dailyInsights.tips && dailyInsights.tips.length > 0 && !dailyInsights.patternInsight && (
-              <>
-                {dailyInsights.tips.map((tip, index) => (
-                  <div key={index} className="insight-tip">
-                    <span className="tip-bullet">•</span>
-                    <span>{tip}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="insights-empty">
-            <button
-              className="generate-insights-btn"
-              onClick={() => onGenerateDailyInsights()}
-            >
-              <Sparkles size={16} />
-              Get AI Tips
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Floating Scan Button */}
       <button

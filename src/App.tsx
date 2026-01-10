@@ -276,11 +276,6 @@ function AppContent() {
             onDateChange={setSelectedDate}
             onLogScannedMeal={logScannedMeal}
             onSaveAndLogMeal={saveAndLogMeal}
-            dailyInsights={insights.daily.insights}
-            dailyInsightsLoading={insights.daily.loading}
-            dailyInsightsError={insights.daily.error}
-            onGenerateDailyInsights={insights.daily.generate}
-            hasApiKey={insights.hasApiKey}
           />
         )}
 
