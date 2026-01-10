@@ -129,8 +129,9 @@ export type AIProvider = 'openai' | 'groq';
 export type WeightUnit = 'kg' | 'lbs';
 
 export interface UserSettings {
-  dailyCalorieTargetMin: number;
-  dailyCalorieTargetMax: number;
+  dailyCalorieTarget?: number; // User's daily calorie goal
+  dailyCalorieTargetMin: number; // Legacy - kept for backward compatibility
+  dailyCalorieTargetMax: number; // Legacy - kept for backward compatibility
   startWeight: number;
   goalWeight: number;
   startDate: string;

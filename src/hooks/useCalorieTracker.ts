@@ -6,7 +6,7 @@ import { useSupabaseSync } from './useSupabaseSync';
 import { useAuth } from '../contexts/AuthContext';
 import type { Meal, DailyLog, InBodyScan, WeighIn, UserSettings, HealthMetrics, MealLogEntry, MasterMealLogEntry, QuantityUnit, UserProfile } from '../types';
 import { defaultMeals, defaultSettings } from '../data/defaultMeals';
-import { getBMRWithPriority, calculateGoalBasedTarget, type BMRSource, type GoalBasedTarget } from '../utils/bmrCalculation';
+import { getBMRWithPriority, type BMRSource } from '../utils/bmrCalculation';
 import { calculateAge } from '../utils/nutritionGoals';
 import { calculateBodyIntelligence } from '../utils/bodyIntelligence';
 
@@ -645,26 +645,10 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     const healthMetrics = log.healthMetrics;
     const activeEnergy = healthMetrics?.activeEnergy || log.workoutCalories;
 
-    // Calculate goal-based target (BMR - deficit)
-    // Activity level is NOT used in calculation - only BMR matters
-    let baseCalories = bmr;
-    let targetCalories = settingsTargetCalories; // Fallback to settings
-    let hasBMR = bmr > 0;
-
-    // If we have BMR, use goal-based calculation
-    // Goal = BMR - (daily deficit based on target weight + target date)
-    let goalTarget: GoalBasedTarget | null = null;
-    if (bmr > 0) {
-      goalTarget = calculateGoalBasedTarget(
-        bmr,
-        currentWeight,
-        settings.goalWeight,
-        settings.targetDate,
-        userProfile?.gender
-      );
-      targetCalories = goalTarget.targetCalories;
-      baseCalories = bmr; // BMR is the base, not BMR * activity
-    }
+    // Use user's direct calorie target (simple approach)
+    const baseCalories = bmr;
+    const targetCalories = settings.dailyCalorieTarget || settingsTargetCalories;
+    const hasBMR = bmr > 0;
 
     // Exercise calories tracked separately (not added to remaining)
     const exerciseCalories = activeEnergy;
@@ -705,7 +689,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       // Legacy fields
       workoutCalories: activeEnergy,
       netCalories,
-      // BMR-based fields (new)
+      // BMR-based fields
       bmr,
       bmrSource,
       baseCalories,
@@ -713,12 +697,6 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       exerciseCalories,
       adjustedTarget,
       caloriesRemaining,
-      // Goal-based fields
-      dailyDeficit: goalTarget?.dailyDeficit || 0,
-      weeklyWeightLoss: goalTarget?.weeklyWeightLoss || 0,
-      weeksToGoal: goalTarget?.weeksToGoal || 0,
-      isGoalAggressive: goalTarget?.isAggressive || false,
-      isGoalTooLow: goalTarget?.isTooLow || false,
       // TDEE fields
       restingEnergy,
       activeEnergy,

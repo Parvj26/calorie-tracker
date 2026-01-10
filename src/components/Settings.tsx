@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Save, RotateCcw, User, Target, Footprints, Scale } from 'lucide-react';
 import type { UserSettings, Gender, ActivityLevel, DailyLog } from '../types';
-import { formatWeightValue, convertToKg } from '../utils/weightConversion';
-import { ACTIVITY_LABELS, calculateGoalBasedTarget, ACTIVITY_MULTIPLIERS } from '../utils/bmrCalculation';
+import { ACTIVITY_LABELS, ACTIVITY_MULTIPLIERS } from '../utils/bmrCalculation';
 import { defaultSettings } from '../data/defaultMeals';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useActivityRecommendation } from '../hooks/useActivityRecommendation';
@@ -32,8 +31,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [goalSaved, setGoalSaved] = useState(false);
-  // Local state for goal weight input (stores display value in user's unit)
-  const [goalWeightInput, setGoalWeightInput] = useState('');
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
@@ -60,16 +57,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
   useEffect(() => {
     setFormData(settings);
-    // Initialize goal weight input in user's preferred unit
-    const unit = settings.weightUnit || 'kg';
-    setGoalWeightInput(formatWeightValue(settings.goalWeight, unit));
   }, [settings]);
-
-  // Update goal weight display when unit changes
-  useEffect(() => {
-    const unit = formData.weightUnit || 'kg';
-    setGoalWeightInput(formatWeightValue(settings.goalWeight, unit));
-  }, [formData.weightUnit, settings.goalWeight]);
 
   useEffect(() => {
     if (profile) {
@@ -109,23 +97,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const hasCompleteProfile = profile?.dateOfBirth && profile?.gender && (profile.gender === 'male' || profile.gender === 'female');
 
-  // Calculate goal-based target preview
-  const goalPreview = useMemo(() => {
-    if (!bmr || bmr <= 0) return null;
-    // Convert goal weight input to kg for calculation
-    const inputValue = parseFloat(goalWeightInput) || 0;
-    const goalWeightKg = (formData.weightUnit || 'kg') === 'lbs'
-      ? convertToKg(inputValue, 'lbs')
-      : inputValue;
-    return calculateGoalBasedTarget(
-      bmr,
-      currentWeight || settings.startWeight,
-      goalWeightKg,
-      formData.targetDate,
-      profile?.gender
-    );
-  }, [bmr, currentWeight, settings.startWeight, goalWeightInput, formData.targetDate, formData.weightUnit, profile?.gender]);
-
   // Calculate estimated maintenance calories (informational only)
   const estimatedMaintenance = useMemo(() => {
     if (!bmr || bmr <= 0 || !profile?.activityLevel) return null;
@@ -159,16 +130,8 @@ export const Settings: React.FC<SettingsProps> = ({
   };
 
   const handleSaveGoal = () => {
-    // Convert goal weight from display unit to kg for storage
-    const inputValue = parseFloat(goalWeightInput) || 0;
-    const goalWeightKg = (formData.weightUnit || 'kg') === 'lbs'
-      ? convertToKg(inputValue, 'lbs')
-      : inputValue;
-
     onUpdateSettings({
-      goalWeight: Math.round(goalWeightKg * 10) / 10,
-      startDate: formData.startDate,
-      targetDate: formData.targetDate,
+      dailyCalorieTarget: formData.dailyCalorieTarget,
     });
     setGoalSaved(true);
     setTimeout(() => setGoalSaved(false), 2000);
@@ -400,109 +363,28 @@ export const Settings: React.FC<SettingsProps> = ({
       </div>
 
       <div className="card settings-card goal-card">
-        <h3><Target size={20} /> Weight Goal</h3>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Current Weight ({formData.weightUnit || 'kg'})</label>
-            <input
-              type="number"
-              step="0.1"
-              value={formatWeightValue(currentWeight || formData.startWeight, formData.weightUnit || 'kg')}
-              disabled
-              className="disabled-input"
-            />
-            <span className="form-help">From latest weigh-in</span>
-          </div>
-          <div className="form-group">
-            <label>Goal Weight ({formData.weightUnit || 'kg'})</label>
-            <input
-              type="number"
-              step="0.1"
-              value={goalWeightInput}
-              onChange={(e) => setGoalWeightInput(e.target.value)}
-            />
-          </div>
+        <h3><Target size={20} /> Calorie Target</h3>
+        <div className="form-group">
+          <label>Daily Calorie Target</label>
+          <input
+            type="number"
+            value={formData.dailyCalorieTarget || Math.round((formData.dailyCalorieTargetMin + formData.dailyCalorieTargetMax) / 2)}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                dailyCalorieTarget: parseInt(e.target.value) || 0,
+              })
+            }
+            placeholder="e.g., 1800"
+            min="1000"
+            max="5000"
+          />
+          <span className="form-help">Your daily calorie goal</span>
         </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Start Date</label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  startDate: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="form-group">
-            <label>Target Date</label>
-            <input
-              type="date"
-              value={formData.targetDate || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  targetDate: e.target.value,
-                })
-              }
-              min={new Date().toISOString().split('T')[0]}
-            />
-            <span className="form-help">When to reach goal weight</span>
-          </div>
-        </div>
-
-        {/* Goal Preview */}
-        {goalPreview && goalPreview.dailyDeficit > 0 && (
-          <div className="goal-summary">
-            <div className="goal-stats">
-              <div className="goal-stat">
-                <span className="stat-label">Weekly loss</span>
-                <span className={`stat-value ${goalPreview.isAggressive ? 'warning' : ''}`}>
-                  {formatWeightValue(goalPreview.weeklyWeightLoss, formData.weightUnit || 'kg')} {formData.weightUnit || 'kg'}/week
-                </span>
-              </div>
-              <div className="goal-stat">
-                <span className="stat-label">Daily deficit</span>
-                <span className="stat-value">{goalPreview.dailyDeficit} cal</span>
-              </div>
-              <div className="goal-stat">
-                <span className="stat-label">Calorie target</span>
-                <span className={`stat-value ${goalPreview.isTooLow ? 'danger' : 'success'}`}>
-                  {goalPreview.targetCalories} cal
-                </span>
-              </div>
-              <div className="goal-stat">
-                <span className="stat-label">Time to goal</span>
-                <span className="stat-value">{goalPreview.weeksToGoal} weeks</span>
-              </div>
-            </div>
-
-            {goalPreview.isAggressive && (
-              <p className="goal-warning">
-                Losing more than {(formData.weightUnit || 'kg') === 'lbs' ? '2.2 lbs' : '1 kg'}/week is aggressive. Consider extending your timeline for sustainable results.
-              </p>
-            )}
-            {goalPreview.isTooLow && (
-              <p className="goal-danger">
-                Target is below safe minimum. Calorie goal has been adjusted to a safe level.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Show message if no target date set */}
-        {bmr && bmr > 0 && !formData.targetDate && (
-          <p className="form-help" style={{ marginTop: '1rem' }}>
-            Set a target date to see your personalized calorie goal based on your BMR ({bmr} cal).
-          </p>
-        )}
 
         <button className="save-btn" onClick={handleSaveGoal} style={{ marginTop: '1rem' }}>
           <Save size={16} />
-          {goalSaved ? 'Saved!' : 'Save Goal'}
+          {goalSaved ? 'Saved!' : 'Save'}
         </button>
       </div>
 
@@ -624,45 +506,6 @@ export const Settings: React.FC<SettingsProps> = ({
           {saved ? 'Saved!' : 'Save Settings'}
         </button>
       </div>
-
-      {/* Manual Calorie Targets - Only show when BMR is not available */}
-      {(!bmr || bmr <= 0) && (
-        <div className="card settings-card">
-          <h3>Manual Calorie Targets</h3>
-          <p className="form-help" style={{ color: '#f59e0b', marginBottom: '1rem' }}>
-            These targets are used when BMR data is not available. Complete your profile or upload an InBody scan for automatic BMR-based goals.
-          </p>
-          <div className="form-group">
-            <label>Daily Calorie Range</label>
-            <div className="range-inputs">
-              <input
-                type="number"
-                value={formData.dailyCalorieTargetMin}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    dailyCalorieTargetMin: parseInt(e.target.value) || 0,
-                  })
-                }
-                placeholder="Min"
-              />
-              <span>to</span>
-              <input
-                type="number"
-                value={formData.dailyCalorieTargetMax}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    dailyCalorieTargetMax: parseInt(e.target.value) || 0,
-                  })
-                }
-                placeholder="Max"
-              />
-              <span>calories</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="card data-card">
         <h3>Data Management</h3>
