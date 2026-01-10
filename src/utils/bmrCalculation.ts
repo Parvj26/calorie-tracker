@@ -9,21 +9,21 @@
 
 import type { Gender, ActivityLevel } from '../types';
 
-// Activity multipliers for NEAT calculation
+// Activity multipliers for TDEE calculation
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2,      // Desk job, no exercise
-  light: 1.375,        // Light exercise 1-3 days/week
-  moderate: 1.55,      // Moderate exercise 3-5 days/week
-  active: 1.725,       // Hard exercise 6-7 days/week
-  very_active: 1.9,    // Athlete or physical job
+  sedentary: 1.2,      // Desk job, no training
+  light: 1.375,        // 1-3 workouts/week
+  moderate: 1.55,      // 3-5 workouts/week
+  active: 1.725,       // 6-7 workouts/week
+  very_active: 1.9,    // Physical job + training
 };
 
 export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
-  sedentary: 'Sedentary (desk job, no exercise)',
-  light: 'Light (exercise 1-3 days/week)',
-  moderate: 'Moderate (exercise 3-5 days/week)',
-  active: 'Active (exercise 6-7 days/week)',
-  very_active: 'Very Active (athlete/physical job)',
+  sedentary: 'Sedentary (desk job, no training)',
+  light: 'Light (1-3 workouts/week)',
+  moderate: 'Moderate (3-5 workouts/week)',
+  active: 'High (6-7 workouts/week)',
+  very_active: 'Very High (physical job + training)',
 };
 
 export type BMRSource = 'inbody' | 'katch_mcardle' | 'mifflin_st_jeor' | 'none';
