@@ -254,6 +254,10 @@ body {
   transition: background 0.2s;
 }
 
+.scan-meal-btn svg {
+  color: white;
+}
+
 .scan-meal-btn:hover {
   background: var(--primary-dark);
 }
@@ -2214,6 +2218,8 @@ body {
 .nutrition-item.protein .nutrition-value { color: var(--protein-color); }
 .nutrition-item.carbs .nutrition-value { color: var(--carbs-color); }
 .nutrition-item.fat .nutrition-value { color: var(--fat-color); }
+.nutrition-item.fiber .nutrition-value { color: var(--fiber-color); }
+.nutrition-item.sugar .nutrition-value { color: var(--sugar-color); }
 
 .nutrition-label {
   font-size: 0.7rem;
@@ -2316,6 +2322,20 @@ body {
   color: var(--danger);
   border-radius: 8px;
   font-size: 0.9rem;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 /* InBody Upload */

@@ -43,6 +43,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [shouldGenerateRecipe, setShouldGenerateRecipe] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -256,7 +257,15 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
-    setDetectedFoods((prev) => prev.filter((f) => f !== food));
+
+    const remainingFoods = detectedFoods.filter((f) => f !== food);
+    setDetectedFoods(remainingFoods);
+
+    // Show success and close if last item
+    if (remainingFoods.length === 0) {
+      setSuccessMessage(`${food.foodName} logged!`);
+      setTimeout(() => onClose(), 1000);
+    }
   };
 
   const handleSaveAndLogFood = (food: DetectedFood) => {
@@ -272,7 +281,15 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
     });
-    setDetectedFoods((prev) => prev.filter((f) => f !== food));
+
+    const remainingFoods = detectedFoods.filter((f) => f !== food);
+    setDetectedFoods(remainingFoods);
+
+    // Show success and close if last item
+    if (remainingFoods.length === 0) {
+      setSuccessMessage(`${food.foodName} saved & logged!`);
+      setTimeout(() => onClose(), 1000);
+    }
   };
 
   const handleLogAll = () => {
@@ -391,6 +408,13 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
               </div>
             )}
 
+            {successMessage && (
+              <div className="success-message">
+                <Check size={20} />
+                {successMessage}
+              </div>
+            )}
+
             {detectedFoods.length > 0 && (
               <div className="detected-foods">
                 <h3>Detected Foods</h3>
@@ -470,6 +494,14 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                         <div className="nutrition-item fat">
                           <span className="nutrition-value">{adjusted.fat}g</span>
                           <span className="nutrition-label">fat</span>
+                        </div>
+                        <div className="nutrition-item fiber">
+                          <span className="nutrition-value">{adjusted.fiber}g</span>
+                          <span className="nutrition-label">fiber</span>
+                        </div>
+                        <div className="nutrition-item sugar">
+                          <span className="nutrition-value">{adjusted.sugar}g</span>
+                          <span className="nutrition-label">sugar</span>
                         </div>
                       </div>
 

@@ -465,14 +465,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               {isSelected && (
                 <div className="quantity-controls" onClick={(e) => e.stopPropagation()}>
                   {supportsGrams && unit === 'g' ? (
-                    // Gram input mode
+                    // Gram input mode - use text with inputMode for better mobile numeric keypad
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*\.?[0-9]*"
                       className="quantity-input"
                       value={quantity}
                       onChange={(e) => handleQuantityInput(e.target.value)}
-                      min="1"
-                      max="2000"
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
