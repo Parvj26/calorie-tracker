@@ -63,10 +63,6 @@ interface DashboardProps {
   goalProgress: GoalProgress;
   meals: Meal[];
   masterMeals: MasterMeal[];
-  getMealQuantity: (mealId: string, date: string) => number;
-  getMealUnit: (mealId: string, date: string) => string;
-  getMasterMealQuantity: (mealId: string, date: string) => number;
-  getMasterMealUnit: (mealId: string, date: string) => string;
   getServingMultiplier: (quantity: number, unit: QuantityUnit, servingSize?: number) => number;
   onUpdateWorkoutCalories: (calories: number, date: string) => void;
   onUpdateHealthMetrics: (metrics: HealthMetrics, date: string) => void;
@@ -101,10 +97,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   goalProgress,
   meals,
   masterMeals,
-  getMealQuantity,
-  getMealUnit,
-  getMasterMealQuantity,
-  getMasterMealUnit,
   getServingMultiplier,
   onUpdateWorkoutCalories,
   onUpdateHealthMetrics,
@@ -140,6 +132,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
     onDateChange(format(current, 'yyyy-MM-dd'));
   };
 
+  // Helper to extract quantity from log entry
+  const getEntryQuantity = (entry: string | { mealId: string; quantity?: number }): number => {
+    return typeof entry === 'string' ? 1 : (entry.quantity || 1);
+  };
+
+  // Helper to extract unit from log entry
+  const getEntryUnit = (entry: string | { mealId: string; unit?: string }): QuantityUnit => {
+    return (typeof entry === 'string' ? 'serving' : (entry.unit || 'serving')) as QuantityUnit;
+  };
+
   // Calculate meal contributions for a specific macro
   const getMacroBreakdown = useMemo(() => {
     return (macro: MacroType): MealContribution[] => {
@@ -151,8 +153,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const mealId = typeof entry === 'string' ? entry : entry.mealId;
         const meal = meals.find((m) => m.id === mealId);
         if (meal && !meal.deletedAt) {
-          const quantity = getMealQuantity(mealId, selectedDate);
-          const unit = getMealUnit(mealId, selectedDate) as QuantityUnit;
+          // Extract quantity and unit directly from the entry object
+          const quantity = getEntryQuantity(entry);
+          const unit = getEntryUnit(entry);
           const multiplier = getServingMultiplier(quantity, unit, meal.servingSize);
           const value = Math.round((meal[macro] || 0) * multiplier);
 
@@ -174,8 +177,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const mealId = typeof entry === 'string' ? entry : entry.mealId;
         const meal = masterMeals.find((m) => m.id === mealId);
         if (meal) {
-          const quantity = getMasterMealQuantity(mealId, selectedDate);
-          const unit = getMasterMealUnit(mealId, selectedDate) as QuantityUnit;
+          // Extract quantity and unit directly from the entry object
+          const quantity = getEntryQuantity(entry);
+          const unit = getEntryUnit(entry);
           const multiplier = getServingMultiplier(quantity, unit, meal.servingSize);
           const value = Math.round((meal[macro] || 0) * multiplier);
 
@@ -194,7 +198,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Sort by value descending
       return contributions.sort((a, b) => b.value - a.value);
     };
-  }, [log, meals, masterMeals, selectedDate, getMealQuantity, getMealUnit, getMasterMealQuantity, getMasterMealUnit, getServingMultiplier]);
+  }, [log, meals, masterMeals, getServingMultiplier]);
 
   const renderBreakdownModal = () => {
     if (!selectedMacro) return null;
