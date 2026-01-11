@@ -348,6 +348,7 @@ export function calculateBodyIntelligence(
       const unexpectedDrop = Math.abs(bmrChange) - Math.abs(expectedBmrChange);
 
       if (totalWeightLost > 0.2) {
+        // User is losing weight - check if BMR drop is appropriate
         if (unexpectedDrop < 30) {
           // BMR drop is within expected range
           metabolicStatus = 'healthy';
@@ -355,6 +356,18 @@ export function calculateBodyIntelligence(
           // BMR dropped significantly more than expected
           metabolicStatus = 'adapting';
         } else {
+          metabolicStatus = 'healthy';
+        }
+      } else {
+        // User is maintaining or gaining weight
+        // Just check if BMR is stable (within ~30 cal is normal fluctuation)
+        if (Math.abs(bmrChange) <= 30) {
+          metabolicStatus = 'healthy';
+        } else if (bmrChange < -50) {
+          // BMR dropped significantly without weight loss - possible adaptation
+          metabolicStatus = 'adapting';
+        } else {
+          // BMR stable or increased
           metabolicStatus = 'healthy';
         }
       }
