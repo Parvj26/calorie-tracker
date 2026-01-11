@@ -115,7 +115,7 @@ export function AuthenticatedApp({ signOut }: { signOut: () => Promise<void> }) 
   }, [loadMasterMeals, loadPendingSubmissions]);
 
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
-  const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
+  const totals = useMemo(() => calculateTotals(currentLog, masterMeals), [currentLog, calculateTotals, masterMeals]);
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
 

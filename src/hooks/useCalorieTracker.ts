@@ -579,9 +579,9 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     });
   }, [setSettings, user, saveSettings]);
 
-  // Calculate totals for a log
-  const calculateTotals = useCallback((log: DailyLog) => {
-    // Map meal entries to meals with quantities and units
+  // Calculate totals for a log (accepts optional master meals for community meal support)
+  const calculateTotals = useCallback((log: DailyLog, masterMeals?: Array<{ id: string; calories: number; protein: number; carbs: number; fat: number; fiber?: number; sugar?: number; addedSugar?: number; servingSize?: number }>) => {
+    // Map personal meal entries to meals with quantities and units
     const logMealsWithQty = log.meals
       .map((entry) => {
         const mealId = getMealId(entry);
@@ -595,7 +595,24 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       })
       .filter(Boolean) as { meal: Meal; servingMultiplier: number }[];
 
-    const totals = logMealsWithQty.reduce(
+    // Map master meal entries to meals with quantities and units
+    const logMasterMealsWithQty = (log.masterMealIds || [])
+      .map((entry) => {
+        const mealId = getMasterMealId(entry);
+        const quantity = getMasterMealQuantity(entry);
+        const unit = getMasterMealUnit(entry);
+        const meal = masterMeals?.find((m) => m.id === mealId);
+        if (!meal) return null;
+        // Convert quantity to serving multiplier based on unit
+        const servingMultiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+        return { meal, servingMultiplier };
+      })
+      .filter(Boolean) as { meal: { calories: number; protein: number; carbs: number; fat: number; fiber?: number; sugar?: number; addedSugar?: number }; servingMultiplier: number }[];
+
+    // Combine personal and master meals for totals
+    const allMealsWithQty = [...logMealsWithQty, ...logMasterMealsWithQty];
+
+    const totals = allMealsWithQty.reduce(
       (acc, { meal, servingMultiplier }) => ({
         calories: acc.calories + Math.round(meal.calories * servingMultiplier),
         protein: acc.protein + Math.round(meal.protein * servingMultiplier),
