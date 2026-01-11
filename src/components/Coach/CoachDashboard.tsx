@@ -136,12 +136,12 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
         <div className="coach-alerts-section">
           <h3><Bell size={18} /> Alerts</h3>
           <div className="alerts-list">
-            {alerts.map((alert) => {
+            {alerts.map((alert, index) => {
               const alertMessage = typeof alert.message === 'string' ? alert.message : 'Alert';
               const alertType = typeof alert.type === 'string' ? alert.type : '';
               const alertSeverity = typeof alert.severity === 'string' ? alert.severity : '';
-              const alertId = typeof alert.id === 'string' ? alert.id : String(Math.random());
               const alertClientId = typeof alert.clientId === 'string' ? alert.clientId : null;
+              const alertId = typeof alert.id === 'string' ? alert.id : `alert-${alertType}-${alertClientId || index}`;
 
               return (
                 <div

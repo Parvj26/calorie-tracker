@@ -238,7 +238,7 @@ function parseJsonResponse<T>(content: string): T {
       throw new Error('No JSON found in response');
     }
     return JSON.parse(jsonMatch[0]);
-  } catch (e) {
+  } catch {
     console.error('Failed to parse Groq response:', content);
     throw new Error('Failed to parse response from Groq');
   }
@@ -290,7 +290,7 @@ Important:
       }
       const parsed = JSON.parse(jsonMatch[0]);
       return Array.isArray(parsed) ? parsed : [parsed];
-    } catch (e) {
+    } catch {
       console.error('Failed to parse food response:', content);
       throw new Error('Failed to parse food analysis from Groq');
     }

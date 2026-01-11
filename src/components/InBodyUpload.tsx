@@ -122,8 +122,8 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
           if (data.bmr || data.fatMass || data.visceralFatGrade) {
             setShowAdvanced(true);
           }
-        } catch (err: any) {
-          setError(err.message || 'Failed to extract data from image');
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to extract data from image');
         }
 
         setIsUploading(false);
@@ -135,8 +135,8 @@ export const InBodyUpload: React.FC<InBodyUploadProps> = ({
       };
 
       reader.readAsDataURL(file);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setIsUploading(false);
     }
 

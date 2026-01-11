@@ -143,7 +143,7 @@ Important:
       parsed.workouts = [];
     }
     return parsed;
-  } catch (e) {
+  } catch {
     console.error('Failed to parse response:', content);
     throw new Error('Failed to parse health data from image');
   }
@@ -233,7 +233,7 @@ CRITICAL INSTRUCTIONS:
       throw new Error('No JSON found in response');
     }
     return JSON.parse(jsonMatch[0]);
-  } catch (e) {
+  } catch {
     console.error('Failed to parse response:', content);
     throw new Error('Failed to parse InBody data from image');
   }

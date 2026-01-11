@@ -37,14 +37,46 @@ import {
 } from '../utils/bodyIntelligence';
 import { formatWeightValue, convertWeight, convertToKg } from '../utils/weightConversion';
 
+// Data interfaces for chart data
+interface CalorieDataPoint {
+  date: string;
+  displayDate: string;
+  calories: number;
+  target: number;
+}
+
+interface WeightDataPoint {
+  date: string;
+  displayDate: string;
+  weight: number;
+}
+
+interface BodyCompDataPoint {
+  date: string;
+  displayDate: string;
+  weight?: number;
+  bodyFatPercent?: number;
+  muscleMass?: number;
+  fatMass?: number;
+  skeletalMuscle?: number;
+  bmr?: number;
+  visceralFatGrade?: number;
+}
+
+interface StepsDataPoint {
+  date: string;
+  displayDate: string;
+  steps: number;
+}
+
 interface ProgressTrackerProps {
   weighIns: WeighIn[];
   settings: UserSettings;
   progressData: {
-    calorieData: any[];
-    weightData: any[];
-    bodyCompData: any[];
-    stepsData: any[];
+    calorieData: CalorieDataPoint[];
+    weightData: WeightDataPoint[];
+    bodyCompData: BodyCompDataPoint[];
+    stepsData: StepsDataPoint[];
     stepsStats: {
       avgSteps: number;
       maxSteps: number;
@@ -579,12 +611,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             )}
 
             {/* Fat vs Muscle Chart (if data exists) */}
-            {progressData.bodyCompData.filter((d: any) => d.fatMass).length > 1 && (
+            {progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.fatMass).length > 1 && (
               <>
                 <h3 style={{ marginTop: '1.5rem' }}>Fat vs Muscle Mass</h3>
                 <div className="chart-container">
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={progressData.bodyCompData.filter((d: any) => d.fatMass)}>
+                    <LineChart data={progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.fatMass)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="displayDate"
@@ -671,12 +703,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             </div>
 
             {/* BMR Trend (if data exists) */}
-            {progressData.bodyCompData.filter((d: any) => d.bmr).length > 1 && (
+            {progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.bmr).length > 1 && (
               <>
                 <h3 style={{ marginTop: '1.5rem' }}>BMR Trend</h3>
                 <div className="chart-container">
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={progressData.bodyCompData.filter((d: any) => d.bmr)}>
+                    <LineChart data={progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.bmr)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="displayDate"
@@ -787,7 +819,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 </div>
 
                 {/* Visceral Fat (if data exists) */}
-                {progressData.bodyCompData.filter((d: any) => d.visceralFatGrade).length > 0 && (
+                {progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.visceralFatGrade).length > 0 && (
                   <>
                     <h3 style={{ marginTop: '1.5rem' }}>Visceral Fat Grade</h3>
                     <p className="chart-subtitle">
@@ -797,7 +829,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     </p>
                     <div className="chart-container">
                       <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={progressData.bodyCompData.filter((d: any) => d.visceralFatGrade)}>
+                        <LineChart data={progressData.bodyCompData.filter((d: BodyCompDataPoint) => d.visceralFatGrade)}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                           <XAxis
                             dataKey="displayDate"

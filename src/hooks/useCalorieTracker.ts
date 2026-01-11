@@ -820,7 +820,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
       latestWeight,
       weightToLose: Math.round(weightToLose * 10) / 10,
     };
-  }, [dailyLogs, weighIns, settings, calculateTotals, getLogForDate]);
+  }, [weighIns, settings, calculateTotals, getLogForDate]);
 
   // Get progress data for charts
   const getProgressData = useCallback(() => {

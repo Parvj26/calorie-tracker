@@ -18,6 +18,21 @@ interface DetectedFood {
   portionMultiplier: number;
 }
 
+// Raw food data from API response (before normalization)
+interface RawFoodData {
+  foodName: string;
+  portionSize: string;
+  portionUnit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  addedSugar?: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 interface FoodScannerProps {
   aiProvider: AIProvider;
   openAiApiKey?: string;
@@ -99,7 +114,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       const resizedImage = await resizeImage(file);
       setImageData(resizedImage);
       await analyzeFood(resizedImage);
-    } catch (err) {
+    } catch {
       setError('Failed to process image');
     }
 
@@ -194,7 +209,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         }
 
         setDetectedFoods(
-          parsed.foods.map((food: any) => ({
+          parsed.foods.map((food: RawFoodData) => ({
             ...food,
             fiber: food.fiber || 0,
             sugar: food.sugar || 0,
@@ -203,9 +218,9 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
           }))
         );
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Food analysis error:', err);
-      setError(err.message || 'Failed to analyze food. Please try again or enter manually.');
+      setError(err instanceof Error ? err.message : 'Failed to analyze food. Please try again or enter manually.');
     } finally {
       setIsAnalyzing(false);
     }

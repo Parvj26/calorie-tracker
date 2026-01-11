@@ -237,7 +237,7 @@ export function useCoachCode(): UseCoachCodeReturn {
       setCoachConnection(null);
       setLoading(false);
       return true;
-    } catch (err) {
+    } catch {
       setError('Failed to cancel request');
       setLoading(false);
       return false;
@@ -270,7 +270,7 @@ export function useCoachCode(): UseCoachCodeReturn {
       setCoachConnection(null);
       setLoading(false);
       return true;
-    } catch (err) {
+    } catch {
       setError('Failed to disconnect');
       setLoading(false);
       return false;
