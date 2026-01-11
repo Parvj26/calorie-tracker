@@ -116,11 +116,7 @@ export function AuthenticatedApp({ signOut }: { signOut: () => Promise<void> }) 
 
   const currentLog = useMemo(() => getLogForDate(selectedDate), [selectedDate, getLogForDate]);
   const totals = useMemo(() => calculateTotals(currentLog), [currentLog, calculateTotals]);
-  // Defer expensive calculations - only compute when needed
-  const progressData = useMemo(() => {
-    if (activeTab !== 'progress') return null; // Don't compute if not viewing progress tab
-    return getProgressData();
-  }, [activeTab, getProgressData]);
+  const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
 
   const displayMasterMeals = useMemo(() => {
