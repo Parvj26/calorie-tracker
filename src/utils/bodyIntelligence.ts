@@ -71,7 +71,27 @@ const getMealId = (entry: string | MealLogEntry): string => {
 };
 
 const getMealQuantity = (entry: string | MealLogEntry): number => {
-  return typeof entry === 'string' ? 1 : entry.quantity;
+  return typeof entry === 'string' ? 1 : (entry.quantity || 1);
+};
+
+const getMealUnit = (entry: string | MealLogEntry): string => {
+  return typeof entry === 'string' ? 'serving' : (entry.unit || 'serving');
+};
+
+/**
+ * Convert quantity to serving multiplier based on unit
+ */
+const getServingMultiplier = (quantity: number, unit: string, servingSize?: number): number => {
+  if (unit === 'serving') return quantity;
+
+  // For unit-based quantities, we need servingSize to convert
+  const size = servingSize || 100; // Default to 100g if not specified
+
+  if (unit === 'g') return quantity / size;
+  if (unit === 'oz') return (quantity * 28.35) / size; // 1 oz = 28.35g
+  if (unit === 'ml') return quantity / size; // Assume 1ml = 1g for simplicity
+
+  return quantity;
 };
 
 /**
@@ -81,9 +101,12 @@ function getLogCalories(log: DailyLog, meals: Meal[]): number {
   return log.meals.reduce((total, entry) => {
     const mealId = getMealId(entry);
     const quantity = getMealQuantity(entry);
+    const unit = getMealUnit(entry);
     const meal = meals.find(m => m.id === mealId);
     if (!meal) return total;
-    return total + Math.round(meal.calories * quantity);
+    // Use serving multiplier to correctly calculate calories based on unit
+    const multiplier = getServingMultiplier(quantity, unit, meal.servingSize);
+    return total + Math.round(meal.calories * multiplier);
   }, 0);
 }
 
