@@ -97,6 +97,34 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
         </div>
       </div>
 
+      {/* Overview Stats Bar */}
+      {clients.length > 0 && (
+        <div className="coach-overview-stats">
+          <div className="overview-stat">
+            <span className="stat-number">{clients.length}</span>
+            <span className="stat-label">Total Clients</span>
+          </div>
+          <div className="overview-stat on-track">
+            <span className="stat-number">
+              {clients.filter(c => !c.isInactive && c.calorieTarget && c.caloriesToday !== undefined &&
+                Math.abs((c.caloriesToday || 0) - c.calorieTarget) <= c.calorieTarget * 0.1).length}
+            </span>
+            <span className="stat-label">On Track</span>
+          </div>
+          <div className="overview-stat needs-attention">
+            <span className="stat-number">
+              {clients.filter(c => !c.isInactive && c.calorieTarget && c.caloriesToday !== undefined &&
+                (c.caloriesToday || 0) < c.calorieTarget * 0.5).length}
+            </span>
+            <span className="stat-label">Low Intake</span>
+          </div>
+          <div className="overview-stat inactive">
+            <span className="stat-number">{clients.filter(c => c.isInactive).length}</span>
+            <span className="stat-label">Inactive</span>
+          </div>
+        </div>
+      )}
+
       {/* Alerts Section */}
       {alerts.length > 0 && (
         <div className="coach-alerts-section">
@@ -235,9 +263,26 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
     ? `${client.profile.firstName[0]}${client.profile.lastName[0]}`
     : name[0];
 
+  // Calculate calorie progress percentage
+  const calorieProgress = client.calorieTarget && client.caloriesToday !== undefined
+    ? Math.min(100, Math.round((client.caloriesToday / client.calorieTarget) * 100))
+    : 0;
+
+  // Determine status
+  const getStatus = () => {
+    if (client.isInactive) return 'inactive';
+    if (client.calorieTarget && client.caloriesToday !== undefined) {
+      const diff = client.caloriesToday - client.calorieTarget;
+      if (Math.abs(diff) <= client.calorieTarget * 0.1) return 'on-track'; // Within 10%
+      if (client.caloriesToday < client.calorieTarget * 0.5) return 'needs-attention'; // Under 50%
+    }
+    return 'on-track';
+  };
+  const status = getStatus();
+
   return (
     <div
-      className={`client-card ${client.isInactive ? 'inactive' : ''}`}
+      className={`client-card ${status}`}
       onClick={onClick}
     >
       <div className="client-header">
@@ -246,14 +291,31 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
         </div>
         <div className="client-name-section">
           <strong>{name}</strong>
-          {client.isInactive && (
-            <span className="inactive-badge">
-              <Clock size={12} />
-              {client.daysInactive}d inactive
-            </span>
-          )}
+          <span className={`status-badge ${status}`}>
+            {status === 'inactive' && <><Clock size={12} /> {client.daysInactive}d inactive</>}
+            {status === 'on-track' && 'On Track'}
+            {status === 'needs-attention' && <><AlertTriangle size={12} /> Needs Attention</>}
+          </span>
         </div>
       </div>
+
+      {/* Calorie Progress Bar */}
+      {client.calorieTarget && (
+        <div className="calorie-progress-section">
+          <div className="calorie-progress-header">
+            <span className="calorie-label">Today's Calories</span>
+            <span className="calorie-numbers">
+              <strong>{client.caloriesToday || 0}</strong> / {client.calorieTarget}
+            </span>
+          </div>
+          <div className="calorie-progress-bar">
+            <div
+              className={`calorie-progress-fill ${calorieProgress > 100 ? 'over' : ''}`}
+              style={{ width: `${Math.min(100, calorieProgress)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="client-stats">
         {client.latestWeight && (
@@ -274,13 +336,6 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
                 </span>
               )}
             </span>
-          </div>
-        )}
-
-        {client.calorieTarget && (
-          <div className="stat">
-            <span className="stat-label">Target</span>
-            <span className="stat-value">{client.calorieTarget} cal</span>
           </div>
         )}
 

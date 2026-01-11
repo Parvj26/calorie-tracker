@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useCoachClients, type ClientFullData } from '../../hooks/useCoachClients';
 import {
   ArrowLeft,
@@ -11,6 +11,16 @@ import {
   Loader2,
   UserX,
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
 
 interface ClientDetailViewProps {
   clientId: string;
@@ -88,6 +98,30 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   });
 
   const daysLogged = last7DaysLogs.length;
+
+  // Prepare weight chart data
+  const weightChartData = useMemo(() => {
+    return weighIns
+      .slice(0, 30) // Last 30 entries
+      .reverse()
+      .map(w => ({
+        date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        weight: w.weight,
+      }));
+  }, [weighIns]);
+
+  // Calculate weight range for Y-axis
+  const weightRange = useMemo(() => {
+    if (weighIns.length === 0) return { min: 0, max: 100 };
+    const weights = weighIns.map(w => w.weight);
+    const min = Math.min(...weights);
+    const max = Math.max(...weights);
+    const padding = (max - min) * 0.1 || 5;
+    return {
+      min: Math.floor(min - padding),
+      max: Math.ceil(max + padding),
+    };
+  }, [weighIns]);
 
   return (
     <div className="client-detail-view">
@@ -168,6 +202,61 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Weight Chart */}
+      {weightChartData.length > 0 && (
+        <div className="detail-section chart-section">
+          <h3>Weight Trend</h3>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weightChartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                />
+                <YAxis
+                  domain={[weightRange.min, weightRange.max]}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                  tickFormatter={(val) => `${val} kg`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  }}
+                  formatter={(value) => [`${value} kg`, 'Weight']}
+                />
+                {settings.goalWeight && (
+                  <ReferenceLine
+                    y={settings.goalWeight}
+                    stroke="#10b981"
+                    strokeDasharray="5 5"
+                    label={{
+                      value: `Goal: ${settings.goalWeight} kg`,
+                      position: 'right',
+                      fill: '#10b981',
+                      fontSize: 11,
+                    }}
+                  />
+                )}
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#6366f1' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Weight History */}
       <div className="detail-section">

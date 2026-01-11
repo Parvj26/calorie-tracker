@@ -3638,6 +3638,55 @@ body {
   color: var(--gray-700);
 }
 
+/* Coach Code in Settings */
+.coach-code-settings-card {
+  background: linear-gradient(135deg, var(--primary-50), var(--gray-50));
+  border: 2px solid var(--primary-200);
+}
+
+.coach-code-settings-display {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.coach-code-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+  letter-spacing: 0.15em;
+  color: var(--primary-600);
+}
+
+.copy-code-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary-500);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-code-btn:hover:not(:disabled) {
+  background: var(--primary-600);
+}
+
+.copy-code-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Nutrition Goals Grid */
 .nutrition-goals-grid {
   display: grid;
@@ -4458,6 +4507,154 @@ body {
   font-weight: 500;
 }
 
+/* Client Card Status Badges */
+.client-card.on-track {
+  border-left: 4px solid #10b981;
+}
+
+.client-card.needs-attention {
+  border-left: 4px solid #f59e0b;
+}
+
+.client-card.inactive {
+  border-left: 4px solid #ef4444;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.status-badge.on-track {
+  color: #059669;
+  background: #d1fae5;
+}
+
+.status-badge.needs-attention {
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.status-badge.inactive {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* Calorie Progress Section */
+.calorie-progress-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--gray-50);
+  border-radius: 8px;
+}
+
+.calorie-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.calorie-label {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.calorie-numbers {
+  font-size: 0.9rem;
+  color: var(--gray-700);
+}
+
+.calorie-numbers strong {
+  font-size: 1rem;
+  color: var(--gray-900);
+}
+
+.calorie-progress-bar {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.calorie-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.calorie-progress-fill.over {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+/* Coach Overview Stats */
+.coach-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.overview-stat {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.overview-stat .stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+.overview-stat .stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.overview-stat.on-track {
+  border-left: 4px solid #10b981;
+}
+
+.overview-stat.on-track .stat-number {
+  color: #059669;
+}
+
+.overview-stat.needs-attention {
+  border-left: 4px solid #f59e0b;
+}
+
+.overview-stat.needs-attention .stat-number {
+  color: #d97706;
+}
+
+.overview-stat.inactive {
+  border-left: 4px solid #ef4444;
+}
+
+.overview-stat.inactive .stat-number {
+  color: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .coach-overview-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .coach-error-banner {
   display: flex;
   align-items: center;
@@ -4681,6 +4878,11 @@ body {
   font-size: 0.9rem;
   text-align: center;
   padding: 20px;
+}
+
+.chart-section .chart-container {
+  width: 100%;
+  height: 250px;
 }
 
 .weighin-list,
