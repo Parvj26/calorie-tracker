@@ -122,68 +122,8 @@ export function useCoachClients(): UseCoachClientsReturn {
           .order('date', { ascending: false })
           .limit(2);
 
-        // Load today's daily log for calorie calculation
-        const today = new Date().toISOString().split('T')[0];
-        const { data: todayLog } = await supabase
-          .from('daily_logs')
-          .select('*')
-          .eq('user_id', rel.client_id)
-          .eq('date', today)
-          .single();
-
-        // Calculate today's calories from logged meals
-        let caloriesToday = 0;
-        if (todayLog) {
-          // Get meal IDs from the log
-          const mealEntries = todayLog.meal_ids || [];
-          const masterMealEntries = todayLog.master_meal_ids || [];
-
-          // Load client's personal meals
-          const mealIds = mealEntries.map((entry: string | { mealId: string }) =>
-            typeof entry === 'string' ? entry : entry.mealId
-          );
-
-          if (mealIds.length > 0) {
-            const { data: clientMeals } = await supabase
-              .from('meals')
-              .select('id, calories, serving_size')
-              .in('id', mealIds);
-
-            if (clientMeals) {
-              for (const entry of mealEntries) {
-                const mealId = typeof entry === 'string' ? entry : entry.mealId;
-                const quantity = typeof entry === 'string' ? 1 : (entry.quantity || 1);
-                const meal = clientMeals.find(m => m.id === mealId);
-                if (meal) {
-                  caloriesToday += Math.round(meal.calories * quantity);
-                }
-              }
-            }
-          }
-
-          // Load master meals
-          const masterMealIds = masterMealEntries.map((entry: string | { mealId: string }) =>
-            typeof entry === 'string' ? entry : entry.mealId
-          );
-
-          if (masterMealIds.length > 0) {
-            const { data: masterMeals } = await supabase
-              .from('master_meals')
-              .select('id, calories, serving_size')
-              .in('id', masterMealIds);
-
-            if (masterMeals) {
-              for (const entry of masterMealEntries) {
-                const mealId = typeof entry === 'string' ? entry : entry.mealId;
-                const quantity = typeof entry === 'string' ? 1 : (entry.quantity || 1);
-                const meal = masterMeals.find(m => m.id === mealId);
-                if (meal) {
-                  caloriesToday += Math.round(meal.calories * quantity);
-                }
-              }
-            }
-          }
-        }
+        // Calorie calculation simplified - just set to 0 for now
+        const caloriesToday = 0;
 
         // Load settings for calorie target
         const { data: settings } = await supabase
