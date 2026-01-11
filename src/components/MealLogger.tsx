@@ -94,7 +94,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   const [mealToDelete, setMealToDelete] = useState<Meal | null>(null);
   const [isTrashExpanded, setIsTrashExpanded] = useState(false);
   const [mealToPermDelete, setMealToPermDelete] = useState<Meal | null>(null);
-  const [mealToToggle, setMealToToggle] = useState<{ meal: DisplayMeal; action: 'add' | 'remove' } | null>(null);
+  const [mealToToggle, setMealToToggle] = useState<{ meal: DisplayMeal; action: 'add' | 'remove'; quantity: string; unit: QuantityUnit } | null>(null);
+  const [editingQuantity, setEditingQuantity] = useState<{ mealId: string; value: string } | null>(null);
   const [newMeal, setNewMeal] = useState({
     name: '',
     calories: '',
@@ -350,7 +351,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
 
           const handleToggle = () => {
             const action = isSelected ? 'remove' : 'add';
-            setMealToToggle({ meal, action });
+            // Default: if meal has servingSize, use gram mode with that amount; otherwise 1 serving
+            const defaultUnit: QuantityUnit = meal.servingSize ? 'g' : 'serving';
+            const defaultQuantity = meal.servingSize ? String(meal.servingSize) : '1';
+            setMealToToggle({ meal, action, quantity: defaultQuantity, unit: defaultUnit });
           };
 
           const handleUnitChange = (newUnit: QuantityUnit) => {
@@ -371,14 +375,29 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
             }
           };
 
+          // Check if this meal's quantity is being edited
+          const isEditingThisMeal = editingQuantity?.mealId === meal.id;
+          const displayQuantityValue = isEditingThisMeal ? editingQuantity.value : String(quantity);
+
+          const handleQuantityFocus = () => {
+            setEditingQuantity({ mealId: meal.id, value: String(quantity) });
+          };
+
           const handleQuantityInput = (value: string) => {
-            const numValue = parseFloat(value);
-            if (!isNaN(numValue) && numValue > 0) {
-              if (meal.isCommunity) {
-                onUpdateMasterMealQuantity(meal.id, selectedDate, numValue, unit);
-              } else {
-                onUpdateMealQuantity(meal.id, selectedDate, numValue, unit);
+            setEditingQuantity({ mealId: meal.id, value });
+          };
+
+          const handleQuantityBlur = () => {
+            if (editingQuantity) {
+              const numValue = parseFloat(editingQuantity.value);
+              if (!isNaN(numValue) && numValue > 0) {
+                if (meal.isCommunity) {
+                  onUpdateMasterMealQuantity(meal.id, selectedDate, numValue, unit);
+                } else {
+                  onUpdateMealQuantity(meal.id, selectedDate, numValue, unit);
+                }
               }
+              setEditingQuantity(null);
             }
           };
 
@@ -455,8 +474,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                     inputMode="decimal"
                     pattern="[0-9]*\.?[0-9]*"
                     className="quantity-input"
-                    value={quantity}
+                    value={displayQuantityValue}
+                    onFocus={handleQuantityFocus}
                     onChange={(e) => handleQuantityInput(e.target.value)}
+                    onBlur={handleQuantityBlur}
                     onClick={(e) => e.stopPropagation()}
                   />
                   {supportsGrams && (
@@ -884,35 +905,103 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
       )}
 
       {/* Meal Toggle Confirmation */}
-      {mealToToggle && (
-        <div className="delete-confirm-overlay">
-          <div className="delete-confirm-dialog meal-toggle-dialog">
-            <h4>{mealToToggle.action === 'add' ? 'Log Meal?' : 'Remove Meal?'}</h4>
-            <p className="meal-toggle-name">{mealToToggle.meal.name}</p>
-            <p className="meal-toggle-macros">
-              {mealToToggle.meal.calories} cal • {mealToToggle.meal.protein}g P • {mealToToggle.meal.carbs}g C • {mealToToggle.meal.fat}g F
-            </p>
-            <div className="delete-confirm-actions">
-              <button className="btn-secondary" onClick={() => setMealToToggle(null)}>
-                Cancel
-              </button>
-              <button
-                className={mealToToggle.action === 'add' ? 'btn-primary' : 'btn-danger'}
-                onClick={() => {
-                  if (mealToToggle.meal.isCommunity) {
-                    onToggleMasterMeal(mealToToggle.meal.id, selectedDate);
-                  } else {
-                    onToggleMeal(mealToToggle.meal.id, selectedDate);
-                  }
-                  setMealToToggle(null);
-                }}
-              >
-                {mealToToggle.action === 'add' ? 'Log Meal' : 'Remove'}
-              </button>
+      {mealToToggle && (() => {
+        const toggleMeal = mealToToggle.meal;
+        const toggleQuantity = parseFloat(mealToToggle.quantity) || 1;
+        const toggleUnit = mealToToggle.unit;
+        const toggleSupportsGrams = !!toggleMeal.servingSize;
+        const toggleMultiplier = getServingMultiplier(toggleQuantity, toggleUnit, toggleMeal.servingSize);
+        const toggleCalories = Math.round(toggleMeal.calories * toggleMultiplier);
+        const toggleProtein = Math.round(toggleMeal.protein * toggleMultiplier);
+        const toggleCarbs = Math.round(toggleMeal.carbs * toggleMultiplier);
+        const toggleFat = Math.round(toggleMeal.fat * toggleMultiplier);
+
+        return (
+          <div className="delete-confirm-overlay">
+            <div className="delete-confirm-dialog meal-toggle-dialog">
+              <h4>{mealToToggle.action === 'add' ? 'Log Meal?' : 'Remove Meal?'}</h4>
+              <p className="meal-toggle-name">{toggleMeal.name}</p>
+
+              {mealToToggle.action === 'add' && (
+                <div className="meal-toggle-quantity">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*\.?[0-9]*"
+                    className="quantity-input"
+                    value={mealToToggle.quantity}
+                    onChange={(e) => setMealToToggle({ ...mealToToggle, quantity: e.target.value })}
+                    autoFocus
+                  />
+                  {toggleSupportsGrams ? (
+                    <select
+                      className="unit-select"
+                      value={toggleUnit}
+                      onChange={(e) => {
+                        const newUnit = e.target.value as QuantityUnit;
+                        let newQty = mealToToggle.quantity;
+                        const currentQty = parseFloat(mealToToggle.quantity) || 1;
+                        if (toggleUnit === 'serving' && newUnit === 'g') {
+                          newQty = String(Math.round(currentQty * (toggleMeal.servingSize || 100)));
+                        } else if (toggleUnit === 'g' && newUnit === 'serving') {
+                          newQty = String(Math.max(0.5, Math.round((currentQty / (toggleMeal.servingSize || 100)) * 10) / 10));
+                        }
+                        setMealToToggle({ ...mealToToggle, unit: newUnit, quantity: newQty });
+                      }}
+                    >
+                      <option value="serving">serving</option>
+                      <option value="g">g</option>
+                    </select>
+                  ) : (
+                    <span className="unit-label">serving{toggleQuantity !== 1 ? 's' : ''}</span>
+                  )}
+                </div>
+              )}
+
+              <p className="meal-toggle-macros">
+                {mealToToggle.action === 'add' ? (
+                  <>{toggleCalories} cal • {toggleProtein}g P • {toggleCarbs}g C • {toggleFat}g F</>
+                ) : (
+                  <>{toggleMeal.calories} cal • {toggleMeal.protein}g P • {toggleMeal.carbs}g C • {toggleMeal.fat}g F</>
+                )}
+              </p>
+              <div className="delete-confirm-actions">
+                <button className="btn-secondary" onClick={() => setMealToToggle(null)}>
+                  Cancel
+                </button>
+                <button
+                  className={mealToToggle.action === 'add' ? 'btn-primary' : 'btn-danger'}
+                  onClick={() => {
+                    if (mealToToggle.action === 'add') {
+                      // Log with specified quantity and unit
+                      const qty = parseFloat(mealToToggle.quantity) || 1;
+                      if (toggleMeal.isCommunity) {
+                        onToggleMasterMeal(toggleMeal.id, selectedDate);
+                        // Update quantity after toggling
+                        setTimeout(() => onUpdateMasterMealQuantity(toggleMeal.id, selectedDate, qty, toggleUnit), 0);
+                      } else {
+                        onToggleMeal(toggleMeal.id, selectedDate);
+                        // Update quantity after toggling
+                        setTimeout(() => onUpdateMealQuantity(toggleMeal.id, selectedDate, qty, toggleUnit), 0);
+                      }
+                    } else {
+                      // Remove meal
+                      if (toggleMeal.isCommunity) {
+                        onToggleMasterMeal(toggleMeal.id, selectedDate);
+                      } else {
+                        onToggleMeal(toggleMeal.id, selectedDate);
+                      }
+                    }
+                    setMealToToggle(null);
+                  }}
+                >
+                  {mealToToggle.action === 'add' ? 'Log Meal' : 'Remove'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

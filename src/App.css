@@ -1702,6 +1702,31 @@ body {
   margin-bottom: 4px;
 }
 
+.meal-toggle-dialog .meal-toggle-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.meal-toggle-dialog .quantity-input {
+  width: 80px;
+  padding: 10px 12px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.meal-toggle-dialog .unit-select {
+  padding: 10px 12px;
+  font-size: 1rem;
+}
+
+.meal-toggle-dialog .unit-label {
+  font-size: 1rem;
+  color: var(--gray-600);
+}
+
 /* Trash Section */
 .trash-section {
   margin-top: 24px;
