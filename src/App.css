@@ -841,9 +841,6 @@ body {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--gray-800);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .stat-card-value.positive { color: var(--success); }
@@ -4838,14 +4835,15 @@ body {
   font-size: 0.9rem;
 }
 
-.stats-grid {
+/* Client Detail View Stats Grid */
+.client-detail-view .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.stat-card {
+.client-detail-view .stat-card {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -4855,29 +4853,29 @@ body {
   border: 1px solid var(--gray-200);
 }
 
-.stat-card svg {
+.client-detail-view .stat-card svg {
   color: #6366f1;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.stat-card .stat-content {
+.client-detail-view .stat-card .stat-content {
   display: flex;
   flex-direction: column;
 }
 
-.stat-card .stat-label {
+.client-detail-view .stat-card .stat-label {
   font-size: 0.8rem;
   color: var(--gray-500);
 }
 
-.stat-card .stat-value {
+.client-detail-view .stat-card .stat-value {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--gray-800);
 }
 
-.stat-card .stat-change {
+.client-detail-view .stat-card .stat-change {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -4885,11 +4883,11 @@ body {
   margin-top: 4px;
 }
 
-.stat-card .stat-change.positive {
+.client-detail-view .stat-card .stat-change.positive {
   color: #10b981;
 }
 
-.stat-card .stat-change.negative {
+.client-detail-view .stat-card .stat-change.negative {
   color: #ef4444;
 }
 
