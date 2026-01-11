@@ -441,14 +441,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                   )}
                 </span>
                 <span className="meal-macros">
-                  {isSelected && quantity !== 1 ? (
+                  {isSelected ? (
                     <>{displayCalories} cal • {displayProtein}g P • {displayCarbs}g C • {displayFat}g F</>
                   ) : (
                     <>{meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F</>
                   )}
                 </span>
                 <span className="meal-macros secondary">
-                  {isSelected && quantity !== 1 ? (
+                  {isSelected ? (
                     <>
                       {displayFiber}g fiber • {displaySugar}g sugar
                       {displayAddedSugar > 0 && <span className="added-sugar-indicator"> ({displayAddedSugar}g added)</span>}

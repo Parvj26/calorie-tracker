@@ -137,6 +137,17 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
 
   // Toggle meal for today (add with quantity 1 or remove)
   const toggleMealForDate = useCallback((mealId: string, date: string) => {
+    // Look up the meal to check if it has a servingSize
+    const meal = meals.find((m) => m.id === mealId);
+
+    // Create log entry - use gram mode if meal has servingSize, otherwise use serving mode
+    const createLogEntry = (): MealLogEntry => {
+      if (meal?.servingSize) {
+        return { mealId, quantity: meal.servingSize, unit: 'g' };
+      }
+      return { mealId, quantity: 1, unit: 'serving' };
+    };
+
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
       let updatedLog: DailyLog;
@@ -146,7 +157,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         const mealIndex = existingLog.meals.findIndex((entry) => getMealId(entry) === mealId);
         const updatedMeals = mealIndex >= 0
           ? existingLog.meals.filter((entry) => getMealId(entry) !== mealId)
-          : [...existingLog.meals, { mealId, quantity: 1 } as MealLogEntry];
+          : [...existingLog.meals, createLogEntry()];
 
         const updatedLogs = [...prev];
         updatedLog = { ...existingLog, meals: updatedMeals };
@@ -157,7 +168,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
 
         return updatedLogs;
       } else {
-        updatedLog = { date, meals: [{ mealId, quantity: 1 }], workoutCalories: 0 };
+        updatedLog = { date, meals: [createLogEntry()], workoutCalories: 0 };
 
         // Sync to Supabase
         if (user) saveDailyLog(updatedLog);
@@ -165,7 +176,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         return [...prev, updatedLog];
       }
     });
-  }, [setDailyLogs, user, saveDailyLog]);
+  }, [setDailyLogs, user, saveDailyLog, meals]);
 
   // Update meal quantity for a date
   const updateMealQuantity = useCallback((mealId: string, date: string, quantity: number, unit?: QuantityUnit) => {
@@ -263,7 +274,12 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     setMeals((prev) => [...prev, newMeal]);
     if (user) saveMeal(newMeal);
 
-    // Also add to the daily log with quantity 1
+    // Create log entry - use gram mode if meal has servingSize, otherwise use serving mode
+    const logEntry: MealLogEntry = newMeal.servingSize
+      ? { mealId: newMeal.id, quantity: newMeal.servingSize, unit: 'g' }
+      : { mealId: newMeal.id, quantity: 1, unit: 'serving' };
+
+    // Also add to the daily log
     setDailyLogs((prev) => {
       const existingLogIndex = prev.findIndex((log) => log.date === date);
       let updatedLog: DailyLog;
@@ -273,13 +289,13 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         const updatedLogs = [...prev];
         updatedLog = {
           ...existingLog,
-          meals: [...existingLog.meals, { mealId: newMeal.id, quantity: 1 }],
+          meals: [...existingLog.meals, logEntry],
         };
         updatedLogs[existingLogIndex] = updatedLog;
         if (user) saveDailyLog(updatedLog);
         return updatedLogs;
       } else {
-        updatedLog = { date, meals: [{ mealId: newMeal.id, quantity: 1 }], workoutCalories: 0 };
+        updatedLog = { date, meals: [logEntry], workoutCalories: 0 };
         if (user) saveDailyLog(updatedLog);
         return [...prev, updatedLog];
       }
