@@ -291,8 +291,9 @@ export function calculateBodyIntelligence(
       waterChange = firstScan.waterWeight - lastScan.waterWeight;
     }
 
-    // Calculate fat loss efficiency
+    // Calculate fat loss efficiency and quality status
     if (totalWeightLost > 0.1) {
+      // User is losing weight
       if (fatLost > 0) {
         // Normal case: lost weight and lost fat
         fatLossEfficiency = Math.round((fatLost / totalWeightLost) * 100);
@@ -310,9 +311,48 @@ export function calculateBodyIntelligence(
         fatLossEfficiency = 0;
         qualityStatus = 'concerning';
       }
-    } else if (totalWeightLost <= 0) {
-      // Not losing weight, can't assess quality
-      qualityStatus = 'insufficient-data';
+    } else if (totalWeightLost < -0.1) {
+      // User is gaining weight - check if it's muscle or fat
+      if (muscleLost < 0 && fatLost <= 0) {
+        // Gained muscle and didn't lose fat (bulking well)
+        // Use muscle gain ratio instead
+        const muscleGained = Math.abs(muscleLost);
+        const totalGained = Math.abs(totalWeightLost);
+        fatLossEfficiency = Math.round((muscleGained / totalGained) * 100);
+        if (fatLossEfficiency >= 70) {
+          qualityStatus = 'excellent'; // Mostly muscle gain
+        } else if (fatLossEfficiency >= 50) {
+          qualityStatus = 'good';
+        } else {
+          qualityStatus = 'concerning'; // Mostly fat gain
+        }
+      } else if (fatLost > 0 && muscleLost < 0) {
+        // Recomposition while gaining weight (lost fat, gained more muscle)
+        qualityStatus = 'excellent';
+        fatLossEfficiency = 100;
+      } else {
+        qualityStatus = 'concerning';
+        fatLossEfficiency = 0;
+      }
+    } else {
+      // Weight stable (within ±0.1kg) - check for recomposition
+      if (fatLost > 0.1 && muscleLost <= 0) {
+        // Lost fat while maintaining/gaining muscle - excellent recomp!
+        qualityStatus = 'excellent';
+        fatLossEfficiency = 100;
+      } else if (fatLost > 0.1 && muscleLost > 0 && muscleLost < fatLost) {
+        // Lost more fat than muscle - decent recomp
+        qualityStatus = 'good';
+        fatLossEfficiency = Math.round((fatLost / (fatLost + muscleLost)) * 100);
+      } else if (Math.abs(fatLost) < 0.1 && Math.abs(muscleLost) < 0.1) {
+        // No significant changes - maintaining
+        qualityStatus = 'good';
+        fatLossEfficiency = 0;
+      } else {
+        // Lost muscle or gained fat while weight stable
+        qualityStatus = 'concerning';
+        fatLossEfficiency = 0;
+      }
     }
   }
 
@@ -448,37 +488,95 @@ export function getResponseScoreInterpretation(
 
 export function getQualityInterpretation(
   efficiency: number,
-  status: QualityStatus
+  status: QualityStatus,
+  totalWeightLost: number = 0,
+  fatLost: number = 0,
+  muscleLost: number = 0
 ): QualityInterpretation {
+  // Determine the context: weight loss, gain, or maintenance
+  const isLosingWeight = totalWeightLost > 0.1;
+  const isGainingWeight = totalWeightLost < -0.1;
+  const isMaintaining = !isLosingWeight && !isGainingWeight;
+  const isRecomposition = isMaintaining && fatLost > 0.1 && muscleLost <= 0;
+  const isGainingMuscle = muscleLost < -0.1;
+
   switch (status) {
     case 'excellent':
-      return {
-        status: 'Excellent',
-        message: `${efficiency}% of your weight loss is from fat. You're preserving muscle well!`,
-        color: '#10b981', // green
-        emoji: '💪',
-      };
+      if (isRecomposition) {
+        return {
+          status: 'Excellent Recomp',
+          message: `Losing fat while maintaining muscle at stable weight. Perfect body recomposition!`,
+          color: '#10b981',
+          emoji: '💪',
+        };
+      } else if (isGainingWeight && isGainingMuscle) {
+        return {
+          status: 'Quality Bulk',
+          message: `${efficiency}% of weight gain is muscle. Great lean bulking!`,
+          color: '#10b981',
+          emoji: '💪',
+        };
+      } else {
+        return {
+          status: 'Excellent',
+          message: `${efficiency}% of weight loss is from fat. You're preserving muscle well!`,
+          color: '#10b981',
+          emoji: '💪',
+        };
+      }
     case 'good':
-      return {
-        status: 'Good',
-        message: `${efficiency}% from fat. Consider adding resistance training to preserve more muscle.`,
-        color: '#f59e0b', // amber
-        emoji: '👍',
-      };
+      if (isMaintaining) {
+        return {
+          status: 'Maintaining',
+          message: 'Body composition stable. Keep up the consistency!',
+          color: '#f59e0b',
+          emoji: '👍',
+        };
+      } else if (isGainingWeight) {
+        return {
+          status: 'Decent Bulk',
+          message: `${efficiency}% muscle gain. Add more protein to maximize muscle growth.`,
+          color: '#f59e0b',
+          emoji: '👍',
+        };
+      } else {
+        return {
+          status: 'Good',
+          message: `${efficiency}% from fat. Consider adding resistance training to preserve more muscle.`,
+          color: '#f59e0b',
+          emoji: '👍',
+        };
+      }
     case 'concerning':
-      return {
-        status: 'Needs Attention',
-        message: efficiency > 0
-          ? `Only ${efficiency}% from fat. You may be losing muscle. Slow down and add protein.`
-          : 'You lost weight but gained fat. Weight loss is from muscle/water. Add strength training and protein.',
-        color: '#ef4444', // red
-        emoji: '⚠️',
-      };
+      if (isGainingWeight) {
+        return {
+          status: 'Needs Attention',
+          message: 'Weight gain is mostly fat. Add strength training and moderate calories.',
+          color: '#ef4444',
+          emoji: '⚠️',
+        };
+      } else if (isMaintaining) {
+        return {
+          status: 'Needs Attention',
+          message: 'Losing muscle or gaining fat at stable weight. Increase protein and add resistance training.',
+          color: '#ef4444',
+          emoji: '⚠️',
+        };
+      } else {
+        return {
+          status: 'Needs Attention',
+          message: efficiency > 0
+            ? `Only ${efficiency}% from fat. You may be losing muscle. Slow down and add protein.`
+            : 'Weight loss is from muscle/water. Add strength training and protein.',
+          color: '#ef4444',
+          emoji: '⚠️',
+        };
+      }
     default:
       return {
         status: 'Insufficient Data',
-        message: 'Need 2+ InBody scans to analyze your weight loss quality.',
-        color: '#6b7280', // gray
+        message: 'Need 2+ InBody scans to analyze body composition changes.',
+        color: '#6b7280',
         emoji: '📊',
       };
   }

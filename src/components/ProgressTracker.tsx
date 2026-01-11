@@ -105,7 +105,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   );
   const qualityInterp = getQualityInterpretation(
     bodyIntelligence.fatLossEfficiency,
-    bodyIntelligence.qualityStatus
+    bodyIntelligence.qualityStatus,
+    bodyIntelligence.totalWeightLost,
+    bodyIntelligence.fatLost,
+    bodyIntelligence.muscleLost
   );
   const metabolicInterp = getMetabolicInterpretation(
     bodyIntelligence.metabolicStatus,
