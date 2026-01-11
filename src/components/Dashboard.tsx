@@ -374,19 +374,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="stat-card-label">cal {totals.deficit >= 0 ? 'deficit' : 'surplus'}</div>
         </div>
 
-        {/* TDEE Deficit Card - Only show when TDEE available */}
-        {totals.hasTDEE && (
-          <div className="stat-card tdee-deficit-card">
-            <div className="stat-card-header">
-              <Zap size={16} />
-              <span>vs TDEE</span>
-            </div>
-            <div className={`stat-card-value ${totals.trueDeficit >= 0 ? 'positive' : 'negative'}`}>
-              {totals.trueDeficit >= 0 ? '+' : ''}{Math.round(totals.trueDeficit)}
-            </div>
-            <div className="stat-card-label">cal {totals.trueDeficit >= 0 ? 'deficit' : 'surplus'}</div>
+        {/* TDEE Card - Always show, prompt to import if no data */}
+        <div
+          className={`stat-card tdee-deficit-card ${!totals.hasTDEE ? 'clickable' : ''}`}
+          onClick={!totals.hasTDEE ? () => setShowHealthScanner(true) : undefined}
+        >
+          <div className="stat-card-header">
+            <Zap size={16} />
+            <span>{totals.hasTDEE ? 'vs TDEE' : 'TDEE'}</span>
           </div>
-        )}
+          {totals.hasTDEE ? (
+            <>
+              <div className={`stat-card-value ${totals.trueDeficit >= 0 ? 'positive' : 'negative'}`}>
+                {totals.trueDeficit >= 0 ? '+' : ''}{Math.round(totals.trueDeficit)}
+              </div>
+              <div className="stat-card-label">cal {totals.trueDeficit >= 0 ? 'deficit' : 'surplus'}</div>
+            </>
+          ) : (
+            <>
+              <div className="stat-card-value empty">--</div>
+              <div className="stat-card-action">
+                <Smartphone size={12} />
+                <span>Import Health</span>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Activity Card */}
         <div className="stat-card activity-card" onClick={() => setShowHealthScanner(true)}>
