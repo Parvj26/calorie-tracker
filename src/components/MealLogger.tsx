@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Minus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
+import { Plus, Trash2, Check, X, ChevronLeft, ChevronRight, Search, ChefHat, Star, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Pencil, Globe } from 'lucide-react';
 import type { Meal, DailyLog, MasterMeal, MealLogEntry, MasterMealLogEntry, QuantityUnit } from '../types';
 import { groqFormatRecipeText } from '../utils/groq';
 
@@ -353,18 +353,6 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
             setMealToToggle({ meal, action });
           };
 
-          const handleQuantityChange = (delta: number) => {
-            // Different limits based on unit
-            const maxVal = unit === 'serving' ? 10 : 1000;
-            const minVal = unit === 'serving' ? 0.5 : 1;
-            const newQuantity = Math.max(minVal, Math.min(maxVal, quantity + delta));
-            if (meal.isCommunity) {
-              onUpdateMasterMealQuantity(meal.id, selectedDate, newQuantity, unit);
-            } else {
-              onUpdateMealQuantity(meal.id, selectedDate, newQuantity, unit);
-            }
-          };
-
           const handleUnitChange = (newUnit: QuantityUnit) => {
             // Convert quantity when switching units
             let newQuantity = quantity;
@@ -462,37 +450,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
               {/* Quantity controls - show when selected */}
               {isSelected && (
                 <div className="quantity-controls" onClick={(e) => e.stopPropagation()}>
-                  {supportsGrams && unit === 'g' ? (
-                    // Gram input mode - use text with inputMode for better mobile numeric keypad
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*\.?[0-9]*"
-                      className="quantity-input"
-                      value={quantity}
-                      onChange={(e) => handleQuantityInput(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    // Serving mode with +/- buttons
-                    <>
-                      <button
-                        className="quantity-btn"
-                        onClick={() => handleQuantityChange(-0.5)}
-                        title="Decrease quantity"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="quantity-value">{quantity}</span>
-                      <button
-                        className="quantity-btn"
-                        onClick={() => handleQuantityChange(0.5)}
-                        title="Increase quantity"
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </>
-                  )}
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*\.?[0-9]*"
+                    className="quantity-input"
+                    value={quantity}
+                    onChange={(e) => handleQuantityInput(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   {supportsGrams && (
                     <select
                       className="unit-select"

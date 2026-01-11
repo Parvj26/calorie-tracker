@@ -415,13 +415,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           ) : (
             <>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="workout-input-mini"
                 value={workoutInput}
                 onChange={handleWorkoutChange}
                 onClick={(e) => e.stopPropagation()}
                 placeholder="0"
-                min="0"
               />
               <div className="stat-card-label">cal burned</div>
             </>
