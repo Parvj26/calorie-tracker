@@ -59,7 +59,8 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
   const [inBodyScans, setInBodyScans] = useLocalStorage<InBodyScan[]>('calorie-tracker-inbody', []);
   const [weighIns, setWeighIns] = useLocalStorage<WeighIn[]>('calorie-tracker-weighins', []);
   const [settings, setSettings] = useLocalStorage<UserSettings>('calorie-tracker-settings', defaultSettings);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true); // Start as true - localStorage data is available immediately
+  const [hasSynced, setHasSynced] = useState(false);
 
   const {
     syncState,
@@ -77,9 +78,11 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
     saveSettings,
   } = useSupabaseSync();
 
-  // Load data from Supabase when user logs in
+  // Load data from Supabase in background (non-blocking)
   useEffect(() => {
-    if (user && !isLoaded) {
+    if (user && !hasSynced) {
+      setHasSynced(true); // Prevent duplicate syncs
+      // Load in background - don't block UI
       loadFromSupabase()
         .then((data) => {
           if (data) {
@@ -98,12 +101,9 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         })
         .catch((error) => {
           console.error('Failed to load from Supabase:', error);
-        })
-        .finally(() => {
-          setIsLoaded(true);
         });
     }
-  }, [user, isLoaded, loadFromSupabase, setMeals, setDeletedMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
+  }, [user, hasSynced, loadFromSupabase, setMeals, setDeletedMeals, setDailyLogs, setWeighIns, setInBodyScans, setSettings]);
 
   // Auto-purge expired deleted meals on load
   useEffect(() => {
