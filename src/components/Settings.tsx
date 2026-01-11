@@ -7,6 +7,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 import { useActivityRecommendation } from '../hooks/useActivityRecommendation';
 import { getRecommendationReason } from '../utils/activityRecommendation';
 import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
+import { ConnectToCoach } from './Coach/ConnectToCoach';
 
 interface SettingsProps {
   settings: UserSettings;
@@ -23,7 +24,7 @@ export const Settings: React.FC<SettingsProps> = ({
   bmr,
   dailyLogs = [],
 }) => {
-  const { profile, updateProfile } = useUserProfile();
+  const { profile, updateProfile, isCoach } = useUserProfile();
   const [formData, setFormData] = useState(settings);
 
   // Activity level recommendation based on actual behavior
@@ -294,6 +295,9 @@ export const Settings: React.FC<SettingsProps> = ({
           {profileSaved ? 'Saved!' : 'Save Profile'}
         </button>
       </div>
+
+      {/* Coach Connection - only show for regular users (not coaches) */}
+      {!isCoach && <ConnectToCoach />}
 
       {/* Weight Unit Preference */}
       <div className="card settings-card preferences-card">

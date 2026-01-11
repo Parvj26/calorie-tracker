@@ -9,6 +9,8 @@ export function useUserProfile() {
   const [loading, setLoading] = useState(true);
 
   const isAdmin = profile?.role === 'admin';
+  const isCoach = profile?.role === 'coach';
+  const coachCode = profile?.coachCode;
 
   // Load user profile from Supabase
   const loadProfile = useCallback(async () => {
@@ -52,6 +54,7 @@ export function useUserProfile() {
               heightCm: newProfile.height_cm,
               activityLevel: newProfile.activity_level,
               role: newProfile.role,
+              coachCode: newProfile.coach_code,
               createdAt: newProfile.created_at,
               updatedAt: newProfile.updated_at,
             });
@@ -70,6 +73,7 @@ export function useUserProfile() {
           heightCm: data.height_cm,
           activityLevel: data.activity_level,
           role: data.role,
+          coachCode: data.coach_code,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });
@@ -146,6 +150,8 @@ export function useUserProfile() {
   return {
     profile,
     isAdmin,
+    isCoach,
+    coachCode,
     loading,
     needsProfileSetup,
     loadProfile,

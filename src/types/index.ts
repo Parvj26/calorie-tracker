@@ -159,7 +159,7 @@ export type TabType = 'dashboard' | 'log' | 'discover' | 'progress' | 'inbody' |
 // MASTER MEAL LIBRARY TYPES
 // ============================================
 
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'admin' | 'coach';
 export type Gender = 'male' | 'female' | 'other' | 'prefer-not-to-say';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 
@@ -175,8 +175,61 @@ export interface UserProfile {
   heightCm?: number;              // Height in cm for BMR calculation
   activityLevel?: ActivityLevel;  // Activity level for NEAT calculation
   role: UserRole;
+  coachCode?: string;             // Unique code for coaches to share with clients
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ============================================
+// COACH-CLIENT TYPES
+// ============================================
+
+export type CoachClientStatus = 'pending' | 'accepted' | 'rejected' | 'terminated';
+
+export interface CoachClient {
+  id: string;
+  coachId: string;
+  clientId: string;
+  status: CoachClientStatus;
+  requestedAt: string;
+  respondedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CoachClientWithProfile extends CoachClient {
+  clientProfile?: UserProfile;
+  coachProfile?: UserProfile;
+}
+
+export interface ClientSummary {
+  clientId: string;
+  profile: UserProfile;
+  latestWeight?: number;
+  weightChange7Days?: number;
+  caloriesToday?: number;
+  calorieTarget?: number;
+  lastActivityDate?: string;
+  daysInactive: number;           // Days since last activity
+  isInactive: boolean;            // 3+ days no activity
+  hasWeightPlateau: boolean;      // 14+ days no significant weight change
+  missedCalorieTargets: number;   // Days missed target in last 7
+}
+
+export interface CoachAlert {
+  id: string;
+  type: 'inactive' | 'plateau' | 'missed_targets' | 'new_request';
+  clientId?: string;
+  clientName?: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+  createdAt: string;
+}
+
+export interface CoachDashboardData {
+  clients: ClientSummary[];
+  pendingRequests: CoachClientWithProfile[];
+  alerts: CoachAlert[];
 }
 
 export type MasterMealStatus = 'approved' | 'archived';

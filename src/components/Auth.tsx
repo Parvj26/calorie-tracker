@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, LogIn, UserPlus, Loader2, ArrowLeft, KeyRound } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader2, ArrowLeft, KeyRound, Users } from 'lucide-react';
+import { CoachSignUp } from './Coach/CoachSignUp';
 
 interface AuthProps {
   onBack?: () => void;
@@ -10,6 +11,7 @@ type AuthView = 'login' | 'signup' | 'forgot';
 
 export const Auth: React.FC<AuthProps> = ({ onBack }) => {
   const [view, setView] = useState<AuthView>('login');
+  const [showCoachSignup, setShowCoachSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +19,11 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
   const [message, setMessage] = useState<string | null>(null);
 
   const { signIn, signUp, resetPasswordForEmail } = useAuth();
+
+  // Show coach signup screen
+  if (showCoachSignup) {
+    return <CoachSignUp onBack={() => setShowCoachSignup(false)} />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +178,16 @@ export const Auth: React.FC<AuthProps> = ({ onBack }) => {
             </>
           )}
         </p>
+
+        {view !== 'forgot' && (
+          <div className="coach-link">
+            <Users size={16} />
+            <span>Are you a fitness coach?</span>
+            <button type="button" onClick={() => setShowCoachSignup(true)}>
+              Create coach account
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

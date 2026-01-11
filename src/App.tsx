@@ -9,13 +9,14 @@ import {
   LogOut,
   Loader2,
   Globe,
+  Users,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useCalorieTracker } from './hooks/useCalorieTracker';
 import { useUserProfile } from './hooks/useUserProfile';
 import { useMasterMeals } from './hooks/useMasterMeals';
 import { useMealSubmissions } from './hooks/useMealSubmissions';
-import { useInsights } from './hooks/useInsights';
+// import { useInsights } from './hooks/useInsights';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Dashboard } from './components/Dashboard';
 import { LogMeals } from './components/LogMeals';
@@ -26,6 +27,8 @@ import { Auth } from './components/Auth';
 import { ResetPassword } from './components/ResetPassword';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
 import { LandingPage } from './components/LandingPage';
+import { CoachDashboard } from './components/Coach/CoachDashboard';
+import { ClientDetailView } from './components/Coach/ClientDetailView';
 import type { TabType } from './types';
 import './App.css';
 
@@ -44,9 +47,10 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showAuth, setShowAuth] = useState(false);
+  const [viewingClientId, setViewingClientId] = useState<string | null>(null);
 
   // User profile and admin status (loaded first for BMR calculations)
-  const { profile, isAdmin, needsProfileSetup, updateProfile } = useUserProfile();
+  const { profile, isAdmin, isCoach, needsProfileSetup, updateProfile } = useUserProfile();
 
   const {
     meals,
@@ -127,25 +131,25 @@ function AppContent() {
   const progressData = useMemo(() => getProgressData(), [getProgressData]);
   const goalProgress = useMemo(() => getGoalProgress(), [getGoalProgress]);
 
-  // AI Insights hook
-  const insights = useInsights({
-    dailyLogs,
-    weighIns,
-    inBodyScans,
-    settings,
-    profile,
-    selectedDate,
-    todayTotals: {
-      calories: totals.calories,
-      protein: totals.protein,
-      carbs: totals.carbs,
-      fat: totals.fat,
-      fiber: totals.fiber,
-      sugar: totals.sugar,
-    },
-    meals,
-    masterMeals,
-  });
+  // AI Insights hook (disabled - monthly insights removed from Progress tab)
+  // const insights = useInsights({
+  //   dailyLogs,
+  //   weighIns,
+  //   inBodyScans,
+  //   settings,
+  //   profile,
+  //   selectedDate,
+  //   todayTotals: {
+  //     calories: totals.calories,
+  //     protein: totals.protein,
+  //     carbs: totals.carbs,
+  //     fat: totals.fat,
+  //     fiber: totals.fiber,
+  //     sugar: totals.sugar,
+  //   },
+  //   meals,
+  //   masterMeals,
+  // });
 
   // Get master meals to display in Dashboard (saved to library OR logged for current day)
   const displayMasterMeals = useMemo(() => {
@@ -212,7 +216,13 @@ function AppContent() {
     );
   }
 
-  const tabs = [
+  // Coach-specific tabs
+  const coachTabs = [
+    { id: 'dashboard' as TabType, label: 'Clients', icon: Users },
+  ];
+
+  // Regular user tabs
+  const userTabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'log' as TabType, label: 'Log', icon: Utensils },
     { id: 'discover' as TabType, label: 'Discover', icon: Globe },
@@ -220,12 +230,16 @@ function AppContent() {
     { id: 'inbody' as TabType, label: 'InBody', icon: ScanLine },
   ];
 
+  const tabs = isCoach ? coachTabs : userTabs;
+
   return (
     <div className="app">
       <header className="app-header">
         <div className="header-left">
           <h1>CalorieTracker</h1>
-          <span className="subtitle">Your personalized nutrition companion</span>
+          <span className="subtitle">
+            {isCoach ? 'Coach Dashboard' : 'Your personalized nutrition companion'}
+          </span>
         </div>
         <div className="header-right">
           {profile && (
@@ -237,7 +251,10 @@ function AppContent() {
           )}
           <button
             className={`header-icon-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => {
+              setActiveTab('settings');
+              setViewingClientId(null);
+            }}
             title="Settings"
           >
             <SettingsIcon size={18} />
@@ -253,11 +270,14 @@ function AppContent() {
           <button
             key={tab.id}
             role="tab"
-            aria-selected={activeTab === tab.id}
+            aria-selected={activeTab === tab.id && !viewingClientId}
             aria-controls={`${tab.id}-panel`}
             tabIndex={activeTab === tab.id ? 0 : -1}
-            className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            className={`nav-btn ${activeTab === tab.id && !viewingClientId ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setViewingClientId(null);
+            }}
           >
             <tab.icon size={20} aria-hidden="true" />
             <span>{tab.label}</span>
@@ -266,7 +286,23 @@ function AppContent() {
       </nav>
 
       <main className="app-main" role="tabpanel" id={`${activeTab}-panel`}>
-        {activeTab === 'dashboard' && (
+        {/* Coach viewing a specific client */}
+        {isCoach && viewingClientId && (
+          <ClientDetailView
+            clientId={viewingClientId}
+            onBack={() => setViewingClientId(null)}
+          />
+        )}
+
+        {/* Coach dashboard (when not viewing a specific client) */}
+        {isCoach && activeTab === 'dashboard' && !viewingClientId && (
+          <CoachDashboard
+            onViewClient={(clientId) => setViewingClientId(clientId)}
+          />
+        )}
+
+        {/* Regular user dashboard */}
+        {!isCoach && activeTab === 'dashboard' && (
           <Dashboard
             selectedDate={selectedDate}
             log={currentLog}
@@ -288,7 +324,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'log' && (
+        {!isCoach && activeTab === 'log' && (
           <LogMeals
             meals={meals}
             deletedMeals={deletedMeals}
@@ -326,7 +362,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'discover' && (
+        {!isCoach && activeTab === 'discover' && (
           <DiscoverTab
             meals={meals}
             masterMeals={masterMeals}
@@ -348,7 +384,7 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'progress' && (
+        {!isCoach && activeTab === 'progress' && (
           <Suspense fallback={<TabLoader />}>
           <ProgressTracker
             weighIns={weighIns}
@@ -357,16 +393,11 @@ function AppContent() {
             goalProgress={goalProgress}
             onAddWeighIn={addWeighIn}
             onDeleteWeighIn={deleteWeighIn}
-            monthlyInsights={insights.monthly.insights}
-            monthlyInsightsLoading={insights.monthly.loading}
-            monthlyInsightsError={insights.monthly.error}
-            onGenerateMonthlyInsights={insights.monthly.generate}
-            hasApiKey={insights.hasApiKey}
           />
           </Suspense>
         )}
 
-        {activeTab === 'inbody' && (
+        {!isCoach && activeTab === 'inbody' && (
           <InBodyUpload
             scans={inBodyScans}
             aiProvider={settings.aiProvider || 'groq'}
