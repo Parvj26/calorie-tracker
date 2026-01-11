@@ -1658,6 +1658,35 @@ body {
   background: #dc2626;
 }
 
+.btn-primary {
+  padding: 10px 20px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+/* Meal Toggle Confirmation */
+.meal-toggle-dialog .meal-toggle-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.meal-toggle-dialog .meal-toggle-macros {
+  font-size: 0.9rem;
+  color: var(--gray-500);
+  margin-bottom: 4px;
+}
+
 /* Trash Section */
 .trash-section {
   margin-top: 24px;

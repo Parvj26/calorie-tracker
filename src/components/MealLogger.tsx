@@ -94,6 +94,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
   const [mealToDelete, setMealToDelete] = useState<Meal | null>(null);
   const [isTrashExpanded, setIsTrashExpanded] = useState(false);
   const [mealToPermDelete, setMealToPermDelete] = useState<Meal | null>(null);
+  const [mealToToggle, setMealToToggle] = useState<{ meal: DisplayMeal; action: 'add' | 'remove' } | null>(null);
   const [newMeal, setNewMeal] = useState({
     name: '',
     calories: '',
@@ -348,6 +349,11 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
           const supportsGrams = !!meal.servingSize;
 
           const handleToggle = () => {
+            const action = isSelected ? 'remove' : 'add';
+            setMealToToggle({ meal, action });
+          };
+
+          const confirmToggle = () => {
             if (meal.isCommunity) {
               onToggleMasterMeal(meal.id, selectedDate);
             } else {
@@ -913,6 +919,37 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
                 setMealToPermDelete(null);
               }}>
                 Delete Forever
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meal Toggle Confirmation */}
+      {mealToToggle && (
+        <div className="delete-confirm-overlay">
+          <div className="delete-confirm-dialog meal-toggle-dialog">
+            <h4>{mealToToggle.action === 'add' ? 'Log Meal?' : 'Remove Meal?'}</h4>
+            <p className="meal-toggle-name">{mealToToggle.meal.name}</p>
+            <p className="meal-toggle-macros">
+              {mealToToggle.meal.calories} cal • {mealToToggle.meal.protein}g P • {mealToToggle.meal.carbs}g C • {mealToToggle.meal.fat}g F
+            </p>
+            <div className="delete-confirm-actions">
+              <button className="btn-secondary" onClick={() => setMealToToggle(null)}>
+                Cancel
+              </button>
+              <button
+                className={mealToToggle.action === 'add' ? 'btn-primary' : 'btn-danger'}
+                onClick={() => {
+                  if (mealToToggle.meal.isCommunity) {
+                    onToggleMasterMeal(mealToToggle.meal.id, selectedDate);
+                  } else {
+                    onToggleMeal(mealToToggle.meal.id, selectedDate);
+                  }
+                  setMealToToggle(null);
+                }}
+              >
+                {mealToToggle.action === 'add' ? 'Log Meal' : 'Remove'}
               </button>
             </div>
           </div>
