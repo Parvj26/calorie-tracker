@@ -1,28 +1,61 @@
-# CalorieTracker - App Structure & Features
+# CalorieTracker - Complete Technical Documentation
+
+> **Last Updated:** January 2026
+> **Live URL:** https://calorie-tracker-self-five.vercel.app
+> **Repository:** https://github.com/Parvj26/calorie-tracker
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Tech Stack](#tech-stack)
+3. [Project Structure](#project-structure)
+4. [Database Schema](#database-schema)
+5. [Authentication System](#authentication-system)
+6. [Components Reference](#components-reference)
+7. [Hooks Reference](#hooks-reference)
+8. [Context Providers](#context-providers)
+9. [Type Definitions](#type-definitions)
+10. [Utility Functions](#utility-functions)
+11. [Features & User Flows](#features--user-flows)
+12. [API Integrations](#api-integrations)
+13. [Calculations & Formulas](#calculations--formulas)
+14. [Deployment](#deployment)
+15. [Admin & Coach Setup](#admin--coach-setup)
+
+---
 
 ## Overview
 
-CalorieTracker is a comprehensive nutrition companion web app with cloud sync, AI-powered insights, and community features. Track daily calories and macros, import Apple Health data for accurate TDEE, monitor body composition via InBody scans, discover community-shared meals, and get personalized AI coaching.
+CalorieTracker is a comprehensive nutrition and fitness tracking Progressive Web App (PWA) featuring:
 
-**Live URL:** https://calorie-tracker-self-five.vercel.app
-**GitHub:** https://github.com/Parvj26/calorie-tracker
+- **Meal Logging** - Custom meals with flexible quantities (servings, grams, ml, oz)
+- **AI Food Scanning** - Camera-based food recognition with macro extraction
+- **Body Composition Tracking** - InBody scan import with advanced metrics
+- **Apple Health Integration** - Screenshot-based health data import
+- **Goal-Based Calorie Targeting** - BMR calculations with multiple formula support
+- **Community Meal Library** - Shared meals with admin approval workflow
+- **Coach-Client System** - Fitness professionals can monitor client progress
+- **Progress Visualization** - Weight trends, body composition charts, step tracking
 
 ---
 
 ## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| React 18 | UI Framework |
-| TypeScript | Type Safety |
-| Vite | Build Tool |
-| Supabase | Auth & Database |
-| Recharts | Data Visualization |
-| date-fns | Date Manipulation |
-| lucide-react | Icons |
-| Groq API | AI (Free - Llama 4 Scout Vision, Llama 3.1 Text) |
-| OpenAI GPT-4o | AI (Paid Alternative) |
-| Vercel | Hosting |
+| Category | Technology | Version | Purpose |
+|----------|------------|---------|---------|
+| **Frontend** | React | 19.2.0 | UI Framework |
+| **Language** | TypeScript | 5.9.3 | Type Safety |
+| **Build Tool** | Vite | 7.2.4 | Fast Development & Bundling |
+| **Backend/DB** | Supabase | 2.89.0 | Auth, PostgreSQL, RLS |
+| **Charts** | Recharts | 3.6.0 | Data Visualization |
+| **Icons** | Lucide React | 0.562.0 | Icon Library |
+| **Dates** | date-fns | 4.1.0 | Date Manipulation |
+| **IDs** | uuid | 13.0.0 | Unique ID Generation |
+| **AI (Free)** | Groq API | - | Llama 4 Scout Vision |
+| **AI (Paid)** | OpenAI API | - | GPT-4o Vision |
+| **Hosting** | Vercel | - | Deployment Platform |
 
 ---
 
@@ -30,401 +63,656 @@ CalorieTracker is a comprehensive nutrition companion web app with cloud sync, A
 
 ```
 calorie-tracker/
-├── public/
-│   ├── icons/                    # PWA icons
-│   ├── manifest.json             # PWA manifest
-│   └── sw.js                     # Service worker
+├── public/                          # Static assets
+│   ├── icons/                       # PWA icons (multiple sizes)
+│   ├── manifest.json                # PWA manifest
+│   └── sw.js                        # Service worker
 │
 ├── src/
-│   ├── components/
-│   │   ├── Auth.tsx              # Login/Signup screens
-│   │   ├── Dashboard.tsx         # Main dashboard with AI daily tips
-│   │   ├── LogMeals.tsx          # Meal logging tab wrapper
-│   │   ├── MealLogger.tsx        # Meal selection, editing & trash
-│   │   ├── FoodScanner.tsx       # AI food scanner with added sugar
-│   │   ├── RecipeModal.tsx       # Recipe viewer modal
-│   │   ├── HealthScanner.tsx     # Apple Health importer
-│   │   ├── InBodyUpload.tsx      # InBody scan uploader
-│   │   ├── ProgressTracker.tsx   # Charts + monthly AI insights
-│   │   ├── WeeklySummary.tsx     # Weekly stats + AI analysis
-│   │   ├── Settings.tsx          # User settings & profile
-│   │   ├── ProfileSetupModal.tsx # First-time profile setup
-│   │   ├── CircularProgress.tsx  # Progress indicator component
+│   ├── main.tsx                     # React entry point
+│   ├── App.tsx                      # Root component with routing
+│   ├── App.css                      # Main stylesheet (~160KB)
+│   ├── index.css                    # CSS variables & global styles
+│   │
+│   ├── components/                  # React UI Components
+│   │   ├── Auth.tsx                 # Sign in/up forms
+│   │   ├── Dashboard.tsx            # Daily nutrition overview
+│   │   ├── LogMeals.tsx             # Meal browsing tab wrapper
+│   │   ├── MealLogger.tsx           # Meal selection & editing
+│   │   ├── Settings.tsx             # User preferences
+│   │   ├── ProgressTracker.tsx      # Charts & weigh-ins (lazy loaded)
+│   │   ├── InBodyUpload.tsx         # Body scan import
+│   │   ├── FoodScanner.tsx          # AI food recognition
+│   │   ├── HealthScanner.tsx        # Apple Health import
+│   │   ├── ProfileSetupModal.tsx    # First-time user onboarding
+│   │   ├── RecipeModal.tsx          # Recipe detail viewer
+│   │   ├── LandingPage.tsx          # Marketing/welcome page
+│   │   ├── ErrorBoundary.tsx        # Error catching wrapper
+│   │   ├── CircularProgress.tsx     # Macro ring visualization
+│   │   ├── ResetPassword.tsx        # Password recovery flow
+│   │   ├── WeeklySummary.tsx        # 7-day aggregated stats
 │   │   │
-│   │   ├── Discover/             # Community meals feature
-│   │   │   ├── DiscoverTab.tsx       # Main discover container
-│   │   │   ├── MasterMealCard.tsx    # Community meal display
-│   │   │   ├── SubmitMealModal.tsx   # Submit meal for review
-│   │   │   └── MySubmissionsPanel.tsx # User submission history
+│   │   ├── Coach/                   # Coach Feature Components
+│   │   │   ├── CoachDashboard.tsx   # Client list & alerts
+│   │   │   ├── CoachSignUp.tsx      # Coach registration
+│   │   │   ├── ClientDetailView.tsx # Individual client data
+│   │   │   ├── ConnectToCoach.tsx   # Client connection interface
+│   │   │   └── useCoachCode.ts      # Coach code lookup hook
 │   │   │
-│   │   └── Admin/                # Admin features
-│   │       └── AdminPanel.tsx        # Approve/reject submissions
+│   │   ├── Discover/                # Community Meals Feature
+│   │   │   ├── DiscoverTab.tsx      # Master meal browser
+│   │   │   ├── MasterMealCard.tsx   # Community meal card
+│   │   │   ├── SubmitMealModal.tsx  # Meal submission form
+│   │   │   └── MySubmissionsPanel.tsx # User submissions tracker
+│   │   │
+│   │   └── Admin/                   # Admin-Only Components
+│   │       └── AdminPanel.tsx       # Submission review interface
 │   │
-│   ├── contexts/
-│   │   └── AuthContext.tsx       # Authentication state & methods
+│   ├── hooks/                       # Custom React Hooks
+│   │   ├── useCalorieTracker.ts     # Core app state management
+│   │   ├── useSupabaseSync.ts       # DB synchronization
+│   │   ├── useUserProfile.ts        # User identity & roles
+│   │   ├── useMasterMeals.ts        # Community meals
+│   │   ├── useMealSubmissions.ts    # Submission workflow
+│   │   ├── useCoachClients.ts       # Coach client management
+│   │   ├── useLocalStorage.ts       # Browser persistence
+│   │   ├── useActivityRecommendation.ts # Activity analysis
+│   │   └── useInsights.ts           # AI insights (disabled)
 │   │
-│   ├── hooks/
-│   │   ├── useCalorieTracker.ts  # Main state + Supabase sync
-│   │   ├── useSupabaseSync.ts    # Cloud sync operations
-│   │   ├── useLocalStorage.ts    # Local persistence
-│   │   ├── useUserProfile.ts     # User profile & admin check
-│   │   ├── useMasterMeals.ts     # Community meal library
-│   │   ├── useMealSubmissions.ts # Submission workflow
-│   │   └── useInsights.ts        # AI insights (daily/weekly/monthly)
+│   ├── contexts/                    # React Context Providers
+│   │   └── AuthContext.tsx          # Authentication state
 │   │
-│   ├── lib/
-│   │   └── supabase.ts           # Supabase client config
+│   ├── lib/                         # Third-Party Integrations
+│   │   └── supabase.ts              # Supabase client initialization
 │   │
-│   ├── utils/
-│   │   ├── openai.ts             # OpenAI API integration
-│   │   ├── groq.ts               # Groq API + AI insights
-│   │   └── nutritionGoals.ts     # Macro goal calculations
+│   ├── utils/                       # Utility Functions
+│   │   ├── bmrCalculation.ts        # BMR & TDEE formulas
+│   │   ├── nutritionGoals.ts        # Macro goal calculations
+│   │   ├── bodyIntelligence.ts      # Weight loss quality analysis
+│   │   ├── encryption.ts            # AES-256 API key encryption
+│   │   ├── groq.ts                  # Groq AI integration
+│   │   ├── openai.ts                # OpenAI integration
+│   │   ├── appleHealthTdee.ts       # TDEE from health data
+│   │   ├── weightConversion.ts      # kg/lbs utilities
+│   │   └── activityRecommendation.ts # Activity level analysis
 │   │
-│   ├── data/
-│   │   └── defaultMeals.ts       # Default meals & settings
+│   ├── types/                       # TypeScript Definitions
+│   │   └── index.ts                 # All type exports
 │   │
-│   ├── types/
-│   │   └── index.ts              # TypeScript interfaces
-│   │
-│   ├── App.tsx                   # Root component with tabs
-│   ├── App.css                   # Global styles
-│   └── main.tsx                  # Entry point
+│   └── data/                        # Seed Data
+│       └── defaultMeals.ts          # Example meals with recipes
 │
-├── scripts/
-│   └── add-added-sugar.sql       # Database migration for added sugar
+├── supabase/                        # Supabase Configuration
+│   └── config.toml                  # Local dev settings
 │
-├── supabase-schema.sql           # Database schema
-├── APP_STRUCTURE.md              # This file
-├── README.md                     # Quick start guide
-├── package.json
-└── vite.config.ts
+├── scripts/                         # Utility Scripts
+│   └── add-added-sugar.sql          # DB migration example
+│
+├── dist/                            # Build Output
+├── .vercel/                         # Vercel Config
+│
+├── supabase-schema.sql              # Database schema
+├── APP_STRUCTURE.md                 # This documentation
+├── README.md                        # Quick start guide
+├── package.json                     # Dependencies
+├── tsconfig.json                    # TypeScript config
+├── vite.config.ts                   # Vite config
+└── eslint.config.js                 # ESLint config
 ```
 
 ---
 
-## Features
+## Database Schema
 
-### 1. User Authentication & Profile
+### Tables Overview
 
-**Files:** `src/components/Auth.tsx`, `src/components/ProfileSetupModal.tsx`, `src/hooks/useUserProfile.ts`
+| Table | Purpose | RLS Policy |
+|-------|---------|------------|
+| `auth.users` | Supabase authentication | Managed by Supabase |
+| `user_profiles` | User metadata & roles | User owns their row |
+| `meals` | Custom user meals | User owns their meals |
+| `daily_logs` | Daily nutrition entries | User owns their logs |
+| `weigh_ins` | Weight tracking | User owns their data |
+| `inbody_scans` | Body composition data | User owns their scans |
+| `user_settings` | Preferences & targets | User owns their settings |
+| `master_meals` | Community meal library | All users read approved |
+| `meal_submissions` | Submission queue | User sees their own |
+| `coach_clients` | Coach-client relationships | Coach/client access |
 
-- Email/password signup and login (Supabase Auth)
-- Session persistence
-- First-time profile setup modal:
-  - First name, last name
-  - Date of birth
-  - Gender (male/female/other/prefer-not-to-say)
-- User roles: `user` | `admin`
+### Table Schemas
 
-### 2. Cloud Sync
-
-**Files:** `src/hooks/useSupabaseSync.ts`, `src/lib/supabase.ts`
-
-All data syncs to Supabase in real-time:
-- Meals, daily logs, weigh-ins, InBody scans, settings
-- Row-level security (each user sees only their data)
-- Works offline with localStorage fallback
-- Auto-purge of trashed meals after 30 days
-
-### 3. Dashboard
-
-**File:** `src/components/Dashboard.tsx`
-
-**Core Display:**
-- Date selector for navigating days
-- Hero calorie ring (eaten vs target/TDEE)
-- Macro pills (protein, carbs, fat, fiber, sugar with added sugar indicator)
-- Clickable macros show meal-by-meal breakdown modal
-
-**Quick Stats Grid:**
-- Deficit/surplus card
-- Activity/workout calories
-- Goal progress percentage
-
-**TDEE Display (when available):**
-- Total Daily Energy Expenditure breakdown
-- Resting + Active energy
-- Steps and exercise minutes
-
-**AI Daily Tips Card:**
-- 2-3 personalized tips based on today's progress
-- Remaining calories/macros summary
-- Generate/refresh button
-- 4-hour cache
-
-**Actions:**
-- Floating camera button for food scanning
-- Health scanner for Apple Health import
-
-### 4. Meal Management
-
-**Files:** `src/components/MealLogger.tsx`, `src/components/LogMeals.tsx`
-
-#### Meal Library
-- Add custom meals with full macros (calories, protein, carbs, fat, fiber, sugar, added sugar)
-- Edit existing meals (name, macros, recipe, serving size)
-- Toggle favorite meals (starred)
-- Filter: All, Favorites, Custom
-- Search meals by name
-- Community meals shown with badge
-- **Logged meals sorted to top** of list
-
-#### Meal Quantities
-- Flexible quantity units: servings, grams (g), milliliters (ml), ounces (oz)
-- Serving size configuration per meal
-- Auto-calculation based on quantity × serving multiplier
-
-#### Recipes
-- Single text box for recipes/ingredients
-- AI formats into structured sections (Base, Toppings, Dressing, etc.)
-- Recipe modal with per-section nutrition breakdown
-
-#### Trash / Recycle Bin
-- Soft delete meals (30-day retention)
-- Restore deleted meals
-- Permanently delete meals
-- Days until auto-deletion indicator
-
-#### Edit Meal Modal
-- Opens as modal overlay (not inline)
-- Labeled input fields for all macros
-- Proper mobile-friendly layout
-
-### 5. Food Scanner (AI-Powered)
-
-**File:** `src/components/FoodScanner.tsx`
-
-- Photo capture or upload
-- AI identifies food + estimates nutrition
-- **Multi-item detection** per image
-- Confidence indicator (high/medium/low)
-- Portion multiplier (0.5x - 2x)
-- **Added sugar tracking** (distinguishes from natural sugars)
-- "Log Once" or "Save & Log" options
-- Optional recipe generation
-
-### 6. Discover (Community Meals)
-
-**Files:** `src/components/Discover/`
-
-Browse and share meals with the community:
-
-#### For All Users
-- Browse approved community meals
-- Search master meal library
-- **Add to Library** - saves community meal to personal library
-- Saved meals appear in Dashboard for easy daily logging
-- Remove meals from library (historical logs preserved)
-- View recipe on meals with recipes
-- Submit personal meals for admin review
-- View submission status (pending/approved/rejected)
-- Cancel pending submissions
-- **Search when selecting meals to submit**
-
-#### Community Meal Flow
-1. Browse Discover tab → Click "Add to Library"
-2. Meal appears in Dashboard/Log meal list (with Community badge)
-3. Toggle on/off for any day, adjust quantity
-4. Remove from library via X button (historical logs preserved)
-
-#### For Admins
-- Admin panel to review pending submissions
-- Approve meals → adds to master library
-- Reject meals with reason
-- Delete meals from community library
-- Usage count tracking
-
-### 7. AI Insights
-
-**Files:** `src/hooks/useInsights.ts`, `src/utils/groq.ts`
-
-Three levels of AI-powered coaching:
-
-#### Daily Insights (Dashboard)
-- 2-3 quick, actionable tips based on today's progress
-- Remaining calories/macros summary
-- Example: "Protein is low - add chicken or Greek yogurt to dinner"
-- 4-hour cache, manual refresh
-
-#### Weekly Insights (Summary Tab)
-- Week overview summary
-- Pattern detection (e.g., "lighter eating on weekends")
-- Wins/achievements
-- Actionable suggestions
-- 24-hour cache
-
-#### Monthly Insights (Progress Tab)
-- Month summary
-- Goal prediction ("At this pace, reach goal by March")
-- Long-term trends
-- Comparison to expected progress
-- 24-hour cache
-
-**Token Usage:** ~1,600 tokens/day total (well within Groq free tier)
-
-### 8. Apple Health Import
-
-**File:** `src/components/HealthScanner.tsx`
-
-Extracts from screenshots:
-- Resting Energy (BMR)
-- Active Energy (Move calories)
-- Steps, Exercise minutes, Stand hours
-- Walking/running distance
-- Flights climbed
-- Workout details (type, duration, calories)
-
-Calculates:
-```
-TDEE = Resting Energy + Active Energy
-True Deficit = TDEE - Calories Eaten
+#### `user_profiles`
+```sql
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  email TEXT,
+  display_name TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  date_of_birth DATE,
+  gender TEXT CHECK (gender IN ('male', 'female', 'other')),
+  height_cm NUMERIC,
+  activity_level TEXT CHECK (activity_level IN (
+    'sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active'
+  )),
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin', 'coach')),
+  coach_code TEXT UNIQUE,  -- 6-char alphanumeric for coaches
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
-### 9. InBody Scan Upload
+#### `meals`
+```sql
+CREATE TABLE meals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  calories NUMERIC NOT NULL,
+  protein NUMERIC DEFAULT 0,
+  carbs NUMERIC DEFAULT 0,
+  fat NUMERIC DEFAULT 0,
+  fiber NUMERIC DEFAULT 0,
+  sugar NUMERIC DEFAULT 0,
+  added_sugar NUMERIC DEFAULT 0,
+  serving_size TEXT,
+  serving_unit TEXT,
+  recipe JSONB,  -- {ingredients[], instructions[], servings, totalTime}
+  is_custom BOOLEAN DEFAULT true,
+  favorite BOOLEAN DEFAULT false,
+  deleted_at TIMESTAMPTZ,  -- Soft delete (30-day recovery)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-**File:** `src/components/InBodyUpload.tsx`
+#### `daily_logs`
+```sql
+CREATE TABLE daily_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  meal_ids JSONB DEFAULT '[]',        -- [{mealId, quantity, unit}]
+  master_meal_ids JSONB DEFAULT '[]', -- [{mealId, quantity, unit}]
+  workout_calories INTEGER DEFAULT 0,
+  health_metrics JSONB,               -- {steps, activeEnergy, restingEnergy, exerciseMinutes}
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+```
 
-- Upload InBody scan photos
-- AI extracts comprehensive metrics:
+#### `inbody_scans`
+```sql
+CREATE TABLE inbody_scans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  -- Basic metrics
+  weight NUMERIC,
+  body_fat_percent NUMERIC,
+  muscle_mass NUMERIC,
+  skeletal_muscle NUMERIC,
+  -- Tier 1 - Critical
+  bmr NUMERIC,
+  fat_mass NUMERIC,
+  visceral_fat_grade NUMERIC,
+  -- Tier 2 - Valuable
+  water_weight NUMERIC,
+  trunk_fat_mass NUMERIC,
+  body_age NUMERIC,
+  protein_mass NUMERIC,
+  bone_mass NUMERIC,
+  -- Reference
+  image_data TEXT,  -- Base64 encoded scan image
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-| Tier | Metrics |
-|------|---------|
-| Basic | weight, body fat %, muscle mass, skeletal muscle |
-| Tier 1 (Critical) | BMR, fat mass, visceral fat grade |
-| Tier 2 (Valuable) | water weight, trunk fat, body age, protein mass, bone mass |
+#### `weigh_ins`
+```sql
+CREATE TABLE weigh_ins (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  weight NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+```
 
-- Visceral fat health indicator (green/yellow/red zones)
-- Auto-syncs weight to weigh-in tracking
-- BMR improves TDEE calculations
-- View/delete scan history
-- Image storage for reference
+#### `user_settings`
+```sql
+CREATE TABLE user_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  daily_calorie_target INTEGER,
+  start_weight NUMERIC,
+  goal_weight NUMERIC,
+  target_date DATE,
+  weight_unit TEXT DEFAULT 'kg' CHECK (weight_unit IN ('kg', 'lbs')),
+  ai_provider TEXT DEFAULT 'groq' CHECK (ai_provider IN ('groq', 'openai')),
+  encrypted_groq_key TEXT,    -- AES-256 encrypted
+  encrypted_openai_key TEXT,  -- AES-256 encrypted
+  saved_master_meal_ids JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-### 10. Progress Tracker
+#### `master_meals`
+```sql
+CREATE TABLE master_meals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  calories NUMERIC NOT NULL,
+  protein NUMERIC DEFAULT 0,
+  carbs NUMERIC DEFAULT 0,
+  fat NUMERIC DEFAULT 0,
+  fiber NUMERIC DEFAULT 0,
+  sugar NUMERIC DEFAULT 0,
+  added_sugar NUMERIC DEFAULT 0,
+  serving_size TEXT,
+  serving_unit TEXT,
+  recipe JSONB,
+  status TEXT DEFAULT 'approved' CHECK (status IN ('approved', 'archived')),
+  submitted_by UUID REFERENCES auth.users(id),
+  approved_by UUID REFERENCES auth.users(id),
+  usage_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-**File:** `src/components/ProgressTracker.tsx`
+#### `meal_submissions`
+```sql
+CREATE TABLE meal_submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  calories NUMERIC NOT NULL,
+  protein NUMERIC DEFAULT 0,
+  carbs NUMERIC DEFAULT 0,
+  fat NUMERIC DEFAULT 0,
+  fiber NUMERIC DEFAULT 0,
+  sugar NUMERIC DEFAULT 0,
+  recipe JSONB,
+  submitted_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by UUID REFERENCES auth.users(id),
+  rejection_reason TEXT,
+  master_meal_id UUID REFERENCES master_meals(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-**Seven Chart Tabs:**
-| Tab | Description |
-|-----|-------------|
-| Weight | Trend line with goal reference |
-| Calories | Daily intake over 30 days |
-| Steps | Daily steps with 10k goal line |
-| Body Comp | Body fat % and skeletal muscle trends |
-| Fat vs Muscle | Fat mass vs muscle mass comparison |
-| BMR | Basal metabolic rate trend |
-| Visceral Fat | Visceral fat grade with health risk zones |
+#### `coach_clients`
+```sql
+CREATE TABLE coach_clients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  coach_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  client_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'terminated')),
+  requested_at TIMESTAMPTZ DEFAULT NOW(),
+  responded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(coach_id, client_id)
+);
+```
 
-**Steps Stats:**
-- Current streak (days hitting 10k+)
-- Daily average
-- Personal best
-- Total steps
+### Row Level Security (RLS) Policies
 
-**Also includes:**
-- Goal progress card with visual bar
-- Monthly AI insights card
-- Manual weigh-in entry
-- Weigh-in history with delete
+```sql
+-- Users can only access their own data
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own profile" ON user_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own profile" ON user_profiles
+  FOR UPDATE USING (auth.uid() = user_id);
 
-### 11. Weekly Summary
+-- Master meals: all authenticated users can read approved meals
+ALTER TABLE master_meals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view approved master meals" ON master_meals
+  FOR SELECT USING (status = 'approved');
 
-**File:** `src/components/WeeklySummary.tsx`
+-- Admins can manage all master meals
+CREATE POLICY "Admins can manage master meals" ON master_meals
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
 
-**Stats Cards:**
-- Average daily calories
-- Average deficit
-- Weight change (week)
-- Projected weeks to goal
+-- Coach-client: both parties can view their relationships
+ALTER TABLE coach_clients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Coaches and clients can view relationships" ON coach_clients
+  FOR SELECT USING (auth.uid() = coach_id OR auth.uid() = client_id);
 
-**Journey Overview:**
-- Start → Current → Goal weight visualization
-- Progress bar with kg lost/remaining
-
-**Quick Insights:**
-- Auto-generated based on data patterns
-- Deficit status, weight trends, logging consistency
-
-**AI Weekly Analysis:**
-- Summary, patterns, wins, suggestions
-- Generate/refresh button
-- 24-hour cache
-
-### 12. Settings
-
-**File:** `src/components/Settings.tsx`
-
-**Profile Section:**
-- First name, last name
-- Date of birth, gender
-- Save profile button
-
-**Calorie Targets:**
-- Daily calorie range (min/max)
-
-**Weight Goals:**
-- Start weight, goal weight
-- Start date
-
-**Daily Nutrition Goals (Auto-calculated):**
-- Protein (based on weight × activity level)
-- Carbs (50% of calories)
-- Fat (30% of calories)
-- Fiber (14g per 1000 cal)
-- Sugar limit (36g men / 25g women)
-
-**AI Provider:**
-- Groq (free - default)
-- OpenAI (paid)
-- API key management
-
-**Data Management:**
-- Export data (JSON)
-- Clear all data
+-- Coach code lookup function
+CREATE OR REPLACE FUNCTION lookup_coach_by_code(code TEXT)
+RETURNS TABLE (user_id UUID, first_name TEXT, last_name TEXT, email TEXT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT up.user_id, up.first_name, up.last_name, up.email
+  FROM user_profiles up
+  WHERE up.coach_code = code AND up.role = 'coach';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
 
 ---
 
-## Navigation Tabs
+## Authentication System
 
-| Tab | Icon | Description |
-|-----|------|-------------|
-| Dashboard | LayoutDashboard | Daily tracking, AI tips, food scanner |
-| Log | Utensils | Meal library, editing, trash |
-| Discover | Globe | Community meals, submissions |
-| Progress | TrendingUp | Charts, weigh-ins, monthly AI |
-| InBody | ScanLine | Body composition scans |
-| Summary | Calendar | Weekly stats, AI analysis |
-| Settings | Settings | Profile, goals, configuration |
+### AuthContext Provider
 
----
-
-## Data Models
-
-**File:** `src/types/index.ts`
-
-### Core Interfaces
+**Location:** `src/contexts/AuthContext.tsx`
 
 ```typescript
-// Macros (shared across meals)
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  isPasswordRecovery: boolean;
+  signUp: (email: string, password: string) => Promise<AuthResponse>;
+  signUpAsCoach: (email: string, password: string) => Promise<AuthResponse>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
+  signOut: () => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+}
+```
+
+### Authentication Flows
+
+#### Standard Sign Up
+```
+1. User enters email/password → Auth.tsx
+2. signUp() calls Supabase auth.signUp()
+3. Confirmation email sent automatically
+4. User clicks email link → session created
+5. App detects new user (no first_name in profile)
+6. ProfileSetupModal shown for onboarding
+7. User enters: first name, last name, height, DOB, gender, activity level
+8. Profile saved to user_profiles table
+```
+
+#### Coach Sign Up
+```
+1. User navigates to /coach-signup → CoachSignUp.tsx
+2. signUpAsCoach() calls signUp with metadata { is_coach: true }
+3. After email confirmation + profile setup
+4. coach_code generated (unique 6-char alphanumeric)
+5. role set to 'coach' in user_profiles
+```
+
+#### Sign In
+```
+1. User enters credentials → Auth.tsx
+2. signIn() calls Supabase auth.signInWithPassword()
+3. Session stored in localStorage by Supabase
+4. onAuthStateChange fires → user state updated
+5. useSupabaseSync loads all user data from DB
+6. App renders authenticated view
+```
+
+#### Password Recovery
+```
+1. User clicks "Forgot Password" → Auth.tsx
+2. resetPasswordForEmail() sends recovery link
+3. User clicks link → Supabase detects PASSWORD_RECOVERY event
+4. AuthContext sets isPasswordRecovery = true
+5. App shows ResetPassword component
+6. User enters new password
+7. updatePassword() updates Supabase auth
+8. User redirected to normal app
+```
+
+---
+
+## Components Reference
+
+### Core Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **App** | `App.tsx` | Main orchestrator, routing, tabs |
+| **Dashboard** | `Dashboard.tsx` | Daily nutrition overview, macro rings |
+| **LogMeals** | `LogMeals.tsx` | Meal browsing tab wrapper |
+| **MealLogger** | `MealLogger.tsx` | Meal selection, editing, trash |
+| **Settings** | `Settings.tsx` | User preferences, API keys, goals |
+| **ProgressTracker** | `ProgressTracker.tsx` | Weight charts, body comp (lazy loaded) |
+| **InBodyUpload** | `InBodyUpload.tsx` | Body scan photo import |
+| **FoodScanner** | `FoodScanner.tsx` | AI food recognition |
+| **HealthScanner** | `HealthScanner.tsx` | Apple Health screenshot import |
+| **ProfileSetupModal** | `ProfileSetupModal.tsx` | First-time user onboarding |
+| **RecipeModal** | `RecipeModal.tsx` | Recipe detail viewer |
+| **WeeklySummary** | `WeeklySummary.tsx` | 7-day aggregated stats |
+
+### Coach Components (`src/components/Coach/`)
+
+| Component | Purpose |
+|-----------|---------|
+| **CoachDashboard** | Lists connected clients, pending requests, alerts, overview stats |
+| **CoachSignUp** | Coach account registration with coach-specific metadata |
+| **ClientDetailView** | Individual client data view (weight, goals, weigh-ins) |
+| **ConnectToCoach** | Client-side coach connection interface |
+| **useCoachCode** | Hook for coach code lookup and connection |
+
+### Discover Components (`src/components/Discover/`)
+
+| Component | Purpose |
+|-----------|---------|
+| **DiscoverTab** | Community meal library browser |
+| **MasterMealCard** | Individual community meal display card |
+| **SubmitMealModal** | User meal submission form |
+| **MySubmissionsPanel** | User's submission history and status |
+
+### Admin Components (`src/components/Admin/`)
+
+| Component | Purpose |
+|-----------|---------|
+| **AdminPanel** | Meal submission review and approval interface |
+
+---
+
+## Hooks Reference
+
+### `useCalorieTracker` (Core State)
+
+**Location:** `src/hooks/useCalorieTracker.ts`
+
+```typescript
+interface UseCalorieTrackerReturn {
+  // Data
+  meals: Meal[];
+  deletedMeals: Meal[];
+  dailyLogs: DailyLog[];
+  inBodyScans: InBodyScan[];
+  weighIns: WeighIn[];
+  settings: UserSettings;
+
+  // Loading states
+  loading: boolean;
+  syncing: boolean;
+
+  // Queries
+  getLogForDate: (date: string) => DailyLog | undefined;
+  calculateTotals: (log: DailyLog) => NutritionTotals;
+  getProgressData: () => WeightProgressData;
+  getGoalProgress: () => GoalProgressData;
+  getWeeklySummary: () => WeeklySummaryData;
+
+  // Meal mutations
+  addMeal: (meal: Omit<Meal, 'id'>) => Promise<Meal>;
+  updateMeal: (id: string, updates: Partial<Meal>) => Promise<void>;
+  deleteMeal: (id: string) => Promise<void>;  // Soft delete
+  restoreMeal: (id: string) => Promise<void>;
+  permanentlyDeleteMeal: (id: string) => Promise<void>;
+
+  // Daily log mutations
+  toggleMealForDate: (mealId: string, date: string, isMaster?: boolean) => Promise<void>;
+  updateMealQuantity: (mealId: string, date: string, quantity: number, unit: string, isMaster?: boolean) => Promise<void>;
+  updateWorkoutCalories: (date: string, calories: number) => Promise<void>;
+  updateHealthMetrics: (date: string, metrics: HealthMetrics) => Promise<void>;
+
+  // Body data mutations
+  addInBodyScan: (scan: Omit<InBodyScan, 'id'>) => Promise<void>;
+  deleteInBodyScan: (id: string) => Promise<void>;
+  addWeighIn: (date: string, weight: number) => Promise<void>;
+  deleteWeighIn: (date: string) => Promise<void>;
+
+  // Settings mutations
+  updateSettings: (updates: Partial<UserSettings>) => Promise<void>;
+
+  // Master meal library
+  saveMasterMealToLibrary: (mealId: string) => Promise<void>;
+  removeMasterMealFromLibrary: (mealId: string) => Promise<void>;
+}
+```
+
+### `useUserProfile`
+
+**Location:** `src/hooks/useUserProfile.ts`
+
+```typescript
+interface UseUserProfileReturn {
+  profile: UserProfile | null;
+  loading: boolean;
+  error: string | null;
+
+  // Role checks
+  isAdmin: boolean;
+  isCoach: boolean;
+
+  // Coach-specific
+  coachCode: string | null;
+
+  // Mutations
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  generateCoachCode: () => Promise<string>;
+}
+```
+
+### `useCoachClients`
+
+**Location:** `src/hooks/useCoachClients.ts`
+
+```typescript
+interface UseCoachClientsReturn {
+  // Data
+  clients: ClientSummary[];
+  pendingRequests: CoachClientWithProfile[];
+  alerts: CoachAlert[];
+  loading: boolean;
+  error: string | null;
+
+  // Actions
+  acceptRequest: (requestId: string) => Promise<boolean>;
+  rejectRequest: (requestId: string) => Promise<boolean>;
+  terminateClient: (clientId: string) => Promise<boolean>;
+  refreshClients: () => Promise<void>;
+  getClientData: (clientId: string) => Promise<ClientFullData | null>;
+}
+
+interface ClientFullData {
+  profile: UserProfile;
+  dailyLogs: DailyLog[];
+  weighIns: WeighIn[];
+  settings: { dailyCalorieTarget?: number; goalWeight?: number };
+}
+```
+
+### `useMasterMeals`
+
+**Location:** `src/hooks/useMasterMeals.ts`
+
+```typescript
+interface UseMasterMealsReturn {
+  meals: MasterMeal[];
+  loading: boolean;
+  error: string | null;
+  searchMeals: (query: string) => MasterMeal[];
+  getMealById: (id: string) => MasterMeal | undefined;
+  loadMeals: () => Promise<void>;
+  incrementUsageCount: (id: string) => Promise<void>;
+}
+```
+
+### `useMealSubmissions`
+
+**Location:** `src/hooks/useMealSubmissions.ts`
+
+```typescript
+interface UseMealSubmissionsReturn {
+  submissions: MealSubmission[];
+  pendingCount: number;
+  pendingSubmissions: MealSubmission[];  // Admin only
+  submitMeal: (meal: MealSubmissionInput) => Promise<void>;
+  approveSubmission: (id: string) => Promise<void>;
+  rejectSubmission: (id: string, reason: string) => Promise<void>;
+}
+```
+
+### `useActivityRecommendation`
+
+**Location:** `src/hooks/useActivityRecommendation.ts`
+
+```typescript
+interface ActivityAnalysis {
+  recommendedLevel: ActivityLevel;
+  confidence: 'low' | 'medium' | 'high';
+  reasoning: string;
+  dataPoints: number;
+  averageSteps: number;
+  exerciseDaysPerWeek: number;
+}
+```
+
+---
+
+## Context Providers
+
+### AuthContext
+
+**Location:** `src/contexts/AuthContext.tsx`
+
+Wraps the entire application and provides:
+- Current user and session state
+- Authentication methods (sign up, sign in, sign out)
+- Password recovery flow detection
+- Loading state during auth checks
+
+```typescript
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
+```
+
+---
+
+## Type Definitions
+
+**Location:** `src/types/index.ts`
+
+### Nutrition Types
+
+```typescript
 interface Macros {
   protein: number;
   carbs: number;
   fat: number;
   fiber: number;
   sugar: number;
-  addedSugar: number;  // NEW: Added sugar tracking
+  addedSugar?: number;
 }
 
-// Quantity units for flexible meal logging
-type QuantityUnit = 'serving' | 'g' | 'ml' | 'oz';
-
-// Meal entry with quantity
-interface MealLogEntry {
-  mealId: string;
-  quantity: number;  // 1 = 1 serving, or grams if unit='g'
-  unit?: QuantityUnit;
-}
-
-// Meals
 interface Meal {
   id: string;
   name: string;
@@ -435,15 +723,34 @@ interface Meal {
   fiber: number;
   sugar: number;
   addedSugar?: number;
-  isCustom: boolean;
-  favorite?: boolean;
+  servingSize?: string;
+  servingUnit?: string;
   recipe?: Recipe;
-  deletedAt?: string;  // Soft delete timestamp
-  servingSize?: number;
-  servingSizeUnit?: 'g' | 'ml' | 'oz';
+  isCustom?: boolean;
+  favorite?: boolean;
+  deletedAt?: string;
 }
 
-// Daily Logs
+interface Recipe {
+  ingredients: string[];
+  instructions: string[];
+  servings: number;
+  totalTime: string;
+  nutrition?: RecipeNutrition;
+}
+
+type QuantityUnit = 'serving' | 'g' | 'ml' | 'oz';
+
+interface MealLogEntry {
+  mealId: string;
+  quantity: number;
+  unit: QuantityUnit;
+}
+```
+
+### Daily Log Types
+
+```typescript
 interface DailyLog {
   date: string;  // YYYY-MM-DD
   meals: (string | MealLogEntry)[];  // Backward compatible
@@ -453,28 +760,28 @@ interface DailyLog {
   notes?: string;
 }
 
-// Health Metrics (from Apple Health)
 interface HealthMetrics {
-  restingEnergy: number;
-  activeEnergy: number;
+  restingEnergy: number;   // BMR from Apple Health
+  activeEnergy: number;    // Move calories
   steps: number;
   exerciseMinutes: number;
   standHours?: number;
 }
+```
 
-// InBody Scans (enhanced metrics)
+### Body Composition Types
+
+```typescript
 interface InBodyScan {
   id: string;
   date: string;
   weight: number;
-  bodyFatPercent: number;
-  muscleMass: number;
-  skeletalMuscle: number;
-  // Tier 1 - Critical
+  bodyFatPercent?: number;
+  muscleMass?: number;
+  skeletalMuscle?: number;
   bmr?: number;
   fatMass?: number;
   visceralFatGrade?: number;
-  // Tier 2 - Valuable
   waterWeight?: number;
   trunkFatMass?: number;
   bodyAge?: number;
@@ -483,84 +790,101 @@ interface InBodyScan {
   imageData?: string;
 }
 
-// User Settings
-interface UserSettings {
-  dailyCalorieTargetMin: number;
-  dailyCalorieTargetMax: number;
-  startWeight: number;
-  goalWeight: number;
-  startDate: string;
-  aiProvider: 'openai' | 'groq';
-  openAiApiKey?: string;
-  groqApiKey?: string;
-  savedMasterMealIds?: string[];
+interface WeighIn {
+  date: string;
+  weight: number;
 }
+```
 
-// User Profile
+### User Types
+
+```typescript
 interface UserProfile {
   id: string;
   userId: string;
-  email?: string;
+  email: string;
   displayName?: string;
   firstName?: string;
   lastName?: string;
   dateOfBirth?: string;
-  gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
-  role: 'user' | 'admin';
+  gender?: 'male' | 'female' | 'other';
+  heightCm?: number;
+  activityLevel?: ActivityLevel;
+  role: 'user' | 'admin' | 'coach';
+  coachCode?: string;
+}
+
+type ActivityLevel =
+  | 'sedentary'
+  | 'lightly_active'
+  | 'moderately_active'
+  | 'very_active'
+  | 'extra_active';
+
+interface UserSettings {
+  dailyCalorieTarget?: number;
+  startWeight?: number;
+  goalWeight?: number;
+  targetDate?: string;
+  weightUnit?: 'kg' | 'lbs';
+  aiProvider?: 'groq' | 'openai';
+  groqApiKey?: string;
+  openaiApiKey?: string;
+  savedMasterMealIds?: string[];
 }
 ```
 
-### AI Insights Interfaces
+### Coach Types
 
 ```typescript
-interface DailyInsights {
-  tips: string[];        // 2-3 quick tips
-  remaining: string;     // Calories/macros summary
-  generatedAt: string;
-}
-
-interface WeeklyInsights {
-  summary: string;       // 2-3 sentence overview
-  patterns: string[];    // Detected patterns
-  wins: string[];        // Achievements
-  suggestions: string[]; // Actionable tips
-  generatedAt: string;
-}
-
-interface MonthlyInsights {
-  summary: string;       // Month overview
-  trends: string[];      // Long-term trends
-  goalPrediction: string; // When user will reach goal
-  comparison: string;    // vs expected progress
-  generatedAt: string;
-}
-```
-
-### Community Feature Interfaces
-
-```typescript
-interface MasterMeal {
+interface CoachClient {
   id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  sugar: number;
-  addedSugar?: number;
-  recipe?: Recipe;
+  coachId: string;
+  clientId: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'terminated';
+  requestedAt: string;
+  respondedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ClientSummary {
+  clientId: string;
+  profile: UserProfile;
+  latestWeight?: number;
+  weightChange7Days?: number;
+  caloriesToday?: number;
+  calorieTarget?: number;
+  lastActivityDate?: string;
+  daysInactive: number;
+  isInactive: boolean;
+  hasWeightPlateau: boolean;
+  missedCalorieTargets: number;
+}
+
+interface CoachAlert {
+  id: string;
+  type: 'inactive' | 'plateau' | 'missed_targets' | 'new_request';
+  clientId?: string;
+  clientName: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+  createdAt: string;
+}
+```
+
+### Community Types
+
+```typescript
+interface MasterMeal extends Meal {
   status: 'approved' | 'archived';
   submittedBy?: string;
-  submittedByName?: string;
+  approvedBy?: string;
   usageCount: number;
-  servingSize?: number;
-  servingSizeUnit?: 'g' | 'ml' | 'oz';
 }
 
 interface MealSubmission {
   id: string;
-  sourceMealId?: string;
   name: string;
   calories: number;
   protein: number;
@@ -568,14 +892,10 @@ interface MealSubmission {
   fat: number;
   fiber: number;
   sugar: number;
-  addedSugar?: number;
   recipe?: Recipe;
   submittedBy: string;
-  submittedByEmail?: string;
-  submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   reviewedBy?: string;
-  reviewedAt?: string;
   rejectionReason?: string;
   masterMealId?: string;
 }
@@ -583,132 +903,58 @@ interface MealSubmission {
 
 ---
 
-## Hooks
+## Utility Functions
 
-| Hook | Purpose |
-|------|---------|
-| `useCalorieTracker` | Main state, CRUD operations, calculations, sync |
-| `useSupabaseSync` | Cloud sync with Supabase |
-| `useLocalStorage` | Persistent local storage |
-| `useUserProfile` | User profile & admin check |
-| `useMasterMeals` | Load/search community meals |
-| `useMealSubmissions` | Submit/approve/reject workflow |
-| `useInsights` | AI insights (daily/weekly/monthly) |
+### BMR Calculation (`utils/bmrCalculation.ts`)
 
-### Key Functions (useCalorieTracker)
+**Formulas Supported:**
 
+1. **Katch-McArdle** (requires body composition):
+   ```
+   BMR = 370 + (21.6 × lean mass in kg)
+   Lean mass = weight × (1 - body fat %)
+   ```
+
+2. **Mifflin-St Jeor** (requires basic metrics):
+   ```
+   Male:   BMR = (10 × weight) + (6.25 × height) - (5 × age) + 5
+   Female: BMR = (10 × weight) + (6.25 × height) - (5 × age) - 161
+   ```
+
+**Activity Multipliers:**
+
+| Level | Multiplier | Description |
+|-------|------------|-------------|
+| Sedentary | 1.2 | Little/no exercise |
+| Lightly Active | 1.375 | Light exercise 1-3 days/week |
+| Moderately Active | 1.55 | Moderate exercise 3-5 days/week |
+| Very Active | 1.725 | Hard exercise 6-7 days/week |
+| Extra Active | 1.9 | Very hard exercise, physical job |
+
+**Key Functions:**
 ```typescript
-// Meals
-addMeal(meal)
-updateMeal(id, updates)
-deleteMeal(id)              // Soft delete → trash
-restoreMeal(id)             // Restore from trash
-permanentlyDeleteMeal(id)   // Hard delete
-toggleFavorite(id)
-logScannedMeal(meal, date)  // Log without saving
-saveAndLogMeal(meal, date)  // Save to library + log
-
-// Daily Logging
-toggleMealForDate(mealId, date)
-updateMealQuantity(mealId, date, quantity, unit)
-addMasterMealToLog(masterMealId, date)
-removeMasterMealFromLog(masterMealId, date)
-updateMasterMealQuantity(masterMealId, date, quantity, unit)
-updateWorkoutCalories(calories, date)
-updateHealthMetrics(metrics, date)
-
-// Quantity Helpers
-getMealId(entry) / getMealQuantity(entry) / getMealUnit(entry)
-getMasterMealId(entry) / getMasterMealQuantity(entry) / getMasterMealUnit(entry)
-getServingMultiplier(quantity, unit, servingSize)
-
-// Community Meal Library
-saveMasterMealToLibrary(masterMealId)
-removeMasterMealFromLibrary(masterMealId)
-
-// Calculations
-calculateTotals(log)   // Returns all macros, TDEE, deficit, etc.
-getProgressData()      // 30-day chart data
-getGoalProgress()      // Weight progress
-getWeeklySummary()     // Weekly stats
+getBMRWithPriority(inBodyScans, weighIns, profile): { bmr, source, confidence }
+calculateDailyTarget(bmr, activityLevel, weeklyGoalKg): number
+calculateGoalBasedTarget(currentWeight, goalWeight, targetDate, bmr, activityLevel): number
 ```
 
-### Key Functions (useInsights)
+### Body Intelligence (`utils/bodyIntelligence.ts`)
+
+Analyzes weight loss quality and metabolic health:
 
 ```typescript
-// Returns object with:
-{
-  hasApiKey: boolean,
-  daily: {
-    insights: DailyInsights | null,
-    loading: boolean,
-    error: string | null,
-    generate: (forceRefresh?) => void
-  },
-  weekly: { /* same structure */ },
-  monthly: { /* same structure */ }
+interface BodyIntelligence {
+  responseScore: number;         // 0-150+ (actual vs expected loss)
+  responseStatus: 'normal' | 'slow' | 'fast' | 'insufficient-data';
+  fatLossEfficiency: number;     // % of loss that was fat
+  muscleRetention: number;       // % of muscle retained
+  metabolicStatus: 'healthy' | 'adapting' | 'insufficient-data';
+  bmrChange: number;             // Change in BMR over time
+  recommendations: string[];
 }
 ```
 
----
-
-## API Integration
-
-### Groq (Free - Default)
-
-**File:** `src/utils/groq.ts`
-
-| Model | Purpose |
-|-------|---------|
-| `meta-llama/llama-4-scout-17b-16e-instruct` | Vision (food, InBody, health) |
-| `llama-3.1-8b-instant` | Text (recipes, insights) |
-
-**Functions:**
-- `groqAnalyzeFood()` - Food recognition + added sugar
-- `groqFormatRecipeText()` - Recipe parsing
-- `groqExtractInBodyData()` - InBody scan extraction
-- `groqExtractHealthData()` - Apple Health extraction
-- `generateDailyInsights()` - Daily AI tips
-- `generateWeeklyInsights()` - Weekly analysis
-- `generateMonthlyInsights()` - Monthly predictions
-
-### OpenAI (Paid)
-
-**File:** `src/utils/openai.ts`
-
-Model: `gpt-4o`
-
-Same functions as Groq with higher accuracy for image analysis.
-
----
-
-## Calorie Calculations
-
-**Without Health Data:**
-```
-Target = (Min + Max) / 2
-Net = Eaten - Workout
-Deficit = Target - Net
-```
-
-**With Health Data (TDEE):**
-```
-TDEE = Resting Energy + Active Energy
-Deficit = TDEE - Eaten
-```
-
-**Resting Energy Priority:**
-1. InBody BMR (most accurate)
-2. Apple Health Resting Energy
-3. Falls back to target-based calculation
-
-**Weight projection:** 7,700 cal = 1 kg
-
----
-
-## Nutrition Goal Calculations
-
-**File:** `src/utils/nutritionGoals.ts`
+### Nutrition Goals (`utils/nutritionGoals.ts`)
 
 | Macro | Formula |
 |-------|---------|
@@ -718,106 +964,222 @@ Deficit = TDEE - Eaten
 | Fiber | 14g per 1,000 calories |
 | Sugar | 36g (men) / 25g (women) - AHA limits |
 
-**Activity Level Multipliers:**
-- Sedentary: 0.8g/kg
-- Light: 1.0g/kg
-- Moderate: 1.2g/kg
-- Active: 1.4g/kg
-- Very Active: 1.6g/kg
+### Encryption (`utils/encryption.ts`)
 
----
+**Algorithm:** AES-256-GCM
+**Key Derivation:** PBKDF2 with user ID + static salt
 
-## Database Schema
-
-**File:** `supabase-schema.sql`
-
-### Core Tables
-
-| Table | Purpose |
-|-------|---------|
-| `meals` | User's meal library (with soft delete, added_sugar) |
-| `daily_logs` | Daily logs with health metrics |
-| `weigh_ins` | Weight entries |
-| `inbody_scans` | Body composition scans (enhanced metrics) |
-| `user_settings` | User preferences |
-
-### Community Feature Tables
-
-| Table | Purpose |
-|-------|---------|
-| `user_profiles` | User roles, personal info |
-| `master_meals` | Approved community meals |
-| `meal_submissions` | Pending meal submissions |
-
-### Key Columns
-
-```sql
--- meals table
-deleted_at TIMESTAMPTZ     -- Soft delete
-favorite BOOLEAN           -- Starred meals
-recipe JSONB               -- Structured recipe
-serving_size REAL          -- Grams per serving
-added_sugar REAL           -- Added sugar (not natural)
-
--- daily_logs table
-meal_ids JSONB             -- User meals with quantities
-master_meal_ids JSONB      -- Community meals with quantities
-health_metrics JSONB       -- Apple Health data
-
--- user_profiles table
-role TEXT                  -- 'user' or 'admin'
-first_name TEXT
-last_name TEXT
-date_of_birth DATE
-gender TEXT
-
--- inbody_scans table (enhanced)
-bmr REAL
-fat_mass REAL
-visceral_fat_grade INTEGER
-water_weight REAL
-trunk_fat_mass REAL
-body_age INTEGER
-protein_mass REAL
-bone_mass REAL
+```typescript
+encryptValue(value: string, userId: string): Promise<string>
+decryptValue(encrypted: string, userId: string): Promise<string>
+isEncrypted(value: string): boolean
 ```
 
-All tables have Row Level Security (RLS) enabled.
+### AI Integration (`utils/groq.ts`, `utils/openai.ts`)
 
----
+| Provider | Vision Model | Text Model |
+|----------|--------------|------------|
+| Groq (Free) | meta-llama/llama-4-scout-17b-16e-instruct | llama-3.1-8b-instant |
+| OpenAI (Paid) | gpt-4o | gpt-4o |
 
-## Admin Setup
-
-Set admin role in Supabase SQL Editor:
-```sql
-INSERT INTO user_profiles (user_id, email, role)
-SELECT id, email, 'admin' FROM auth.users WHERE email = 'your-email@example.com'
-ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
+**Functions:**
+```typescript
+analyzeFoodImage(base64, apiKey): Promise<FoodAnalysis>
+analyzeInBodyImage(base64, apiKey): Promise<InBodyScan>
+analyzeHealthImage(base64, apiKey): Promise<HealthMetrics>
 ```
 
 ---
 
-## Styling
+## Features & User Flows
 
-**File:** `src/App.css`
+### 1. Daily Meal Logging
+```
+Dashboard → View calories/macros
+    ↓
+Log Tab → Browse meals (personal or community)
+    ↓
+Select meal → Choose quantity & unit
+    ↓
+Add to log → Updates dashboard totals
+    ↓
+Edit/Remove → Adjust or delete entry
+```
 
-| Color Variable | Hex | Usage |
-|----------------|-----|-------|
-| `--primary` | `#6366f1` | Buttons, links, active states |
-| `--success` | `#10b981` | Positive values, wins |
-| `--warning` | `#f59e0b` | Cautions, warnings |
-| `--danger` | `#ef4444` | Errors, delete, over limits |
-| `--protein-color` | `#8b5cf6` | Protein macros |
-| `--carbs-color` | `#f59e0b` | Carbs macros |
-| `--fat-color` | `#ec4899` | Fat macros |
-| `--fiber-color` | `#10b981` | Fiber macros |
-| `--sugar-color` | `#f97316` | Sugar macros |
+### 2. AI Food Scanning
+```
+Dashboard → Tap camera icon
+    ↓
+FoodScanner → Take/upload photo
+    ↓
+AI Analysis → Extracts name, calories, macros
+    ↓
+Review/Edit → Correct values if needed
+    ↓
+Save → Creates meal OR logs directly
+```
 
-**Responsive breakpoints:** Mobile-first design with 480px, 768px breakpoints.
+### 3. Weight & Body Tracking
+```
+Progress Tab → View weight chart
+    ↓
+Add Weigh-in → Enter today's weight
+    ↓
+Upload InBody → Photo of scan
+    ↓
+AI Extraction → All metrics parsed
+    ↓
+Body Intelligence → Analyzes quality
+```
+
+### 4. Apple Health Integration
+```
+Dashboard → Tap health import
+    ↓
+HealthScanner → Screenshot Apple Health
+    ↓
+AI Extraction → Steps, calories, exercise
+    ↓
+Save → Updates daily log
+    ↓
+TDEE Calculation → Uses real data
+```
+
+### 5. Coach-Client System
+
+**Coach Flow:**
+```
+Sign up as coach → Get unique code
+    ↓
+Share code → Clients enter to connect
+    ↓
+Dashboard → See pending requests
+    ↓
+Accept → Client connected
+    ↓
+View Client → See their data
+```
+
+**Client Flow:**
+```
+Settings → Connect to Coach
+    ↓
+Enter code → System validates
+    ↓
+Request sent → Awaiting acceptance
+    ↓
+Connected → Coach monitors progress
+```
+
+### 6. Community Meals
+```
+Discover Tab → Browse master meals
+    ↓
+Search → Find specific meals
+    ↓
+Save to Library → Personal list
+    ↓
+Submit Meal → Propose new meal
+    ↓
+Admin Review → Approve/Reject
+    ↓
+Approved → Available to all
+```
 
 ---
 
-## PWA Features
+## API Integrations
+
+### Supabase
+
+**Services:**
+- **Auth:** Email/password, password recovery, session management
+- **Database:** PostgreSQL with Row Level Security
+- **Functions:** Server-side RPC for coach code lookup
+
+**Environment Variables:**
+```env
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGc...
+```
+
+### Groq API
+
+**Endpoint:** `https://api.groq.com/openai/v1/chat/completions`
+**Authentication:** Bearer token (user's API key)
+**Free Tier:** Available with rate limits
+**Timeout:** 30 seconds
+
+### OpenAI API
+
+**Endpoint:** `https://api.openai.com/v1/chat/completions`
+**Model:** gpt-4o (vision-capable)
+**Authentication:** Bearer token
+**Cost:** Pay-per-use
+
+---
+
+## Calculations & Formulas
+
+### Calorie Calculations
+
+**Without Health Data:**
+```
+Target = Daily Calorie Target (from settings)
+Net = Food Eaten - Workout Calories
+Remaining = Target - Net
+```
+
+**With Health Data (TDEE):**
+```
+TDEE = Resting Energy + Active Energy
+Deficit = TDEE - Food Eaten
+Remaining = TDEE - Food Eaten
+```
+
+**BMR Priority:**
+1. InBody measured BMR (most accurate)
+2. Katch-McArdle from body composition
+3. Mifflin-St Jeor from basic metrics
+4. Settings target (fallback)
+
+**Weight Projection:**
+```
+7,700 calories = 1 kg weight change
+Weekly deficit × 52 / 7,700 = Annual kg loss
+```
+
+---
+
+## Deployment
+
+### Vercel Configuration
+
+**Build Command:** `npm run build`
+**Output Directory:** `dist`
+**Node Version:** 18.x
+
+**Environment Variables (Vercel Dashboard):**
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Type check & build
+npm run build
+
+# Lint
+npm run lint
+```
+
+### PWA Support
 
 - Installable on iOS/Android
 - Offline support via service worker
@@ -826,30 +1188,79 @@ ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
 
 ---
 
-## Recent Features Added
+## Admin & Coach Setup
 
-| Feature | Description |
-|---------|-------------|
-| Added Sugar Tracking | Distinguishes natural vs added sugars in food scanning and display |
-| AI Daily/Weekly/Monthly Insights | Personalized coaching based on user data |
-| Flexible Quantity Units | Log meals in servings, grams, ml, or oz |
-| Profile Setup Modal | First-time user onboarding |
-| Edit Meal Modal | Improved UX with modal instead of inline editing |
-| Logged Meals at Top | Recently logged meals sorted first |
-| Search in Submission Modal | Find meals when submitting to community |
-| Responsive Form Layouts | Fixed mobile layout issues |
+### Create Admin User
+
+In Supabase SQL Editor:
+```sql
+UPDATE user_profiles
+SET role = 'admin'
+WHERE email = 'your-admin@email.com';
+```
+
+### Create Coach User
+
+1. Sign up via `/coach-signup` route
+2. Complete profile setup
+3. Coach code auto-generated
+4. Role automatically set to 'coach'
+
+Or manually in SQL:
+```sql
+UPDATE user_profiles
+SET role = 'coach',
+    coach_code = 'ABC123'
+WHERE email = 'your-coach@email.com';
+```
 
 ---
 
-## Caching Strategy
+## Performance Optimizations
 
-| Data | Storage | TTL |
-|------|---------|-----|
-| Daily Insights | localStorage | 4 hours |
-| Weekly Insights | localStorage | 24 hours |
-| Monthly Insights | localStorage | 24 hours |
-| All user data | Supabase + localStorage | Real-time sync |
+| Optimization | Description |
+|--------------|-------------|
+| **Code Splitting** | ProgressTracker lazy-loaded (Recharts ~370KB) |
+| **Data Caching** | All data cached in localStorage, synced to Supabase |
+| **Memoization** | useMemo/useCallback for expensive calculations |
+| **Soft Deletes** | Meals recoverable for 30 days |
+| **API Key Encryption** | AES-256-GCM before storage |
+| **Optimistic Updates** | UI updates immediately, background sync |
 
 ---
 
-*Last Updated: January 2025*
+## Navigation Tabs
+
+| Tab | Icon | Description |
+|-----|------|-------------|
+| Dashboard | LayoutDashboard | Daily tracking, food scanner |
+| Log | Utensils | Meal library, editing, trash |
+| Discover | Globe | Community meals, submissions |
+| Progress | TrendingUp | Charts, weigh-ins |
+| InBody | ScanLine | Body composition scans |
+| Summary | Calendar | Weekly stats |
+| Settings | Settings | Profile, goals, configuration |
+
+---
+
+## CSS Variables
+
+**Location:** `src/App.css`
+
+| Variable | Hex | Usage |
+|----------|-----|-------|
+| `--primary` | `#6366f1` | Buttons, links, active states |
+| `--success` | `#10b981` | Positive values, on track |
+| `--warning` | `#f59e0b` | Cautions, warnings |
+| `--danger` | `#ef4444` | Errors, delete, over limits |
+| `--protein-color` | `#8b5cf6` | Protein macros |
+| `--carbs-color` | `#f59e0b` | Carbs macros |
+| `--fat-color` | `#ec4899` | Fat macros |
+| `--fiber-color` | `#10b981` | Fiber macros |
+| `--sugar-color` | `#f97316` | Sugar macros |
+
+**Breakpoints:** Mobile-first with 480px, 768px breakpoints
+
+---
+
+*Documentation generated January 2026*
