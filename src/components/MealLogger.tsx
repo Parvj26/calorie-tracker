@@ -353,14 +353,6 @@ export const MealLogger: React.FC<MealLoggerProps> = ({
             setMealToToggle({ meal, action });
           };
 
-          const confirmToggle = () => {
-            if (meal.isCommunity) {
-              onToggleMasterMeal(meal.id, selectedDate);
-            } else {
-              onToggleMeal(meal.id, selectedDate);
-            }
-          };
-
           const handleQuantityChange = (delta: number) => {
             // Different limits based on unit
             const maxVal = unit === 'serving' ? 10 : 1000;
