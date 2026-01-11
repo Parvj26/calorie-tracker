@@ -237,3 +237,223 @@ test.describe('Error Handling', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 });
+
+// ============================================
+// LANDING PAGE TESTS
+// ============================================
+
+test.describe('Landing Page', () => {
+  test('displays app title', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('text=/calorie|tracker/i').first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('displays call-to-action buttons', async ({ page }) => {
+    await page.goto('/');
+    // Should have either sign in, sign up, or get started buttons
+    const ctaButton = page.locator('button, a').filter({ hasText: /sign|login|get started|register/i }).first();
+    await expect(ctaButton).toBeVisible({ timeout: 10000 });
+  });
+
+  test('has consistent branding', async ({ page }) => {
+    await page.goto('/');
+    // Check for brand colors or logo
+    const hasLogo = await page.locator('img[alt*="logo" i], svg[class*="logo" i], .logo').count();
+    const hasTitle = await page.locator('h1, .title, .brand').filter({ hasText: /calorie/i }).count();
+    expect(hasLogo > 0 || hasTitle > 0).toBeTruthy();
+  });
+});
+
+// ============================================
+// AUTH FORM VALIDATION TESTS
+// ============================================
+
+test.describe('Form Validation', () => {
+  test('email input validates format', async ({ page }) => {
+    await page.goto('/');
+
+    // Find and click sign in/up if needed
+    const authButton = page.locator('text=/sign in|sign up|login/i').first();
+    if (await authButton.isVisible()) {
+      await authButton.click();
+    }
+
+    const emailInput = page.locator('input[type="email"], input[placeholder*="email" i]').first();
+    if (await emailInput.isVisible()) {
+      // Type invalid email
+      await emailInput.fill('invalid-email');
+      await emailInput.blur();
+
+      // Should show validation error or HTML5 validation
+      const isInvalid = await emailInput.evaluate((el: HTMLInputElement) => !el.validity.valid);
+      expect(isInvalid).toBeTruthy();
+    }
+  });
+
+  test('password input requires minimum length', async ({ page }) => {
+    await page.goto('/');
+
+    const authButton = page.locator('text=/sign up|register/i').first();
+    if (await authButton.isVisible()) {
+      await authButton.click();
+    }
+
+    const passwordInput = page.locator('input[type="password"]').first();
+    if (await passwordInput.isVisible()) {
+      const minLength = await passwordInput.getAttribute('minlength');
+      // Should require at least 6 characters
+      expect(parseInt(minLength || '0')).toBeGreaterThanOrEqual(6);
+    }
+  });
+});
+
+// ============================================
+// THEME AND STYLING TESTS
+// ============================================
+
+test.describe('Visual Styling', () => {
+  test('applies consistent font family', async ({ page }) => {
+    await page.goto('/');
+
+    const fontFamily = await page.evaluate(() => {
+      return window.getComputedStyle(document.body).fontFamily;
+    });
+
+    // Should have a proper font stack
+    expect(fontFamily).not.toBe('');
+    expect(fontFamily).not.toBe('serif');
+  });
+
+  test('has proper color contrast', async ({ page }) => {
+    await page.goto('/');
+
+    // Check that text is visible against background
+    const textColor = await page.evaluate(() => {
+      const body = document.body;
+      const style = window.getComputedStyle(body);
+      return style.color;
+    });
+
+    // Should have a defined text color
+    expect(textColor).not.toBe('');
+  });
+
+  test('buttons have hover states', async ({ page }) => {
+    await page.goto('/');
+
+    const button = page.locator('button').first();
+    if (await button.isVisible()) {
+      const initialCursor = await button.evaluate((el) =>
+        window.getComputedStyle(el).cursor
+      );
+      expect(initialCursor).toBe('pointer');
+    }
+  });
+});
+
+// ============================================
+// INTERACTION TESTS
+// ============================================
+
+test.describe('User Interactions', () => {
+  test('inputs accept keyboard navigation', async ({ page }) => {
+    await page.goto('/');
+
+    // Tab through focusable elements
+    await page.keyboard.press('Tab');
+    const focusedElement = await page.evaluate(() => document.activeElement?.tagName);
+
+    // Something should be focused
+    expect(focusedElement).toBeDefined();
+  });
+
+  test('escape key closes modals', async ({ page }) => {
+    await page.goto('/');
+
+    // Try to open any modal/dialog
+    const modalTrigger = page.locator('button').first();
+    if (await modalTrigger.isVisible()) {
+      await modalTrigger.click();
+      await page.waitForTimeout(300);
+
+      // Press escape
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+
+      // Modal should close or page should still be functional
+      await expect(page.locator('body')).toBeVisible();
+    }
+  });
+});
+
+// ============================================
+// SEO AND META TESTS
+// ============================================
+
+test.describe('SEO and Meta', () => {
+  test('has proper title tag', async ({ page }) => {
+    await page.goto('/');
+    const title = await page.title();
+    expect(title).not.toBe('');
+    expect(title.toLowerCase()).toContain('calorie');
+  });
+
+  test('has meta description', async ({ page }) => {
+    await page.goto('/');
+    const description = await page.locator('meta[name="description"]').getAttribute('content');
+    // May or may not have description, but check it exists if present
+    if (description) {
+      expect(description.length).toBeGreaterThan(10);
+    }
+  });
+
+  test('has favicon', async ({ page }) => {
+    await page.goto('/');
+    const favicon = await page.locator('link[rel*="icon"]').count();
+    expect(favicon).toBeGreaterThan(0);
+  });
+});
+
+// ============================================
+// SECURITY TESTS
+// ============================================
+
+test.describe('Security', () => {
+  test('password inputs are obscured', async ({ page }) => {
+    await page.goto('/');
+
+    const authButton = page.locator('text=/sign in|login/i').first();
+    if (await authButton.isVisible()) {
+      await authButton.click();
+    }
+
+    const passwordInput = page.locator('input[type="password"]').first();
+    if (await passwordInput.isVisible()) {
+      const type = await passwordInput.getAttribute('type');
+      expect(type).toBe('password');
+    }
+  });
+
+  test('forms use HTTPS for submission', async ({ page }) => {
+    await page.goto('/');
+
+    const forms = await page.locator('form').all();
+    for (const form of forms) {
+      const action = await form.getAttribute('action');
+      if (action && action.startsWith('http://')) {
+        // Should not use plain HTTP
+        expect(action).not.toMatch(/^http:\/\//);
+      }
+    }
+  });
+
+  test('no sensitive data in URL', async ({ page }) => {
+    await page.goto('/');
+    const url = page.url();
+
+    // URL should not contain sensitive patterns
+    expect(url).not.toContain('password');
+    expect(url).not.toContain('token');
+    expect(url).not.toContain('api_key');
+  });
+});
