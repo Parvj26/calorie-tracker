@@ -192,7 +192,10 @@ CRITICAL INSTRUCTIONS:
 4. Date format must be YYYY-MM-DD
 5. Visceral fat grade is typically 1-20, with <10 being healthy
 6. IMPORTANT: muscleMass should be TOTAL muscle (larger ~40-60kg), skeletalMuscle should be SMM (smaller ~25-40kg)
-7. Return ONLY the JSON object, no explanations or markdown formatting`,
+7. IGNORE any "History" section, trend graphs, or historical data - extract ONLY the CURRENT scan's values
+8. Extract data from the main "Body composition analysis" section, NOT from any charts/graphs showing past measurements
+9. Return ONLY ONE scan (the current one) - never multiple records
+10. Return ONLY the JSON object, no explanations or markdown formatting`,
             },
             {
               type: 'image_url',
