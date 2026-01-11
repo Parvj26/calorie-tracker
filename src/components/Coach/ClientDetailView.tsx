@@ -236,12 +236,6 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     y={settings.goalWeight}
                     stroke="#10b981"
                     strokeDasharray="5 5"
-                    label={{
-                      value: `Goal: ${settings.goalWeight} kg`,
-                      position: 'right',
-                      fill: '#10b981',
-                      fontSize: 11,
-                    }}
                   />
                 )}
                 <Line
@@ -305,9 +299,9 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     {new Date(log.date).toLocaleDateString()}
                   </span>
                   <span className="activity-meals">{mealCount} meals logged</span>
-                  {log.healthMetrics && (
+                  {log.healthMetrics && typeof log.healthMetrics.steps === 'number' && (
                     <span className="activity-metrics">
-                      {log.healthMetrics.steps?.toLocaleString()} steps
+                      {log.healthMetrics.steps.toLocaleString()} steps
                     </span>
                   )}
                 </div>
