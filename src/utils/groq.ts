@@ -353,8 +353,8 @@ export async function groqExtractInBodyData(
   "scanDate": "YYYY-MM-DD format from the scan",
   "weight": number in kg,
   "bodyFatPercent": number (percentage, not decimal),
-  "muscleMass": number in kg,
-  "skeletalMuscle": number in kg,
+  "muscleMass": number in kg (TOTAL Muscle Mass - the larger value, typically 40-60kg),
+  "skeletalMuscle": number in kg (Skeletal Muscle Mass/SMM - the smaller value, typically 25-40kg),
   "bmr": number (Basal Metabolic Rate in kcal - look for "Basal metabolic rate" or "BMR"),
   "fatMass": number in kg (look in body composition analysis),
   "visceralFatGrade": number 1-20 (look for "Visceral fat grade" or "Visceral fat level"),
@@ -371,7 +371,8 @@ CRITICAL INSTRUCTIONS:
 3. Be extremely precise with numbers - double-check all values
 4. Date format must be YYYY-MM-DD
 5. Visceral fat grade is typically 1-20, with <10 being healthy
-6. Return ONLY the JSON object, no explanations or markdown formatting`;
+6. IMPORTANT: muscleMass should be TOTAL muscle (larger ~40-60kg), skeletalMuscle should be SMM (smaller ~25-40kg)
+7. Return ONLY the JSON object, no explanations or markdown formatting`;
 
   return callWithFallback(primaryKey, backupKey, async (apiKey) => {
     const content = await callGroqVision(imageBase64, prompt, apiKey);
