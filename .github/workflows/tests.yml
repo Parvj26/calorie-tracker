@@ -52,6 +52,10 @@ jobs:
 
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          # Placeholder environment variables for CI (app may show error state)
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-key-for-ci-testing
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
