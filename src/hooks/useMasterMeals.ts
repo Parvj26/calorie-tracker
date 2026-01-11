@@ -3,11 +3,12 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { MasterMeal } from '../types';
 
-export function useMasterMeals() {
+export function useMasterMeals(shouldLoad: boolean = false) {
   const { user } = useAuth();
   const [masterMeals, setMasterMeals] = useState<MasterMeal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Load all approved master meals
   const loadMasterMeals = useCallback(async () => {
@@ -45,6 +46,7 @@ export function useMasterMeals() {
       }));
 
       setMasterMeals(meals);
+      setHasLoaded(true);
     } catch (err) {
       console.error('Error loading master meals:', err);
     } finally {
@@ -163,12 +165,12 @@ export function useMasterMeals() {
     );
   }, [masterMeals]);
 
-  // Load master meals on mount
+  // Load master meals conditionally (only when shouldLoad is true)
   useEffect(() => {
-    if (user) {
+    if (user && shouldLoad && !hasLoaded) {
       loadMasterMeals();
     }
-  }, [user, loadMasterMeals]);
+  }, [user, shouldLoad, hasLoaded, loadMasterMeals]);
 
   // Filter meals locally based on search query
   const filteredMeals = searchQuery.trim()
