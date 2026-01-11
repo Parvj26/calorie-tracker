@@ -854,7 +854,9 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
         goal: settings.goalWeight,
       }));
 
-    const bodyCompData = inBodyScans.map((scan) => ({
+    // Sort scans by date ascending (oldest first) for proper chart display
+    const sortedScans = [...inBodyScans].sort((a, b) => a.date.localeCompare(b.date));
+    const bodyCompData = sortedScans.map((scan) => ({
       date: scan.date,
       displayDate: format(parseISO(scan.date), 'MMM d'),
       weight: scan.weight,
