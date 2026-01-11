@@ -59,12 +59,18 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
   };
 
   const getClientName = (
-    client: { firstName?: string; lastName?: string; displayName?: string; email?: string }
+    client: { firstName?: string; lastName?: string; displayName?: string; email?: string } | undefined
   ) => {
-    if (client.firstName && client.lastName) {
-      return `${client.firstName} ${client.lastName}`;
+    if (!client) return 'Client';
+    const firstName = typeof client.firstName === 'string' ? client.firstName : '';
+    const lastName = typeof client.lastName === 'string' ? client.lastName : '';
+    const displayName = typeof client.displayName === 'string' ? client.displayName : '';
+    const email = typeof client.email === 'string' ? client.email : '';
+
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
     }
-    return client.displayName || client.email || 'Client';
+    return displayName || email || 'Client';
   };
 
   if (loading) {
@@ -130,30 +136,38 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
         <div className="coach-alerts-section">
           <h3><Bell size={18} /> Alerts</h3>
           <div className="alerts-list">
-            {alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={`alert-item ${alert.severity} ${alert.type}`}
-              >
-                <div className="alert-icon">
-                  {alert.type === 'inactive' && <Clock size={18} />}
-                  {alert.type === 'new_request' && <UserCheck size={18} />}
-                  {alert.type === 'plateau' && <TrendingDown size={18} />}
-                  {alert.type === 'missed_targets' && <AlertTriangle size={18} />}
+            {alerts.map((alert) => {
+              const alertMessage = typeof alert.message === 'string' ? alert.message : 'Alert';
+              const alertType = typeof alert.type === 'string' ? alert.type : '';
+              const alertSeverity = typeof alert.severity === 'string' ? alert.severity : '';
+              const alertId = typeof alert.id === 'string' ? alert.id : String(Math.random());
+              const alertClientId = typeof alert.clientId === 'string' ? alert.clientId : null;
+
+              return (
+                <div
+                  key={alertId}
+                  className={`alert-item ${alertSeverity} ${alertType}`}
+                >
+                  <div className="alert-icon">
+                    {alertType === 'inactive' && <Clock size={18} />}
+                    {alertType === 'new_request' && <UserCheck size={18} />}
+                    {alertType === 'plateau' && <TrendingDown size={18} />}
+                    {alertType === 'missed_targets' && <AlertTriangle size={18} />}
+                  </div>
+                  <div className="alert-content">
+                    <span className="alert-message">{alertMessage}</span>
+                  </div>
+                  {alertType !== 'new_request' && alertClientId && (
+                    <button
+                      className="alert-action"
+                      onClick={() => onViewClient?.(alertClientId)}
+                    >
+                      View
+                    </button>
+                  )}
                 </div>
-                <div className="alert-content">
-                  <span className="alert-message">{alert.message}</span>
-                </div>
-                {alert.type !== 'new_request' && alert.clientId && (
-                  <button
-                    className="alert-action"
-                    onClick={() => onViewClient?.(alert.clientId!)}
-                  >
-                    View
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -163,25 +177,24 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
         <div className="pending-requests-section">
           <h3><Clock size={18} /> Pending Requests ({pendingRequests.length})</h3>
           <div className="requests-list">
-            {pendingRequests.map((request) => (
-              <div key={request.id} className="request-card">
-                <div className="request-info">
-                  <div className="client-avatar">
-                    {request.clientProfile?.firstName?.[0] ||
-                      request.clientProfile?.email?.[0] ||
-                      '?'}
+            {pendingRequests.map((request) => {
+              const reqFirstName = typeof request.clientProfile?.firstName === 'string' ? request.clientProfile.firstName : '';
+              const reqEmail = typeof request.clientProfile?.email === 'string' ? request.clientProfile.email : '';
+              const avatarInitial = reqFirstName?.[0] || reqEmail?.[0] || '?';
+
+              return (
+                <div key={request.id} className="request-card">
+                  <div className="request-info">
+                    <div className="client-avatar">
+                      {avatarInitial}
+                    </div>
+                    <div className="client-details">
+                      <strong>{getClientName(request.clientProfile)}</strong>
+                      {reqEmail && (
+                        <span className="client-email">{reqEmail}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="client-details">
-                    <strong>
-                      {request.clientProfile
-                        ? getClientName(request.clientProfile)
-                        : 'Client'}
-                    </strong>
-                    {request.clientProfile?.email && (
-                      <span className="client-email">{request.clientProfile.email}</span>
-                    )}
-                  </div>
-                </div>
                 <div className="request-actions">
                   <button
                     className="accept-btn"
@@ -205,7 +218,8 @@ export const CoachDashboard: React.FC<CoachDashboardProps> = ({ onViewClient }) 
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -255,26 +269,40 @@ interface ClientCardProps {
 }
 
 const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
-  const name = client.profile.firstName && client.profile.lastName
-    ? `${client.profile.firstName} ${client.profile.lastName}`
-    : client.profile.displayName || client.profile.email || 'Client';
+  // Safely extract profile fields (ensure they're strings, not objects)
+  const firstName = typeof client.profile?.firstName === 'string' ? client.profile.firstName : '';
+  const lastName = typeof client.profile?.lastName === 'string' ? client.profile.lastName : '';
+  const displayName = typeof client.profile?.displayName === 'string' ? client.profile.displayName : '';
+  const email = typeof client.profile?.email === 'string' ? client.profile.email : '';
 
-  const initials = client.profile.firstName && client.profile.lastName
-    ? `${client.profile.firstName[0]}${client.profile.lastName[0]}`
-    : name[0];
+  const name = firstName && lastName
+    ? `${firstName} ${lastName}`
+    : displayName || email || 'Client';
+
+  const initials = firstName && lastName
+    ? `${firstName[0]}${lastName[0]}`
+    : name[0] || '?';
+
+  // Safely extract numeric values
+  const calorieTarget = typeof client.calorieTarget === 'number' ? client.calorieTarget : 0;
+  const caloriesToday = typeof client.caloriesToday === 'number' ? client.caloriesToday : 0;
+  const latestWeight = typeof client.latestWeight === 'number' ? client.latestWeight : null;
+  const weightChange7Days = typeof client.weightChange7Days === 'number' ? client.weightChange7Days : null;
+  const daysInactive = typeof client.daysInactive === 'number' ? client.daysInactive : 0;
+  const lastActivityDate = typeof client.lastActivityDate === 'string' ? client.lastActivityDate : '';
 
   // Calculate calorie progress percentage
-  const calorieProgress = client.calorieTarget && client.caloriesToday !== undefined
-    ? Math.min(100, Math.round((client.caloriesToday / client.calorieTarget) * 100))
+  const calorieProgress = calorieTarget > 0
+    ? Math.min(100, Math.round((caloriesToday / calorieTarget) * 100))
     : 0;
 
   // Determine status
   const getStatus = () => {
     if (client.isInactive) return 'inactive';
-    if (client.calorieTarget && client.caloriesToday !== undefined) {
-      const diff = client.caloriesToday - client.calorieTarget;
-      if (Math.abs(diff) <= client.calorieTarget * 0.1) return 'on-track'; // Within 10%
-      if (client.caloriesToday < client.calorieTarget * 0.5) return 'needs-attention'; // Under 50%
+    if (calorieTarget > 0) {
+      const diff = caloriesToday - calorieTarget;
+      if (Math.abs(diff) <= calorieTarget * 0.1) return 'on-track'; // Within 10%
+      if (caloriesToday < calorieTarget * 0.5) return 'needs-attention'; // Under 50%
     }
     return 'on-track';
   };
@@ -292,7 +320,7 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
         <div className="client-name-section">
           <strong>{name}</strong>
           <span className={`status-badge ${status}`}>
-            {status === 'inactive' && <><Clock size={12} /> {client.daysInactive}d inactive</>}
+            {status === 'inactive' && <><Clock size={12} /> {daysInactive}d inactive</>}
             {status === 'on-track' && 'On Track'}
             {status === 'needs-attention' && <><AlertTriangle size={12} /> Needs Attention</>}
           </span>
@@ -300,12 +328,12 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
       </div>
 
       {/* Calorie Progress Bar */}
-      {client.calorieTarget && (
+      {calorieTarget > 0 && (
         <div className="calorie-progress-section">
           <div className="calorie-progress-header">
             <span className="calorie-label">Today's Calories</span>
             <span className="calorie-numbers">
-              <strong>{client.caloriesToday || 0}</strong> / {client.calorieTarget}
+              <strong>{caloriesToday}</strong> / {calorieTarget}
             </span>
           </div>
           <div className="calorie-progress-bar">
@@ -318,32 +346,30 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onClick }) => {
       )}
 
       <div className="client-stats">
-        {client.latestWeight && (
+        {latestWeight !== null && (
           <div className="stat">
             <span className="stat-label">Weight</span>
             <span className="stat-value">
-              {client.latestWeight} kg
-              {client.weightChange7Days !== undefined && (
-                <span
-                  className={`trend ${client.weightChange7Days < 0 ? 'down' : 'up'}`}
-                >
-                  {client.weightChange7Days < 0 ? (
+              {latestWeight} kg
+              {weightChange7Days !== null && (
+                <span className={`trend ${weightChange7Days < 0 ? 'down' : 'up'}`}>
+                  {weightChange7Days < 0 ? (
                     <TrendingDown size={14} />
                   ) : (
                     <TrendingUp size={14} />
                   )}
-                  {Math.abs(client.weightChange7Days)} kg
+                  {Math.abs(weightChange7Days)} kg
                 </span>
               )}
             </span>
           </div>
         )}
 
-        {client.lastActivityDate && (
+        {lastActivityDate && (
           <div className="stat">
             <span className="stat-label">Last Active</span>
             <span className="stat-value">
-              {new Date(client.lastActivityDate).toLocaleDateString()}
+              {new Date(lastActivityDate).toLocaleDateString()}
             </span>
           </div>
         )}

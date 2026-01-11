@@ -320,72 +320,122 @@ export function useCoachClients(): UseCoachClientsReturn {
     if (!user) return null;
 
     try {
-      // Load profile
-      const { data: profile } = await supabase
+      // Load profile - this is required
+      const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', clientId)
         .single();
 
-      if (!profile) return null;
+      if (profileError || !profile) {
+        console.error('Error loading client profile:', profileError);
+        return null;
+      }
 
-      // Load daily logs (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: dailyLogs } = await supabase
-        .from('daily_logs')
-        .select('*')
-        .eq('user_id', clientId)
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false });
+      // Load daily logs (last 30 days) - optional, don't fail if blocked
+      let dailyLogsData: DailyLog[] = [];
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const { data: dailyLogs, error: logsError } = await supabase
+          .from('daily_logs')
+          .select('*')
+          .eq('user_id', clientId)
+          .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+          .order('date', { ascending: false });
 
-      // Load weigh-ins (last 60 days)
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      const { data: weighIns } = await supabase
-        .from('weigh_ins')
-        .select('*')
-        .eq('user_id', clientId)
-        .gte('date', sixtyDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false });
+        if (!logsError && Array.isArray(dailyLogs)) {
+          dailyLogsData = dailyLogs.map(log => {
+            // Safely extract healthMetrics if it exists and has the right shape
+            let healthMetrics: DailyLog['healthMetrics'] = undefined;
+            if (log.health_metrics && typeof log.health_metrics === 'object') {
+              const hm = log.health_metrics;
+              if (typeof hm.restingEnergy === 'number' && typeof hm.activeEnergy === 'number' &&
+                  typeof hm.steps === 'number' && typeof hm.exerciseMinutes === 'number') {
+                healthMetrics = {
+                  restingEnergy: hm.restingEnergy,
+                  activeEnergy: hm.activeEnergy,
+                  steps: hm.steps,
+                  exerciseMinutes: hm.exerciseMinutes,
+                  standHours: typeof hm.standHours === 'number' ? hm.standHours : undefined,
+                };
+              }
+            }
 
-      // Load settings
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('daily_calorie_target, goal_weight')
-        .eq('user_id', clientId)
-        .single();
+            return {
+              date: typeof log.date === 'string' ? log.date : '',
+              meals: Array.isArray(log.meal_ids) ? log.meal_ids : [],
+              masterMealIds: Array.isArray(log.master_meal_ids) ? log.master_meal_ids : [],
+              workoutCalories: typeof log.workout_calories === 'number' ? log.workout_calories : 0,
+              healthMetrics,
+              notes: typeof log.notes === 'string' ? log.notes : undefined,
+            };
+          });
+        }
+      } catch {
+        console.warn('Could not load daily logs for client');
+      }
+
+      // Load weigh-ins (last 60 days) - optional, don't fail if blocked
+      let weighInsData: Array<{ date: string; weight: number }> = [];
+      try {
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const { data: weighIns, error: weighInsError } = await supabase
+          .from('weigh_ins')
+          .select('*')
+          .eq('user_id', clientId)
+          .gte('date', sixtyDaysAgo.toISOString().split('T')[0])
+          .order('date', { ascending: false });
+
+        if (!weighInsError && Array.isArray(weighIns)) {
+          weighInsData = weighIns
+            .filter(w => w && typeof w.date === 'string' && typeof w.weight === 'number')
+            .map(w => ({
+              date: w.date,
+              weight: w.weight,
+            }));
+        }
+      } catch {
+        console.warn('Could not load weigh-ins for client');
+      }
+
+      // Load settings - optional, don't fail if blocked
+      let settingsData: { dailyCalorieTarget?: number; goalWeight?: number } = {};
+      try {
+        const { data: settings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('daily_calorie_target, goal_weight')
+          .eq('user_id', clientId)
+          .single();
+
+        if (!settingsError && settings) {
+          settingsData = {
+            dailyCalorieTarget: typeof settings.daily_calorie_target === 'number' ? settings.daily_calorie_target : undefined,
+            goalWeight: typeof settings.goal_weight === 'number' ? settings.goal_weight : undefined,
+          };
+        }
+      } catch {
+        console.warn('Could not load settings for client');
+      }
 
       return {
         profile: {
-          id: profile.id,
-          userId: profile.user_id,
-          email: profile.email,
-          displayName: profile.display_name,
-          firstName: profile.first_name,
-          lastName: profile.last_name,
-          dateOfBirth: profile.date_of_birth,
-          gender: profile.gender,
-          heightCm: profile.height_cm,
-          activityLevel: profile.activity_level,
-          role: profile.role,
+          id: typeof profile.id === 'string' ? profile.id : '',
+          userId: typeof profile.user_id === 'string' ? profile.user_id : '',
+          email: typeof profile.email === 'string' ? profile.email : '',
+          displayName: typeof profile.display_name === 'string' ? profile.display_name : undefined,
+          firstName: typeof profile.first_name === 'string' ? profile.first_name : undefined,
+          lastName: typeof profile.last_name === 'string' ? profile.last_name : undefined,
+          dateOfBirth: typeof profile.date_of_birth === 'string' ? profile.date_of_birth : undefined,
+          gender: typeof profile.gender === 'string' ? profile.gender : undefined,
+          heightCm: typeof profile.height_cm === 'number' ? profile.height_cm : undefined,
+          activityLevel: typeof profile.activity_level === 'string' ? profile.activity_level : undefined,
+          role: typeof profile.role === 'string' ? profile.role : 'user',
         },
-        dailyLogs: (dailyLogs || []).map(log => ({
-          date: log.date,
-          meals: log.meal_ids || [],
-          masterMealIds: log.master_meal_ids || [],
-          workoutCalories: log.workout_calories || 0,
-          healthMetrics: log.health_metrics,
-          notes: log.notes,
-        })),
-        weighIns: (weighIns || []).map(w => ({
-          date: w.date,
-          weight: w.weight,
-        })),
-        settings: {
-          dailyCalorieTarget: settings?.daily_calorie_target,
-          goalWeight: settings?.goal_weight,
-        },
+        dailyLogs: dailyLogsData,
+        weighIns: weighInsData,
+        settings: settingsData,
       };
     } catch (err) {
       console.error('Error loading client data:', err);

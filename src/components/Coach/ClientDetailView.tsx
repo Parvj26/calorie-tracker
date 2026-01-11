@@ -68,7 +68,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     );
   }
 
-  if (!clientData) {
+  if (!clientData || !clientData.profile) {
     return (
       <div className="client-detail-view error">
         <p>Unable to load client data</p>
@@ -78,9 +78,16 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   }
 
   const { profile, dailyLogs = [], weighIns = [], settings = {} } = clientData;
-  const clientName = profile.firstName && profile.lastName
-    ? `${profile.firstName} ${profile.lastName}`
-    : profile.displayName || profile.email || 'Client';
+
+  // Safely extract profile fields (ensure they're strings, not objects)
+  const firstName = typeof profile.firstName === 'string' ? profile.firstName : '';
+  const lastName = typeof profile.lastName === 'string' ? profile.lastName : '';
+  const displayName = typeof profile.displayName === 'string' ? profile.displayName : '';
+  const email = typeof profile.email === 'string' ? profile.email : '';
+
+  const clientName = firstName && lastName
+    ? `${firstName} ${lastName}`
+    : displayName || email || 'Client';
 
   const safeWeighIns = Array.isArray(weighIns) ? weighIns : [];
   const safeDailyLogs = Array.isArray(dailyLogs) ? dailyLogs : [];
@@ -167,11 +174,11 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       {/* Client Profile Card */}
       <div className="client-profile-card">
         <div className="client-avatar-large">
-          {profile.firstName?.[0] || clientName[0]}
+          {firstName?.[0] || clientName[0] || '?'}
         </div>
         <div className="client-info">
           <h2>{clientName}</h2>
-          {profile.email && <p className="email">{profile.email}</p>}
+          {email && <p className="email">{email}</p>}
         </div>
       </div>
 
@@ -268,27 +275,27 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           <p className="no-data">No weigh-ins recorded</p>
         ) : (
           <div className="weighin-list">
-            {safeWeighIns.slice(0, 10).map((weighIn, idx) => (
-              <div key={weighIn.date} className="weighin-item">
-                <span className="weighin-date">
-                  {new Date(weighIn.date).toLocaleDateString()}
-                </span>
-                <span className="weighin-weight">{weighIn.weight} kg</span>
-                {idx < safeWeighIns.length - 1 && (
-                  <span
-                    className={`weighin-change ${
-                      weighIn.weight < safeWeighIns[idx + 1].weight ? 'positive' : 'negative'
-                    }`}
-                  >
-                    {weighIn.weight < safeWeighIns[idx + 1].weight ? '-' : '+'}
-                    {Math.abs(
-                      Math.round((weighIn.weight - safeWeighIns[idx + 1].weight) * 10) / 10
-                    )}{' '}
-                    kg
+            {safeWeighIns.slice(0, 10).map((weighIn, idx) => {
+              const weighInDate = typeof weighIn.date === 'string' ? weighIn.date : '';
+              const weight = typeof weighIn.weight === 'number' ? weighIn.weight : 0;
+              const nextWeight = idx < safeWeighIns.length - 1 && typeof safeWeighIns[idx + 1]?.weight === 'number'
+                ? safeWeighIns[idx + 1].weight : null;
+              const weightDiff = nextWeight !== null ? Math.round((weight - nextWeight) * 10) / 10 : null;
+
+              return (
+                <div key={weighInDate || idx} className="weighin-item">
+                  <span className="weighin-date">
+                    {weighInDate ? new Date(weighInDate).toLocaleDateString() : 'Unknown'}
                   </span>
-                )}
-              </div>
-            ))}
+                  <span className="weighin-weight">{weight} kg</span>
+                  {weightDiff !== null && (
+                    <span className={`weighin-change ${weightDiff < 0 ? 'positive' : 'negative'}`}>
+                      {weightDiff < 0 ? '-' : '+'}{Math.abs(weightDiff)} kg
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -301,16 +308,22 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         ) : (
           <div className="activity-list">
             {safeDailyLogs.slice(0, 14).map((log) => {
-              const mealCount = (log.meals?.length || 0) + (log.masterMealIds?.length || 0);
+              const mealCount = (Array.isArray(log.meals) ? log.meals.length : 0) +
+                               (Array.isArray(log.masterMealIds) ? log.masterMealIds.length : 0);
+              const logDate = typeof log.date === 'string' ? log.date : '';
+              const steps = log.healthMetrics &&
+                           typeof log.healthMetrics === 'object' &&
+                           typeof log.healthMetrics.steps === 'number'
+                           ? log.healthMetrics.steps : null;
               return (
-                <div key={log.date} className="activity-item">
+                <div key={logDate || Math.random()} className="activity-item">
                   <span className="activity-date">
-                    {new Date(log.date).toLocaleDateString()}
+                    {logDate ? new Date(logDate).toLocaleDateString() : 'Unknown date'}
                   </span>
                   <span className="activity-meals">{mealCount} meals logged</span>
-                  {log.healthMetrics && typeof log.healthMetrics.steps === 'number' && (
+                  {steps !== null && (
                     <span className="activity-metrics">
-                      {log.healthMetrics.steps.toLocaleString()} steps
+                      {steps.toLocaleString()} steps
                     </span>
                   )}
                 </div>
