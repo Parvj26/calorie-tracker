@@ -78,19 +78,24 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     );
   }
 
-  const { profile, dailyLogs, weighIns, settings } = clientData;
+  const { profile, dailyLogs = [], weighIns = [], settings = {} } = clientData;
   const clientName = profile.firstName && profile.lastName
     ? `${profile.firstName} ${profile.lastName}`
     : profile.displayName || profile.email || 'Client';
 
-  const latestWeight = weighIns[0]?.weight;
-  const previousWeight = weighIns[1]?.weight;
+  const safeWeighIns = Array.isArray(weighIns) ? weighIns : [];
+  const safeDailyLogs = Array.isArray(dailyLogs) ? dailyLogs : [];
+  const safeCalorieTarget = typeof settings?.dailyCalorieTarget === 'number' ? settings.dailyCalorieTarget : undefined;
+  const safeGoalWeight = typeof settings?.goalWeight === 'number' ? settings.goalWeight : undefined;
+
+  const latestWeight = safeWeighIns[0]?.weight;
+  const previousWeight = safeWeighIns[1]?.weight;
   const weightChange = latestWeight && previousWeight
     ? Math.round((latestWeight - previousWeight) * 10) / 10
     : null;
 
   // Calculate weekly averages
-  const last7DaysLogs = dailyLogs.filter(log => {
+  const last7DaysLogs = safeDailyLogs.filter(log => {
     const logDate = new Date(log.date);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -101,19 +106,19 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 
   // Prepare weight chart data
   const weightChartData = useMemo(() => {
-    return weighIns
+    return safeWeighIns
       .slice(0, 30) // Last 30 entries
       .reverse()
       .map(w => ({
         date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         weight: w.weight,
       }));
-  }, [weighIns]);
+  }, [safeWeighIns]);
 
   // Calculate weight range for Y-axis
   const weightRange = useMemo(() => {
-    if (weighIns.length === 0) return { min: 0, max: 100 };
-    const weights = weighIns.map(w => w.weight);
+    if (safeWeighIns.length === 0) return { min: 0, max: 100 };
+    const weights = safeWeighIns.map(w => w.weight);
     const min = Math.min(...weights);
     const max = Math.max(...weights);
     const padding = (max - min) * 0.1 || 5;
@@ -121,7 +126,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       min: Math.floor(min - padding),
       max: Math.ceil(max + padding),
     };
-  }, [weighIns]);
+  }, [safeWeighIns]);
 
   return (
     <div className="client-detail-view">
@@ -179,7 +184,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           <div className="stat-content">
             <span className="stat-label">Calorie Target</span>
             <span className="stat-value">
-              {settings.dailyCalorieTarget ? `${settings.dailyCalorieTarget} cal` : 'Not set'}
+              {safeCalorieTarget ? `${safeCalorieTarget} cal` : 'Not set'}
             </span>
           </div>
         </div>
@@ -197,7 +202,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           <div className="stat-content">
             <span className="stat-label">Goal Weight</span>
             <span className="stat-value">
-              {settings.goalWeight ? `${settings.goalWeight} kg` : 'Not set'}
+              {safeGoalWeight ? `${safeGoalWeight} kg` : 'Not set'}
             </span>
           </div>
         </div>
@@ -231,9 +236,9 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                   }}
                   formatter={(value) => [`${value} kg`, 'Weight']}
                 />
-                {settings.goalWeight && (
+                {safeGoalWeight && (
                   <ReferenceLine
-                    y={settings.goalWeight}
+                    y={safeGoalWeight}
                     stroke="#10b981"
                     strokeDasharray="5 5"
                   />
@@ -255,25 +260,25 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       {/* Weight History */}
       <div className="detail-section">
         <h3>Recent Weigh-ins</h3>
-        {weighIns.length === 0 ? (
+        {safeWeighIns.length === 0 ? (
           <p className="no-data">No weigh-ins recorded</p>
         ) : (
           <div className="weighin-list">
-            {weighIns.slice(0, 10).map((weighIn, idx) => (
+            {safeWeighIns.slice(0, 10).map((weighIn, idx) => (
               <div key={weighIn.date} className="weighin-item">
                 <span className="weighin-date">
                   {new Date(weighIn.date).toLocaleDateString()}
                 </span>
                 <span className="weighin-weight">{weighIn.weight} kg</span>
-                {idx < weighIns.length - 1 && (
+                {idx < safeWeighIns.length - 1 && (
                   <span
                     className={`weighin-change ${
-                      weighIn.weight < weighIns[idx + 1].weight ? 'positive' : 'negative'
+                      weighIn.weight < safeWeighIns[idx + 1].weight ? 'positive' : 'negative'
                     }`}
                   >
-                    {weighIn.weight < weighIns[idx + 1].weight ? '-' : '+'}
+                    {weighIn.weight < safeWeighIns[idx + 1].weight ? '-' : '+'}
                     {Math.abs(
-                      Math.round((weighIn.weight - weighIns[idx + 1].weight) * 10) / 10
+                      Math.round((weighIn.weight - safeWeighIns[idx + 1].weight) * 10) / 10
                     )}{' '}
                     kg
                   </span>
@@ -287,11 +292,11 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       {/* Activity Log */}
       <div className="detail-section">
         <h3>Recent Activity</h3>
-        {dailyLogs.length === 0 ? (
+        {safeDailyLogs.length === 0 ? (
           <p className="no-data">No activity logged</p>
         ) : (
           <div className="activity-list">
-            {dailyLogs.slice(0, 14).map((log) => {
+            {safeDailyLogs.slice(0, 14).map((log) => {
               const mealCount = (log.meals?.length || 0) + (log.masterMealIds?.length || 0);
               return (
                 <div key={log.date} className="activity-item">
