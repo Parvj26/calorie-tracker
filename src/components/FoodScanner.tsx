@@ -244,6 +244,20 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     servings: 1,
   });
 
+  // Helper to get serving size from food portion data
+  const getServingSizeFromFood = (food: DetectedFood) => {
+    const portionNum = parseFloat(food.portionSize) || 100;
+    return Math.round(portionNum * food.portionMultiplier);
+  };
+
+  // Helper to get serving size unit (default to 'g')
+  const getServingSizeUnit = (food: DetectedFood): 'g' | 'ml' | 'oz' => {
+    const unit = food.portionUnit?.toLowerCase();
+    if (unit === 'ml') return 'ml';
+    if (unit === 'oz') return 'oz';
+    return 'g';
+  };
+
   const handleLogFood = (food: DetectedFood) => {
     const adjusted = getAdjustedValues(food);
     onLogMeal({
@@ -256,6 +270,8 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       sugar: adjusted.sugar,
       addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
+      servingSize: getServingSizeFromFood(food),
+      servingSizeUnit: getServingSizeUnit(food),
     });
 
     const remainingFoods = detectedFoods.filter((f) => f !== food);
@@ -280,6 +296,8 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       sugar: adjusted.sugar,
       addedSugar: adjusted.addedSugar,
       recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
+      servingSize: getServingSizeFromFood(food),
+      servingSizeUnit: getServingSizeUnit(food),
     });
 
     const remainingFoods = detectedFoods.filter((f) => f !== food);
@@ -305,6 +323,8 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         sugar: adjusted.sugar,
         addedSugar: adjusted.addedSugar,
         recipe: shouldGenerateRecipe ? buildGeneratedRecipe(food) : undefined,
+        servingSize: getServingSizeFromFood(food),
+        servingSizeUnit: getServingSizeUnit(food),
       });
     });
     setDetectedFoods([]);
