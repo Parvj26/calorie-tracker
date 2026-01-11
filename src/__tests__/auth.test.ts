@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // ============================================
 // AUTHENTICATION TESTS
@@ -190,7 +190,8 @@ describe('Authentication Logic', () => {
       }
 
       // For security, always return success even if email doesn't exist
-      // But internally we only send email if registered
+      // Check if registered (would be used internally to actually send email)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const isRegistered = registeredEmails.includes(email.toLowerCase());
 
       // In real implementation, email would be sent only if registered

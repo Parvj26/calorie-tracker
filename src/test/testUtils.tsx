@@ -1,8 +1,9 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
+import { vi } from 'vitest';
 
-// Mock AuthContext
-const mockAuthContext = {
+// Mock AuthContext - exported for use in tests that need to access mock functions
+export const mockAuthContext = {
   user: null,
   loading: false,
   signIn: vi.fn(),

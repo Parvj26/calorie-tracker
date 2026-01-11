@@ -45,6 +45,7 @@ const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max 
 const randomFloat = (min: number, max: number) => Math.round((Math.random() * (max - min) + min) * 10) / 10;
 
 // Generate meal plan for a day (realistic patterns)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const generateDayMeals = (dayOfWeek: number): string[] => {
   const mealIds: string[] = [];
 
@@ -115,7 +116,7 @@ async function seedDemoUser() {
       fiber: meal.fiber || 0,
       sugar: meal.sugar || 0,
       is_custom: false,
-      serving_size: (meal as any).servingSize || null,
+      serving_size: (meal as { servingSize?: number }).servingSize || null,
     });
     if (error) console.error(`  Error inserting ${meal.name}:`, error.message);
     else console.log(`  Added: ${meal.name}`);

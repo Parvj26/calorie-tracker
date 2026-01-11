@@ -312,6 +312,7 @@ describe('Community/Discover', () => {
       const activeMeals = (masterMeals as ArchivableMeal[]).filter((m) => !m.archivedAt);
 
       expect(meal.archivedAt).toBeDefined();
+      expect(activeMeals.length).toBeLessThan(masterMeals.length);
     });
   });
 
