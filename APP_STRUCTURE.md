@@ -21,8 +21,11 @@
 11. [Features & User Flows](#features--user-flows)
 12. [API Integrations](#api-integrations)
 13. [Calculations & Formulas](#calculations--formulas)
-14. [Deployment](#deployment)
-15. [Admin & Coach Setup](#admin--coach-setup)
+14. [Testing](#testing)
+15. [CI/CD Pipeline](#cicd-pipeline)
+16. [Scripts & Utilities](#scripts--utilities)
+17. [Deployment](#deployment)
+18. [Admin & Coach Setup](#admin--coach-setup)
 
 ---
 
@@ -55,7 +58,12 @@ CalorieTracker is a comprehensive nutrition and fitness tracking Progressive Web
 | **IDs** | uuid | 13.0.0 | Unique ID Generation |
 | **AI (Free)** | Groq API | - | Llama 4 Scout Vision |
 | **AI (Paid)** | OpenAI API | - | GPT-4o Vision |
+| **Unit Testing** | Vitest | 4.0.16 | Fast Unit Test Framework |
+| **Component Testing** | Testing Library | 16.3.1 | React Component Testing |
+| **E2E Testing** | Playwright | 1.57.0 | Browser Automation Testing |
+| **Linting** | ESLint | 9.39.1 | Code Quality & Standards |
 | **Hosting** | Vercel | - | Deployment Platform |
+| **CI/CD** | GitHub Actions | - | Automated Testing & Deployment |
 
 ---
 
@@ -110,12 +118,13 @@ calorie-tracker/
 │   │       └── AdminPanel.tsx       # Submission review interface
 │   │
 │   ├── hooks/                       # Custom React Hooks
-│   │   ├── useCalorieTracker.ts     # Core app state management
+│   │   ├── useCalorieTracker.ts     # Core app state management (~1200 lines)
 │   │   ├── useSupabaseSync.ts       # DB synchronization
 │   │   ├── useUserProfile.ts        # User identity & roles
 │   │   ├── useMasterMeals.ts        # Community meals
 │   │   ├── useMealSubmissions.ts    # Submission workflow
 │   │   ├── useCoachClients.ts       # Coach client management
+│   │   ├── useCoachCode.ts          # Coach code lookup & connection
 │   │   ├── useLocalStorage.ts       # Browser persistence
 │   │   ├── useActivityRecommendation.ts # Activity analysis
 │   │   └── useInsights.ts           # AI insights (disabled)
@@ -138,16 +147,49 @@ calorie-tracker/
 │   │   └── activityRecommendation.ts # Activity level analysis
 │   │
 │   ├── types/                       # TypeScript Definitions
-│   │   └── index.ts                 # All type exports
+│   │   └── index.ts                 # All type exports (~315 lines)
 │   │
-│   └── data/                        # Seed Data
-│       └── defaultMeals.ts          # Example meals with recipes
+│   ├── data/                        # Seed Data
+│   │   └── defaultMeals.ts          # Example meals with recipes
+│   │
+│   ├── test/                        # Test Infrastructure
+│   │   ├── setup.ts                 # Vitest global setup (mocks)
+│   │   └── testUtils.tsx            # Test utilities & factories
+│   │
+│   └── __tests__/                   # Unit & Integration Tests
+│       ├── auth.test.ts             # Authentication tests
+│       ├── calculations.test.ts     # BMR/TDEE/macro calculations
+│       ├── servingMultiplier.test.ts # Quantity unit conversions
+│       ├── weightTracking.test.ts   # Weigh-in management
+│       ├── nutritionGoals.test.ts   # Nutrition goal calculations
+│       ├── settings.test.ts         # Settings & target date tests
+│       ├── mealManagement.test.ts   # CRUD, soft delete, favorites
+│       ├── dailyLogging.test.ts     # Daily log operations
+│       ├── inBodyScans.test.ts      # Body composition tests
+│       ├── bodyIntelligence.test.ts # Response score, metabolic status
+│       ├── healthDataImport.test.ts # Apple Health import tests
+│       ├── foodScanner.test.ts      # AI food detection tests
+│       ├── dashboard.test.ts        # Dashboard component tests
+│       ├── discover.test.ts         # Community meals tests
+│       ├── coach.test.ts            # Coach-client tests
+│       ├── weightConversion.test.ts # kg/lbs conversion tests
+│       ├── apiMocks.test.ts         # API mocking tests
+│       ├── supabaseIntegration.test.ts # Database sync tests
+│       └── useCalorieTracker.test.ts # Core hook tests
+│
+├── e2e/                             # End-to-End Tests
+│   └── app.spec.ts                  # Playwright E2E tests (~500 lines)
+│
+├── scripts/                         # Utility Scripts
+│   ├── seed-demo-user.ts            # Seed demo user data
+│   └── seed-demo-coach.ts           # Seed demo coach data
 │
 ├── supabase/                        # Supabase Configuration
 │   └── config.toml                  # Local dev settings
 │
-├── scripts/                         # Utility Scripts
-│   └── add-added-sugar.sql          # DB migration example
+├── .github/                         # GitHub Configuration
+│   └── workflows/
+│       └── tests.yml                # CI/CD workflow (3 jobs)
 │
 ├── dist/                            # Build Output
 ├── .vercel/                         # Vercel Config
@@ -155,9 +197,11 @@ calorie-tracker/
 ├── supabase-schema.sql              # Database schema
 ├── APP_STRUCTURE.md                 # This documentation
 ├── README.md                        # Quick start guide
-├── package.json                     # Dependencies
+├── package.json                     # Dependencies & scripts
 ├── tsconfig.json                    # TypeScript config
-├── vite.config.ts                   # Vite config
+├── vite.config.ts                   # Vite build config
+├── vitest.config.ts                 # Vitest test config
+├── playwright.config.ts             # Playwright E2E config
 └── eslint.config.js                 # ESLint config
 ```
 
@@ -910,13 +954,106 @@ interface MealSubmission {
   fat: number;
   fiber: number;
   sugar: number;
+  addedSugar?: number;
   recipe?: Recipe;
   submittedBy: string;
+  submittedByEmail?: string;
+  submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   reviewedBy?: string;
+  reviewedAt?: string;
   rejectionReason?: string;
   masterMealId?: string;
 }
+```
+
+### Recipe Types
+
+```typescript
+interface RecipeNutrition {
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
+  addedSugar?: number | null;
+}
+
+interface RecipeIngredient {
+  item: string;
+  portion?: string;
+  amount?: string;
+  unit?: string;
+}
+
+interface RecipeSection {
+  title: string;
+  ingredients: RecipeIngredient[];
+  nutrition?: RecipeNutrition;
+  notes?: string[];
+}
+
+interface Recipe {
+  rawText?: string;
+  servings?: number;
+  totalTime?: number;
+  nutrition?: RecipeNutrition;
+  sections?: RecipeSection[];
+  ingredients?: RecipeIngredient[];
+  instructions?: string[];
+}
+```
+
+### AI Insights Types
+
+```typescript
+interface DailyInsights {
+  patternInsight: string;      // Key insight about their eating pattern
+  actionItem: string;          // One specific actionable suggestion
+  progressSummary: string;     // Progress towards goal with motivation
+  wins: string[];              // Positive reinforcement (1-2 wins)
+  remaining: string;           // Calories/macros remaining summary
+  generatedAt: string;         // ISO timestamp
+  tips?: string[];             // Legacy field for backwards compatibility
+}
+
+interface WeeklyInsights {
+  summary: string;             // 2-3 sentence overview
+  patterns: string[];          // Detected patterns
+  wins: string[];              // Positive achievements
+  suggestions: string[];       // Actionable tips
+  generatedAt: string;         // ISO timestamp
+}
+
+interface MonthlyInsights {
+  summary: string;             // Month overview
+  trends: string[];            // Long-term trends
+  goalPrediction: string;      // When user will reach goal
+  comparison: string;          // vs last month
+  generatedAt: string;         // ISO timestamp
+}
+```
+
+### App State Types
+
+```typescript
+interface AppState {
+  meals: Meal[];
+  dailyLogs: DailyLog[];
+  inBodyScans: InBodyScan[];
+  weighIns: WeighIn[];
+  settings: UserSettings;
+}
+
+type TabType = 'dashboard' | 'log' | 'discover' | 'progress' | 'inbody' | 'summary' | 'settings';
+type AIProvider = 'openai' | 'groq';
+type WeightUnit = 'kg' | 'lbs';
+type QuantityUnit = 'serving' | 'g' | 'ml' | 'oz';
+type ServingSizeUnit = 'g' | 'ml' | 'oz';
+type UserRole = 'user' | 'admin' | 'coach';
+type Gender = 'male' | 'female' | 'other' | 'prefer-not-to-say';
+type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 ```
 
 ---
@@ -1169,6 +1306,334 @@ Weekly deficit × 52 / 7,700 = Annual kg loss
 
 ---
 
+## Testing
+
+### Test Infrastructure
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Test Runner** | Vitest 4.0.16 | Fast, Vite-native test execution |
+| **DOM Environment** | jsdom 27.4.0 | Browser environment simulation |
+| **Component Testing** | Testing Library 16.3.1 | React component rendering & queries |
+| **Assertions** | @testing-library/jest-dom | Extended DOM matchers |
+| **E2E Testing** | Playwright 1.57.0 | Cross-browser automation |
+| **Mocking** | Vitest vi | Spies, mocks, and timers |
+
+### Test Configuration
+
+**Vitest Configuration (`vitest.config.ts`):**
+```typescript
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/', 'src/test/'],
+    },
+  },
+})
+```
+
+**Playwright Configuration (`playwright.config.ts`):**
+```typescript
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
+  ],
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+```
+
+### Test Setup (`src/test/setup.ts`)
+
+```typescript
+import '@testing-library/jest-dom'
+import { vi } from 'vitest'
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+Object.defineProperty(global, 'localStorage', { value: localStorageMock })
+
+// Mock crypto.randomUUID if not available
+if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+  Object.defineProperty(crypto, 'randomUUID', {
+    value: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+  })
+}
+```
+
+### Test Utilities (`src/test/testUtils.tsx`)
+
+**Test Data Factories:**
+```typescript
+// Create mock meal
+createTestMeal(overrides = {}) → Meal
+
+// Create mock daily log
+createTestDailyLog(date: string, overrides = {}) → DailyLog
+
+// Create mock weigh-in
+createTestWeighIn(date: string, weight: number) → WeighIn
+
+// Create mock InBody scan
+createTestInBodyScan(date: string, overrides = {}) → InBodyScan
+
+// Create mock settings
+createTestSettings(overrides = {}) → UserSettings
+
+// Create mock user profile
+createTestUserProfile(overrides = {}) → UserProfile
+
+// Date helpers
+daysAgo(days: number) → string  // YYYY-MM-DD
+today() → string                 // YYYY-MM-DD
+```
+
+### Unit Test Files (19 files, 548+ tests)
+
+| Test File | Coverage Area | Key Tests |
+|-----------|---------------|-----------|
+| `auth.test.ts` | Authentication | Sign in, sign up, password reset, session |
+| `calculations.test.ts` | BMR/TDEE | Mifflin-St Jeor, Katch-McArdle, activity multipliers |
+| `servingMultiplier.test.ts` | Unit Conversion | Serving, grams, ml, oz calculations |
+| `weightTracking.test.ts` | Weight Management | Add, edit, delete weigh-ins |
+| `nutritionGoals.test.ts` | Macro Goals | Protein, carbs, fat, fiber targets |
+| `settings.test.ts` | User Settings | Target date, weight goals, preferences |
+| `mealManagement.test.ts` | Meal CRUD | Create, edit, soft delete, restore, favorites |
+| `dailyLogging.test.ts` | Daily Logs | Add/remove meals, quantity, workout calories |
+| `inBodyScans.test.ts` | Body Composition | Scan import, metric extraction |
+| `bodyIntelligence.test.ts` | Intelligence | Response score, fat loss efficiency, metabolic status |
+| `healthDataImport.test.ts` | Health Import | Apple Health extraction, TDEE calculation |
+| `foodScanner.test.ts` | AI Scanner | Food detection, API fallback |
+| `dashboard.test.ts` | Dashboard | Calorie ring, macro pills, quick stats |
+| `discover.test.ts` | Community | Master meals, submissions, library |
+| `coach.test.ts` | Coach Feature | Client management, alerts, connections |
+| `weightConversion.test.ts` | Unit Conversion | kg to lbs, lbs to kg |
+| `apiMocks.test.ts` | API Mocking | Groq, OpenAI mock responses |
+| `supabaseIntegration.test.ts` | Database | Sync, RLS, CRUD operations |
+| `useCalorieTracker.test.ts` | Core Hook | State management, mutations |
+
+### E2E Test Categories (64+ tests)
+
+| Category | Tests | Purpose |
+|----------|-------|---------|
+| **Authentication** | 3 | Landing page, sign up, sign in forms |
+| **Navigation** | 1 | Tab switching (skip in CI) |
+| **UI Elements** | 3 | No critical errors, viewport, styles |
+| **Responsive Design** | 3 | Mobile, tablet, desktop viewports |
+| **Accessibility** | 3 | Alt text, button names, form labels |
+| **Performance** | 2 | Load time <10s, console warnings |
+| **Local Storage** | 1 | Storage access verification |
+| **Error Handling** | 2 | 404 routes, network errors |
+| **Landing Page** | 2 | Content display, interactivity |
+| **Form Validation** | 2 | Email validation, password masking |
+| **Visual Styling** | 3 | Font family, text color, button cursor |
+| **User Interactions** | 2 | Keyboard navigation, escape key |
+| **SEO and Meta** | 3 | Title, description, favicon |
+| **Security** | 3 | Password obscured, HTTPS, no URL secrets |
+
+### Running Tests
+
+```bash
+# Unit tests (watch mode)
+npm run test
+
+# Unit tests (single run)
+npm run test:run
+
+# Unit tests with coverage
+npm run test:coverage
+
+# E2E tests (headless)
+npm run test:e2e
+
+# E2E tests (with UI)
+npm run test:e2e:ui
+```
+
+---
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflow (`.github/workflows/tests.yml`)
+
+The CI/CD pipeline consists of 3 parallel jobs that run on every push and pull request to main/master:
+
+```yaml
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+```
+
+### Job 1: Unit & Integration Tests
+
+```yaml
+unit-tests:
+  name: Unit & Integration Tests
+  runs-on: ubuntu-latest
+  steps:
+    - Checkout code
+    - Setup Node.js 20
+    - npm ci
+    - npm run test:run        # Run all unit tests
+    - npm run test:coverage   # Generate coverage report
+```
+
+### Job 2: E2E Tests
+
+```yaml
+e2e-tests:
+  name: E2E Tests
+  runs-on: ubuntu-latest
+  steps:
+    - Checkout code
+    - Setup Node.js 20
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - npm run test:e2e
+      env:
+        VITE_SUPABASE_URL: https://placeholder.supabase.co
+        VITE_SUPABASE_ANON_KEY: placeholder-key-for-ci-testing
+    - Upload playwright-report (on failure)
+```
+
+### Job 3: Build Verification
+
+```yaml
+build:
+  name: Build Verification
+  runs-on: ubuntu-latest
+  steps:
+    - Checkout code
+    - Setup Node.js 20
+    - npm ci
+    - npm run lint
+    - npm run build
+    - Upload dist/ artifact
+```
+
+### CI/CD Status Indicators
+
+| Job | Badge | Purpose |
+|-----|-------|---------|
+| Unit Tests | ✅ | Validates business logic & calculations |
+| E2E Tests | ✅ | Validates UI rendering & interactions |
+| Build | ✅ | Verifies production build succeeds |
+
+### Artifact Uploads
+
+- **playwright-report**: Uploaded on E2E failure (7 days retention)
+- **dist**: Production build artifacts (7 days retention)
+
+---
+
+## Scripts & Utilities
+
+### NPM Scripts (`package.json`)
+
+```json
+{
+  "scripts": {
+    "dev": "vite",                    // Start dev server (port 5173)
+    "build": "tsc -b && vite build",  // Type-check & build for production
+    "lint": "eslint .",               // Run ESLint on all files
+    "preview": "vite preview",        // Preview production build
+    "test": "vitest",                 // Run tests in watch mode
+    "test:run": "vitest run",         // Run tests once
+    "test:coverage": "vitest run --coverage",  // Generate coverage
+    "test:e2e": "playwright test",    // Run E2E tests
+    "test:e2e:ui": "playwright test --ui"      // E2E with Playwright UI
+  }
+}
+```
+
+### Seed Scripts (`scripts/`)
+
+#### `seed-demo-user.ts`
+
+Seeds a complete demo user account with realistic data for testing:
+
+```bash
+SUPABASE_SERVICE_KEY=your_key npx tsx scripts/seed-demo-user.ts
+```
+
+**Generated Data:**
+- 10 meals (breakfast, lunch, dinner, snacks)
+- 45 days of daily logs with meal selections
+- 23 weigh-ins (every 2 days, trending 82kg → 78kg)
+- 7 weekly InBody scans with body composition
+- User settings (1700 cal target, 72kg goal)
+- User profile (Demo User, 175cm, moderate activity)
+
+#### `seed-demo-coach.ts`
+
+Seeds a demo coach account with connected clients:
+
+```bash
+SUPABASE_SERVICE_KEY=your_key npx tsx scripts/seed-demo-coach.ts
+```
+
+**Generated Data:**
+- Coach account with coach_code
+- Multiple connected clients
+- Pending connection requests
+- Client activity data for alerts
+
+### Development Workflow
+
+```bash
+# 1. Clone and install
+git clone <repo>
+cd calorie-tracker
+npm install
+
+# 2. Set up environment
+cp .env.example .env.local
+# Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+
+# 3. Start development
+npm run dev
+
+# 4. Run tests before committing
+npm run test:run
+npm run lint
+
+# 5. Build for production
+npm run build
+npm run preview
+```
+
+---
+
 ## Deployment
 
 ### Vercel Configuration
@@ -1300,4 +1765,39 @@ WHERE email = 'your-coach@email.com';
 
 ---
 
+## Quick Reference
+
+### Key File Locations
+
+| Purpose | Location |
+|---------|----------|
+| Main entry point | `src/main.tsx` |
+| Root component | `src/App.tsx` |
+| Core state hook | `src/hooks/useCalorieTracker.ts` |
+| Type definitions | `src/types/index.ts` |
+| Database schema | `supabase-schema.sql` |
+| Test configuration | `vitest.config.ts`, `playwright.config.ts` |
+| CI/CD workflow | `.github/workflows/tests.yml` |
+
+### Common Commands
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run test:run     # Run unit tests
+npm run test:e2e     # Run E2E tests
+npm run lint         # Run ESLint
+```
+
+### Environment Variables
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `VITE_SUPABASE_URL` | Supabase project URL | Yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes |
+| `SUPABASE_SERVICE_KEY` | Service key for scripts | Scripts only |
+
+---
+
 *Documentation generated January 2026*
+*Last updated: January 11, 2026 - Added Testing, CI/CD, and Scripts documentation*
