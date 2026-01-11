@@ -59,7 +59,7 @@ export function useCalorieTracker(userProfile?: UserProfile | null) {
   const [inBodyScans, setInBodyScans] = useLocalStorage<InBodyScan[]>('calorie-tracker-inbody', []);
   const [weighIns, setWeighIns] = useLocalStorage<WeighIn[]>('calorie-tracker-weighins', []);
   const [settings, setSettings] = useLocalStorage<UserSettings>('calorie-tracker-settings', defaultSettings);
-  const [isLoaded, setIsLoaded] = useState(true); // Start as true - localStorage data is available immediately
+  const [isLoaded] = useState(true); // Start as true - localStorage data is available immediately
   const [hasSynced, setHasSynced] = useState(false);
 
   const {
