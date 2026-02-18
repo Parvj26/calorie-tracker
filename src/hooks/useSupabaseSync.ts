@@ -293,6 +293,28 @@ export function useSupabaseSync() {
     });
   }, [user]);
 
+  // Delete all user data from Supabase
+  const deleteAllUserData = useCallback(async () => {
+    if (!user) return false;
+
+    try {
+      // Delete all user data from all tables
+      await Promise.all([
+        supabase.from('meals').delete().eq('user_id', user.id),
+        supabase.from('daily_logs').delete().eq('user_id', user.id),
+        supabase.from('weigh_ins').delete().eq('user_id', user.id),
+        supabase.from('inbody_scans').delete().eq('user_id', user.id),
+        supabase.from('user_settings').delete().eq('user_id', user.id),
+        supabase.from('meal_submissions').delete().eq('submitted_by', user.id),
+      ]);
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting user data:', error);
+      return false;
+    }
+  }, [user]);
+
   return {
     syncState,
     loadFromSupabase,
@@ -308,5 +330,6 @@ export function useSupabaseSync() {
     saveInBodyScan,
     deleteInBodyScanFromDb,
     saveSettings,
+    deleteAllUserData,
   };
 }

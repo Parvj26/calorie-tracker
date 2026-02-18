@@ -8,6 +8,7 @@ import { useActivityRecommendation } from '../hooks/useActivityRecommendation';
 import { getRecommendationReason } from '../utils/activityRecommendation';
 import { calculateNutritionGoals, calculateAge, getDefaultNutritionGoals, type NutritionGoals } from '../utils/nutritionGoals';
 import { ConnectToCoach } from './Coach/ConnectToCoach';
+import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
 interface SettingsProps {
   settings: UserSettings;
@@ -25,6 +26,7 @@ export const Settings: React.FC<SettingsProps> = ({
   dailyLogs = [],
 }) => {
   const { profile, updateProfile, isCoach, coachCode } = useUserProfile();
+  const { deleteAllUserData } = useSupabaseSync();
   const [formData, setFormData] = useState(settings);
   const [copiedCoachCode, setCopiedCoachCode] = useState(false);
 
@@ -589,18 +591,28 @@ export const Settings: React.FC<SettingsProps> = ({
         </button>
         <button
           className="danger-btn"
-          onClick={() => {
+          onClick={async () => {
             if (
               window.confirm(
                 'Are you sure you want to delete ALL your data? This cannot be undone.'
               )
             ) {
-              localStorage.removeItem('calorie-tracker-meals');
-              localStorage.removeItem('calorie-tracker-daily-logs');
-              localStorage.removeItem('calorie-tracker-inbody');
-              localStorage.removeItem('calorie-tracker-weighins');
-              localStorage.removeItem('calorie-tracker-settings');
-              window.location.reload();
+              // Delete from Supabase
+              const success = await deleteAllUserData();
+
+              if (success) {
+                // Clear localStorage as well
+                localStorage.removeItem('calorie-tracker-meals');
+                localStorage.removeItem('calorie-tracker-daily-logs');
+                localStorage.removeItem('calorie-tracker-inbody');
+                localStorage.removeItem('calorie-tracker-weighins');
+                localStorage.removeItem('calorie-tracker-settings');
+
+                // Reload the page to show empty state
+                window.location.reload();
+              } else {
+                alert('Failed to delete data. Please try again.');
+              }
             }
           }}
         >
